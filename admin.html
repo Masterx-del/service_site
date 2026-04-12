@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-black mb-8 text-purple-400">Admin Dashboard</h1>
+        
+        <div class="bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-700">
+            <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">Pending Deposits</h2>
+            <div id="depositsContainer" class="space-y-4">
+                </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, ref, onValue, update, get, child, push } from './firebase.js';
+
+        const depositsRef = ref(db, 'deposits');
+        const container = document.getElementById('depositsContainer');
+
+        onValue(depositsRef, (snapshot) => {
+            container.innerHTML = '';
+            const allUsersDeposits = snapshot.val();
+            
+            if(!allUsersDeposits) {
+                container.innerHTML = '<p class="text-gray-400">No pending deposits.</p>';
+                return;
+            }
+
+            // Loop through users -> deposits
+            for (const [userId, userDeposits] of Object.entries(allUsersDeposits)) {
+                for (const [depositId, deposit] of Object.entries(userDeposits)) {
+                    if (deposit.status === 'pending') {
+                        const div = document.createElement('div');
+                        div.className = 'flex justify-between items-center bg-gray-700 p-4 rounded-xl';
+                        div.innerHTML = `
+                            <div>
+                                <p class="font-bold text-green-400">₹${deposit.amount}</p>
+                                <p class="text-xs text-gray-300">UTR: ${deposit.utr}</p>
+                                <p class="text-xs text-gray-400">UID: ${userId}</p>
+                            </div>
+                            <button data-uid="${userId}" data-did="${depositId}" data-amt="${deposit.amount}" class="approve-btn px-4 py-2 bg-purple-600 rounded-lg font-bold hover:bg-purple-500 transition">Approve</button>
+                        `;
+                        container.appendChild(div);
+                    }
+                }
+            }
+
+            // Attach Approve listeners
+            document.querySelectorAll('.approve-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const btnEl = e.target;
+                    const uid = btnEl.getAttribute('data-uid');
+                    const did = btnEl.getAttribute('data-did');
+                    const amount = parseFloat(btnEl.getAttribute('data-amt'));
+                    
+                    btnEl.innerText = "Approving...";
+                    
+                    // 1. Get current user balance
+                    const userRef = ref(db, `users/${uid}`);
+                    const userSnap = await get(child(userRef, 'balance'));
+                    const currentBalance = userSnap.val() || 0;
+                    
+                    // 2. Update status & balance atomically
+                    const updates = {};
+                    updates[`deposits/${uid}/${did}/status`] = 'success';
+                    updates[`users/${uid}/balance`] = currentBalance + amount;
+                    
+                    await update(ref(db), updates);
+                    
+                    // 3. Log transaction
+                    push(ref(db, `transactions/${uid}`), {
+                        type: 'DEPOSIT',
+                        amount: amount,
+                        time: Date.now()
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
