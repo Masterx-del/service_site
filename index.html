@@ -1,77 +1,30 @@
 <script type="module">
-        // Firebase aur Auth logic ko initialize karna
-        import { auth, db, onAuthStateChanged, signOut, ref, onValue } from './firebase.js';
-
-        let currentUser = null;
-
-        // Login check: Agar login nahi hai toh login.html pe bhej dega
+        import { auth, onAuthStateChanged } from './firebase.js';
+        
+        // Session Check: Agar login nahi hai toh login page pe bhej do
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                loadUserData();
-            } else {
+            if (!user) {
                 window.location.href = 'login.html';
+            } else {
+                console.log("Logged in as:", user.email);
             }
         });
-
-        // User ka Balance load karne ke liye
-        function loadUserData() {
-            const balanceRef = ref(db, 'users/' + currentUser.uid + '/balance');
-            onValue(balanceRef, (snapshot) => {
-                const balance = snapshot.val() || 0;
-                // Saare balance elements update karein
-                document.querySelectorAll('.user-balance-display').forEach(el => {
-                    el.textContent = `₹${balance.toFixed(2)}`;
-                });
-            });
-        }
-
-        // Global function banayein taaki buttons kaam karein
-        window.handleLogout = () => {
-            signOut(auth).then(() => window.location.href = 'login.html');
-        };
-
-        // Telegram links
-        window.openSupport = () => window.open('https://t.me/Vip3rxyt', '_blank');
-        window.openUpdates = () => window.open('https://t.me/Instagramfreefollowersrx', '_blank');
     </script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const bTabs = document.querySelectorAll('.bottom-tab');
-            const screens = document.querySelectorAll('.screen-content');
-
-            window.switchScreen = (screenId) => {
-                screens.forEach(s => s.classList.remove('active'));
-                const target = document.getElementById(`screen-${screenId}`);
-                if (target) target.classList.add('active');
-                
-                bTabs.forEach(tab => {
-                    if(tab.dataset.screen === screenId) tab.classList.add('active');
-                    else tab.classList.remove('active');
-                });
-            };
-
-            bTabs.forEach(t => t.addEventListener('click', () => switchScreen(t.dataset.screen)));
-        });
-
         function openFunds() {
-            document.getElementById("addFundsModal").classList.replace("hidden", "flex");
+            const modal = document.getElementById("addFundsModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
         }
-
         function closeFunds() {
-            document.getElementById("addFundsModal").classList.replace("flex", "hidden");
+            const modal = document.getElementById("addFundsModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
         }
-
-        // Copy Link Function
-        window.copyLink = (text, btn) => {
-            navigator.clipboard.writeText(text);
-            const icon = btn.querySelector('i');
-            icon.className = 'ph-bold ph-check text-green-400';
-            setTimeout(() => { icon.className = 'ph-bold ph-copy'; }, 2000);
-        };
+        // Telegram Links
+        function contactSupport() { window.open('https://t.me/Vip3rxyt', '_blank'); }
+        function latestUpdates() { window.open('https://t.me/Instagramfreefollowersrx', '_blank'); }
     </script>
-    
+
     <script type="module" src="app.js"></script>
-</body>
-</html>
