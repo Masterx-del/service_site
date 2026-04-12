@@ -1,136 +1,77 @@
-<script type="module" src="app.js"></script>
-    <script>
-        // Keep the UI interaction logic identical
-        window.copyLink = (text, btn) => {
-            const icon = btn.querySelector('i');
-            navigator.clipboard.writeText(text).then(() => {
-                icon.classList.replace('ph-copy', 'ph-check');
-                btn.classList.add('text-green-400');
-                setTimeout(() => {
-                    icon.classList.replace('ph-check', 'ph-copy');
-                    btn.classList.remove('text-green-400');
-                }, 2000);
+<script type="module">
+        // Firebase aur Auth logic ko initialize karna
+        import { auth, db, onAuthStateChanged, signOut, ref, onValue } from './firebase.js';
+
+        let currentUser = null;
+
+        // Login check: Agar login nahi hai toh login.html pe bhej dega
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadUserData();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // User ka Balance load karne ke liye
+        function loadUserData() {
+            const balanceRef = ref(db, 'users/' + currentUser.uid + '/balance');
+            onValue(balanceRef, (snapshot) => {
+                const balance = snapshot.val() || 0;
+                // Saare balance elements update karein
+                document.querySelectorAll('.user-balance-display').forEach(el => {
+                    el.textContent = `₹${balance.toFixed(2)}`;
+                });
             });
+        }
+
+        // Global function banayein taaki buttons kaam karein
+        window.handleLogout = () => {
+            signOut(auth).then(() => window.location.href = 'login.html');
         };
 
-        // UI Tabs & Modal Logic (Untouched from your original)
+        // Telegram links
+        window.openSupport = () => window.open('https://t.me/Vip3rxyt', '_blank');
+        window.openUpdates = () => window.open('https://t.me/Instagramfreefollowersrx', '_blank');
+    </script>
+
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
             const bTabs = document.querySelectorAll('.bottom-tab');
-            const tTabs = document.querySelectorAll('.top-tab');
             const screens = document.querySelectorAll('.screen-content');
-            const scrollArea = document.getElementById('main-scroll');
-            const topTabsContainer = document.getElementById('top-tabs-container');
 
-            function switchScreen(screenId) {
+            window.switchScreen = (screenId) => {
                 screens.forEach(s => s.classList.remove('active'));
                 const target = document.getElementById(`screen-${screenId}`);
-                if (target) {
-                    target.classList.add('active');
-                    scrollArea.scrollTo({ top: 0, behavior: 'instant' });
-                }
-
-                bTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.screen === screenId));
-                tTabs.forEach(tab => {
-                    if (tab.dataset.screen === screenId) {
-                        tab.classList.add('active');
-                        const tabRect = tab.getBoundingClientRect();
-                        const containerRect = topTabsContainer.getBoundingClientRect();
-                        const scrollPos = topTabsContainer.scrollLeft + (tabRect.left - containerRect.left) - (containerRect.width / 2) + (tabRect.width / 2);
-                        topTabsContainer.scrollTo({ left: scrollPos, behavior: 'smooth' });
-                    } else {
-                        tab.classList.remove('active');
-                    }
+                if (target) target.classList.add('active');
+                
+                bTabs.forEach(tab => {
+                    if(tab.dataset.screen === screenId) tab.classList.add('active');
+                    else tab.classList.remove('active');
                 });
-            }
+            };
 
             bTabs.forEach(t => t.addEventListener('click', () => switchScreen(t.dataset.screen)));
-            tTabs.forEach(t => t.addEventListener('click', () => switchScreen(t.dataset.screen)));
-            switchScreen('services');
-
-            // Service display logic
-            document.querySelectorAll('.group[data-service]').forEach(card => {
-                card.addEventListener('click', function() {
-                    const serviceType = this.getAttribute('data-service');
-                    document.querySelectorAll('.group[data-service]').forEach(c => {
-                        c.classList.remove('border-white/20', 'bg-white/5');
-                        c.classList.add('border-transparent');
-                    });
-                    this.classList.remove('border-transparent');
-                    this.classList.add('border-white/20', 'bg-white/5');
-                    
-                    document.getElementById('selected-service-title').textContent = serviceType.charAt(0).toUpperCase() + serviceType.slice(1) + ' Services';
-                    
-                    const serviceItemsContainer = document.getElementById('service-items-container');
-                    serviceItemsContainer.innerHTML = '';
-                    const services = window.mockServicesData ? window.mockServicesData[serviceType] : [];
-                    
-                    if(services && services.length > 0) {
-                        services.forEach(svc => {
-                            serviceItemsContainer.innerHTML += `
-                                <div class="glass rounded-2xl p-4 flex items-center justify-between hover:bg-white/5 active:scale-[0.98] transition-all cursor-pointer border border-white/5">
-                                    <div>
-                                        <h4 class="text-sm font-black text-white">${svc.title}</h4>
-                                        <p class="text-[10px] text-gray-400">${svc.desc}</p>
-                                    </div>
-                                    <span class="text-sm font-black text-green-400">${svc.price}</span>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        serviceItemsContainer.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">Loading or no services available.</p>`;
-                    }
-                    document.getElementById('service-list').classList.remove('hidden', 'opacity-0');
-                });
-            });
         });
 
         function openFunds() {
-            document.getElementById("addFundsModal").classList.remove("hidden");
-            document.getElementById("addFundsModal").classList.add("flex");
+            document.getElementById("addFundsModal").classList.replace("hidden", "flex");
         }
 
         function closeFunds() {
-            document.getElementById("addFundsModal").classList.add("hidden");
-            document.getElementById("addFundsModal").classList.remove("flex");
+            document.getElementById("addFundsModal").classList.replace("flex", "hidden");
         }
 
-        function selectMethod(type) {
-            document.getElementById("upiCard").classList.remove("active");
-            document.getElementById("cryptoCard").classList.remove("active");
-            document.getElementById(type + "Card").classList.add("active");
-            
-            if (type === "crypto") {
-                document.getElementById("cryptoBox").classList.remove("hidden");
-                document.getElementById("calcBox").classList.add("hidden");
-                document.getElementById("amountChips").classList.add("hidden");
-                document.getElementById("limitBox").classList.add("hidden");
-                document.getElementById("payBtn").classList.add("hidden");
-            } else {
-                document.getElementById("cryptoBox").classList.add("hidden");
-                document.getElementById("calcBox").classList.remove("hidden");
-                document.getElementById("amountChips").classList.remove("hidden");
-                document.getElementById("limitBox").classList.remove("hidden");
-                document.getElementById("payBtn").classList.remove("hidden");
-            }
-        }
-
-        function setAmt(val) {
-            document.getElementById("amountInput").value = val;
-            updateCalc();
-        }
-
-        function updateCalc() {
-            let amt = parseFloat(document.getElementById("amountInput").value) || 0;
-            let fee = amt * 0.05;
-            let total = amt + fee;
-            document.getElementById("amt").innerText = "₹" + amt.toFixed(2);
-            document.getElementById("fee").innerText = "+₹" + fee.toFixed(2);
-            document.getElementById("total").innerText = "₹" + total.toFixed(2);
-            document.getElementById("payBtn").innerText = "Pay ₹" + total.toFixed(2) + " (incl. fee)";
-        }
-
-        document.getElementById("amountInput")?.addEventListener("input", updateCalc);
-        selectMethod('upi');
+        // Copy Link Function
+        window.copyLink = (text, btn) => {
+            navigator.clipboard.writeText(text);
+            const icon = btn.querySelector('i');
+            icon.className = 'ph-bold ph-check text-green-400';
+            setTimeout(() => { icon.className = 'ph-bold ph-copy'; }, 2000);
+        };
     </script>
+    
+    <script type="module" src="app.js"></script>
 </body>
 </html>
