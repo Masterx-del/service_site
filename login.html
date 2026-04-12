@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Provider | Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { background-color: #030303; color: white; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(15, 17, 26, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .bg-neon-grad { background: linear-gradient(135deg, #A855F7 0%, #3B82F6 100%); }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen overflow-hidden relative">
+    <div class="absolute -top-20 -left-20 w-72 h-72 bg-purple-500/20 blur-[80px] rounded-full"></div>
+    <div class="absolute bottom-10 -right-20 w-72 h-72 bg-blue-500/20 blur-[80px] rounded-full"></div>
+
+    <div class="glass w-[90%] max-w-sm rounded-[32px] p-8 relative z-10 shadow-2xl">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-neon-grad flex items-center justify-center mb-4 shadow-lg shadow-purple-500/30">
+                <i class="ph-bold ph-lightning text-white text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-black tracking-tight">Welcome Back</h1>
+            <p class="text-xs text-gray-400 mt-2">Sign in to access your dashboard</p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <input type="email" id="email" placeholder="Email Address" class="w-full bg-[#0F111A] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-purple-500/50 transition-all">
+            </div>
+            <div>
+                <input type="password" id="password" placeholder="Password" class="w-full bg-[#0F111A] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-purple-500/50 transition-all">
+            </div>
+            <button id="authBtn" class="w-full bg-neon-grad text-white font-black py-3 rounded-xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all mt-2">
+                Login / Register
+            </button>
+            <p id="errorMsg" class="text-red-400 text-xs text-center font-bold hidden"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, db, ref, set, get } from './firebase.js';
+
+        const authBtn = document.getElementById('authBtn');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const errorMsg = document.getElementById('errorMsg');
+
+        authBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            errorMsg.classList.add('hidden');
+            authBtn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i>';
+
+            try {
+                // Try Login
+                await signInWithEmailAndPassword(auth, email, password);
+                window.location.href = 'index.html';
+            } catch (error) {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                    // Try Register if user doesn't exist
+                    try {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        const user = userCredential.user;
+                        
+                        // Initialize user in Realtime DB
+                        await set(ref(db, 'users/' + user.uid), {
+                            email: user.email,
+                            balance: 0,
+                            createdAt: Date.now()
+                        });
+                        window.location.href = 'index.html';
+                    } catch (regError) {
+                        errorMsg.textContent = regError.message;
+                        errorMsg.classList.remove('hidden');
+                    }
+                } else {
+                    errorMsg.textContent = error.message;
+                    errorMsg.classList.remove('hidden');
+                }
+            }
+            authBtn.innerHTML = 'Login / Register';
+        });
+    </script>
+</body>
+</html>
