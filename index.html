@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Top Provider | Premium Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+body{background:#0f0f1a;color:#e0e0ff;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:15px}
+.header{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:#1a1a2e;border-radius:15px;margin-bottom:20px;border:1px solid #333}
+.logo{display:flex;align-items:center;gap:12px}.logo img{width:45px;height:45px;border-radius:50%;border:2px solid #6366f1}
+.logo h1{font-size:1.3rem;color:#fff}.balance-badge{background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:8px 16px;border-radius:20px;font-weight:600}
+.nav-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.nav-tab{padding:10px 18px;background:#1e1e2e;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:0.3s;border:1px solid #333}
+.nav-tab.active,.nav-tab:hover{background:#6366f1;color:#fff}
+.card{background:#1a1a2e;border-radius:15px;padding:20px;margin-bottom:15px;border:1px solid #333}
+.price-drop{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;padding:12px 18px;border-radius:12px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center}
+.price-drop .old{text-decoration:line-through;opacity:0.8}.price-drop .new{font-size:1.3rem;font-weight:700}
+.support-card{text-align:center;padding:15px}.support-card a{display:inline-block;margin-top:10px;padding:10px 20px;background:#6366f1;color:#fff;border-radius:10px;text-decoration:none;font-weight:500}
+.updates-card .channel-link{display:block;padding:10px;background:#2a2a3e;border-radius:8px;margin:8px 0;color:#6366f1;text-decoration:none}
+.social-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.social-links a{padding:8px 15px;background:#2a2a3e;border-radius:8px;color:#fff;text-decoration:none;font-size:0.85rem}
+.affiliate-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:15px 0}
+.stat-box{background:#2a2a3e;padding:15px;border-radius:12px;text-align:center}.stat-box .value{font-size:1.4rem;font-weight:700;color:#6366f1;margin:5px 0}.stat-box .label{font-size:0.8rem;color:#aaa}
+.referral-box{background:#2a2a3e;padding:15px;border-radius:12px;margin:15px 0}.referral-box input{width:100%;padding:10px;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff;margin:10px 0}
+.share-btns{display:flex;gap:8px;flex-wrap:wrap}.share-btns a{flex:1;padding:10px;background:#6366f1;color:#fff;border-radius:8px;text-align:center;text-decoration:none;font-size:0.85rem}
+.deposit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0}
+.deposit-option{background:#2a2a3e;padding:15px;border-radius:12px;cursor:pointer;border:2px solid transparent;transition:0.3s}.deposit-option.selected{border-color:#6366f1;background:#1e1e2e}
+.amount-presets{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.amount-btn{padding:8px 16px;background:#2a2a3e;border-radius:8px;border:none;color:#fff;cursor:pointer}.amount-btn:hover{background:#6366f1}
+.deposit-summary{background:#1e1e2e;padding:15px;border-radius:12px;margin:15px 0}
+.btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-weight:600;cursor:pointer;margin-top:10px}
+.order-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #333}.order-item:last-child{border-bottom:none}
+.status-badge{padding:4px 10px;border-radius:20px;font-size:0.8rem}.status-completed{background:#10b981;color:#fff}.status-pending{background:#f59e0b;color:#000}.status-cancelled{background:#ef4444;color:#fff}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.stat-card{background:#2a2a3e;padding:15px;border-radius:12px;text-align:center}.stat-card .num{font-size:1.5rem;font-weight:700;color:#6366f1}
+.wallet-actions{display:flex;gap:10px;margin:15px 0}.wallet-actions button{flex:1;padding:12px;background:#2a2a3e;border:none;border-radius:10px;color:#fff;cursor:pointer}
+.history-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #333;font-size:0.9rem}.history-item .type{color:#6366f1}.history-item .amount.positive{color:#10b981}.history-item .amount.negative{color:#ef4444}
+.danger-zone{background:#3f2323;padding:15px;border-radius:12px;margin-top:20px}.danger-zone input{width:100%;padding:10px;margin:8px 0;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff}
+.logout-btn{width:100%;padding:12px;background:#ef4444;color:#fff;border:none;border-radius:10px;cursor:pointer;margin-top:10px;font-weight:500}
+.section{display:none}.section.active{display:block}
+.qr-container{text-align:center;margin:15px 0}.qr-container img{max-width:200px;border-radius:10px;border:3px solid #6366f1}
+.hidden{display:none!important}
+@media(max-width:600px){.header{flex-direction:column;gap:10px;text-align:center}.deposit-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar"/><div><h1>Top Provider</h1><small id="userEmail">Loading...</small></div></div>
+    <div class="balance-badge">₹<span id="liveBalance">0.00</span></div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-section="services">Service Selection</div>
+    <div class="nav-tab" data-section="orders">Order History</div>
+    <div class="nav-tab" data-section="affiliate">Affiliate</div>
+    <div class="nav-tab" data-section="stats">Statistics</div>
+    <div class="nav-tab" data-section="wallet">Wallet / Balance</div>
+    <div class="nav-tab" data-section="settings">Settings</div>
+  </div>
+
+  <!-- Services Section -->
+  <div id="services" class="section active">
+    <div class="price-drop"><span>⚡ PRICE DROP !</span><div><span class="old">₹70</span> <span class="new">₹45</span> <small>100K Views</small></div></div>
+    
+    <div class="card support-card">
+      <h3>🎧 Customer Support</h3><p>Available 24/7 for your queries</p>
+      <!-- ✅ Updated: @Vip3rxyt -->
+      <a href="https://t.me/Vip3rxyt" target="_blank">Contact</a>
+    </div>
+
+    <div class="card updates-card">
+      <h3>📢 Latest Updates</h3>
+      <!-- ✅ Updated: @Instagramfreefollowersrx -->
+      <a href="https://t.me/Instagramfreefollowersrx" target="_blank" class="channel-link">Join our Telegram channel</a>
+      <div class="social-links">
+        <a href="#" onclick="return false">Instagram</a><a href="#" onclick="return false">Facebook</a><a href="#" onclick="return false">YouTube</a>
+        <a href="https://t.me/Instagramfreefollowersrx" target="_blank">Telegram</a><a href="#" onclick="return false">WhatsApp</a><a href="#" onclick="return false">Other</a>
+      </div>
+    </div>
+
+    <div class="card"><h3>Other Services</h3><p id="servicesList" style="color:#aaa;margin-top:10px">Loading services...</p></div>
+  </div>
+
+  <!-- Orders Section -->
+  <div id="orders" class="section">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:15px"><h3>Order History</h3><button class="nav-tab" style="padding:5px 10px;font-size:0.8rem" onclick="loadOrders()">Refresh</button></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="filterOrders('all')">All</button>
+        <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="filterOrders('completed')">Completed</button>
+        <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="filterOrders('pending')">Pending</button>
+        <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="filterOrders('cancelled')">Cancelled</button>
+      </div>
+      <div id="ordersList"><p style="color:#aaa">Loading orders...</p></div>
+    </div>
+  </div>
+
+  <!-- Affiliate Section -->
+  <div id="affiliate" class="section">
+    <div class="card">
+      <h3>🎯 AFFILIATE PROGRAM</h3>
+      <p style="margin:10px 0">Earn with Every Referral<br/><small>Share your link. Earn 5% commission on every recharge — forever, no limits.</small></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0"><span style="background:#2a2a3e;padding:5px 12px;border-radius:8px;font-size:0.85rem">Lifetime Commission</span><span style="background:#2a2a3e;padding:5px 12px;border-radius:8px;font-size:0.85rem">Instant Tracking</span><span style="background:#2a2a3e;padding:5px 12px;border-radius:8px;font-size:0.85rem">Auto Payouts</span></div>
+      
+      <div class="affiliate-grid">
+        <div class="stat-box"><div class="value" id="affTotalEarned">₹0.00</div><div class="label">Total Earned</div></div>
+        <div class="stat-box"><div class="value" id="affTodayEarned">₹0.00</div><div class="label">Today's Earnings</div></div>
+        <div class="stat-box"><div class="value" id="affTotalRefs">0</div><div class="label">Total Referrals</div></div>
+        <div class="stat-box"><div class="value" id="affActiveRefs">0</div><div class="label">Active Referrals</div></div>
+        <div class="stat-box"><div class="value">5%</div><div class="label">Commission Rate</div></div>
+      </div>
+
+      <div class="referral-box">
+        <label>Your Referral Link</label>
+        <input type="text" id="refLink" readonly value="https://sastaotp.com/register?ref=LOADING..."/>
+        <button class="btn-primary" style="padding:10px;margin-top:8px" onclick="copyRefLink()">Copy</button>
+        <div class="share-btns" style="margin-top:10px">
+          <a href="#" id="waShare" target="_blank">WhatsApp</a><a href="#" id="tgShare" target="_blank">Telegram</a><a href="#" id="twShare" target="_blank">Twitter/X</a>
+        </div>
+      </div>
+
+      <div style="margin-top:20px"><h4>How It Works</h4><ol style="margin:10px 0 10px 20px;color:#aaa;font-size:0.9rem"><li>Share Your Link<br/><small style="color:#888">Copy your referral link and share anywhere.</small></li><li>Friend Registers & Recharges<br/><small style="color:#888">Referral tracked automatically.</small></li><li>You Earn 5% Commission<br/><small style="color:#888">Earnings added instantly, no limits.</small></li></ol></div>
+
+      <div><h4>Commission History <button class="nav-tab" style="padding:5px 10px;font-size:0.8rem" onclick="loadCommissions()">Refresh</button></h4><div id="commissionHistory" style="margin-top:10px;color:#aaa">No commissions earned yet. Share your referral link!</div></div>
+      <div style="margin-top:15px"><h4>Referral History <button class="nav-tab" style="padding:5px 10px;font-size:0.8rem" onclick="loadReferrals()">Refresh</button></h4><div id="referralHistory" style="margin-top:10px;color:#aaa">No referrals yet<br/>Share your referral link to start earning commissions</div></div>
+    </div>
+  </div>
+
+  <!-- Statistics Section -->
+  <div id="stats" class="section">
+    <div class="card"><h3>Statistics</h3><div class="stats-grid" style="margin-top:15px">
+      <div class="stat-card"><div class="num" id="statTotalOrders">0</div><div>Total Orders</div></div>
+      <div class="stat-card"><div class="num" id="statCompleted" style="color:#10b981">0</div><div>Completed</div></div>
+      <div class="stat-card"><div class="num" id="statActive" style="color:#f59e0b">0</div><div>Active</div></div>
+      <div class="stat-card"><div class="num" id="statCancelled" style="color:#ef4444">0</div><div>Cancelled</div></div>
+      <div class="stat-card"><div class="num" id="statTotalSpent">₹0</div><div>Total Spent</div></div>
+      <div class="stat-card"><div class="num" id="statSuccessRate">0%</div><div>Success Rate</div></div>
+    </div></div>
+  </div>
+
+  <!-- Wallet Section -->
+  <div id="wallet" class="section">
+    <div class="card">
+      <h3>Wallet / Balance</h3>
+      <p style="margin:10px 0">Balance: <strong style="font-size:1.2rem;color:#6366f1">₹<span id="walletBalance">0.00</span></strong></p>
+      
+      <div class="wallet-actions">
+        <button onclick="toggleDeposit()">📱 Add Funds</button>
+        <button onclick="redeemGift()">🎁 Redeem Gift Code</button>
+      </div>
+
+      <!-- Deposit Panel -->
+      <div id="depositPanel" class="hidden" style="margin-top:15px;padding-top:15px;border-top:1px solid #333">
+        <h4>Add Funds</h4>
+        <p style="color:#aaa;font-size:0.9rem;margin:5px 0">Minimum deposit: ₹20 • Maximum: ₹30,000</p>
+        
+        <div class="deposit-grid">
+          <div class="deposit-option selected" data-method="upi" onclick="selectDeposit('upi')"><div>📱 UPI</div><small>Instant • 5% fees</small></div>
+          <div class="deposit-option" data-method="crypto" onclick="selectDeposit('crypto')"><div>₿ Crypto</div><small>100+ coins</small></div>
+        </div>
+
+        <!-- UPI Flow -->
+        <div id="upiFlow">
+          <div style="margin:15px 0">
+            <label>Deposit amount</label>
+            <input type="number" id="depositAmount" placeholder="₹100.00" min="20" max="30000" style="width:100%;padding:12px;margin-top:5px;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff"/>
+            <div class="amount-presets">
+              <button class="amount-btn" onclick="setAmount(50)">₹50</button><button class="amount-btn" onclick="setAmount(100)">₹100</button>
+              <button class="amount-btn" onclick="setAmount(250)">₹250</button><button class="amount-btn" onclick="setAmount(500)">₹500</button>
+              <button class="amount-btn" onclick="setAmount(1000)">₹1000</button>
+            </div>
+          </div>
+
+          <div class="deposit-summary">
+            <div style="display:flex;justify-content:space-between;margin:5px 0"><span>Deposit amount</span><strong>₹<span id="summaryAmount">0.00</span></strong></div>
+            <div style="display:flex;justify-content:space-between;margin:5px 0"><span>Gateway fee (5%)</span><strong>+₹<span id="summaryFee">0.00</span></strong></div>
+            <div style="display:flex;justify-content:space-between;margin:10px 0;padding-top:10px;border-top:1px solid #333"><span>You pay</span><strong style="color:#6366f1">₹<span id="summaryTotal">0.00</span></strong></div>
+          </div>
+
+          <button class="btn-primary" onclick="generateUPI()">Pay ₹<span id="payAmount">0.00</span> (incl. fee)</button>
+          
+          <!-- QR Section -->
+          <div id="qrSection" class="hidden qr-container">
+            <p style="margin-bottom:10px">Scan QR or click link to pay:</p>
+            <img id="qrImage" src="" alt="QR Code"/>
+            <p id="utrDisplay" style="margin:10px 0;font-size:0.85rem;color:#aaa"></p>
+            <a id="upiLink" href="#" target="_blank" style="display:inline-block;margin:10px 0;padding:10px 20px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none">🔗 Open UPI App</a>
+            <br/>
+            <button class="btn-primary" style="background:#10b981;margin-top:10px" onclick="verifyDeposit()">✅ I Have Paid</button>
+          </div>
+        </div>
+
+        <!-- Crypto Flow -->
+        <div id="cryptoFlow" class="hidden">
+          <p style="color:#aaa">Crypto Deposit<br/>Contact our support team on Telegram to deposit using cryptocurrency.</p>
+          <a href="https://t.me/Vip3rxyt" target="_blank" class="btn-primary" style="margin-top:10px">Contact on Telegram</a>
+        </div>
+
+        <button class="nav-tab" style="margin-top:15px;width:100%" onclick="toggleDeposit()">Close</button>
+      </div>
+
+      <!-- Balance History -->
+      <div style="margin-top:20px">
+        <h4>Balance History</h4>
+        <div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap">
+          <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="loadHistory('all')">+ Add Funds</button>
+          <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="loadHistory('deposits')">All</button>
+          <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="loadHistory('deposits')">Deposits</button>
+          <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="loadHistory('spending')">Spending</button>
+        </div>
+        <div id="balanceHistory"><p style="color:#aaa">Loading transactions...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Section -->
+  <div id="settings" class="section">
+    <div class="card">
+      <h3>Danger Zone</h3>
+      <div style="margin:15px 0">
+        <label>Change Password</label>
+        <input type="password" id="currPass" placeholder="Current Password" style="width:100%;padding:10px;margin:5px 0;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff"/>
+        <input type="password" id="newPass" placeholder="New Password" style="width:100%;padding:10px;margin:5px 0;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff"/>
+        <input type="password" id="confirmPass" placeholder="Confirm New Password" style="width:100%;padding:10px;margin:5px 0;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff"/>
+        <button class="btn-primary" onclick="updatePassword()">✓ Update Password</button>
+      </div>
+      <div class="danger-zone">
+        <p style="color:#f87171;margin:10px 0">Log out from your account on this device</p>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Nav (Mobile) -->
+<div style="position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;border-top:1px solid #333;padding:10px;display:flex;justify-content:space-around;font-size:0.8rem;z-index:100" class="mobile-nav">
+  <a href="#" onclick="switchSection('services');return false" style="color:#aaa;text-decoration:none;text-align:center">Home</a>
+  <a href="#" onclick="switchSection('orders');return false" style="color:#aaa;text-decoration:none;text-align:center">Orders</a>
+  <a href="#" onclick="switchSection('stats');return false" style="color:#aaa;text-decoration:none;text-align:center">Stats</a>
+  <a href="#" onclick="switchSection('wallet');return false" style="color:#aaa;text-decoration:none;text-align:center">Wallet</a>
+  <a href="#" onclick="switchSection('settings');return false" style="color:#aaa;text-decoration:none;text-align:center">User</a>
+</div>
+
+<!-- Firebase + App Logic -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getAuth,onAuthStateChanged,signOut,updatePassword,reauthenticateWithCredential,EmailAuthProvider}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import{getDatabase,ref,get,set,update,push,onValue,query,orderByChild,equalTo}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig={apiKey:"AIzaSyCCQ8323U6o9UkptArtel1YNtV-BgaZQJQ",authDomain:"provider-46c14.firebaseapp.com",databaseURL:"https://provider-46c14-default-rtdb.firebaseio.com",projectId:"provider-46c14",storageBucket:"provider-46c14.firebasestorage.app",messagingSenderId:"1032460066158",appId:"1:1032460066158:web:8a52fb3c0651169c55f57f"};
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getDatabase(app);
+let currentUser=null,currentUTR=null,depositAmount=0;
+
+// Auth Check
+onAuthStateChanged(auth,async user=>{
+  if(user){currentUser=user;document.getElementById('userEmail').textContent=user.email?.split('@')[0]||'User';await loadUserData();setupRealtimeListeners()}
+  else{window.location.href='login.html'}
+});
+
+// Load User Data
+async function loadUserData(){if(!currentUser)return;const snap=await get(ref(db,`users/${currentUser.uid}`));if(snap.exists()){const d=snap.val();
+document.getElementById('liveBalance').textContent=(d.balance||0).toFixed(2);document.getElementById('walletBalance').textContent=(d.balance||0).toFixed(2);
+if(d.affiliate){document.getElementById('affTotalEarned').textContent=`₹${(d.affiliate.totalEarned||0).toFixed(2)}`;document.getElementById('affTodayEarned').textContent=`₹${(d.affiliate.todayEarned||0).toFixed(2)}`;document.getElementById('affTotalRefs').textContent=d.affiliate.totalReferrals||0;document.getElementById('affActiveRefs').textContent=d.affiliate.activeReferrals||0;document.getElementById('refLink').value=`https://sastaotp.com/register?ref=${d.referralCode||currentUser.uid.substring(0,8)}`;setupShareLinks(d.referralCode||currentUser.uid.substring(0,8))}
+if(d.stats){document.getElementById('statTotalOrders').textContent=d.stats.totalOrders||0;document.getElementById('statCompleted').textContent=d.stats.completed||0;document.getElementById('statActive').textContent=d.stats.active||0;document.getElementById('statCancelled').textContent=d.stats.cancelled||0;document.getElementById('statTotalSpent').textContent=`₹${(d.stats.totalSpent||0).toFixed(2)}`;const r=d.stats.totalOrders>0?((d.stats.completed/d.stats.totalOrders)*100).toFixed(1):0;document.getElementById('statSuccessRate').textContent=`${r}%`}
+loadOrders();loadHistory('all');loadCommissions();loadReferrals();loadServices()}}
+
+// Realtime Balance Listener
+function setupRealtimeListeners(){if(!currentUser)return;onValue(ref(db,`users/${currentUser.uid}/balance`),snap=>{const b=snap.val()||0;document.getElementById('liveBalance').textContent=b.toFixed(2);document.getElementById('walletBalance').textContent=b.toFixed(2)})}
+
+// Tab Navigation
+document.querySelectorAll('.nav-tab[data-section]').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.nav-tab[data-section]').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));tab.classList.add('active');document.getElementById(tab.dataset.section).classList.add('active')}));
+window.switchSection=function(s){document.querySelectorAll('.nav-tab[data-section]').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.section').forEach(sec=>sec.classList.remove('active'));document.querySelector(`.nav-tab[data-section="${s}"]`)?.classList.add('active');document.getElementById(s)?.classList.add('active')}
+
+// Deposit Functions
+window.toggleDeposit=function(){document.getElementById('depositPanel').classList.toggle('hidden');if(!document.getElementById('depositPanel').classList.contains('hidden'))document.getElementById('depositPanel').scrollIntoView({behavior:'smooth'})}
+window.selectDeposit=function(m){document.querySelectorAll('.deposit-option').forEach(el=>el.classList.remove('selected'));document.querySelector(`.deposit-option[data-method="${m}"]`)?.classList.add('selected');document.getElementById('upiFlow').classList.toggle('hidden',m!=='upi');document.getElementById('cryptoFlow').classList.toggle('hidden',m!=='crypto')}
+window.setAmount=function(amt){document.getElementById('depositAmount').value=amt;updateSummary()}
+document.getElementById('depositAmount')?.addEventListener('input',updateSummary);
+function updateSummary(){const amt=parseFloat(document.getElementById('depositAmount').value)||0;const fee=amt*0.05;document.getElementById('summaryAmount').textContent=amt.toFixed(2);document.getElementById('summaryFee').textContent=fee.toFixed(2);document.getElementById('summaryTotal').textContent=(amt+fee).toFixed(2);document.getElementById('payAmount').textContent=(amt+fee).toFixed(2);depositAmount=amt}
+
+// Generate UPI Payment (From your bot code)
+window.generateUPI=async function(){if(!depositAmount||depositAmount<20){alert('Please enter amount ≥ ₹20');return}
+const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";let utr="";for(let i=0;i<12;i++)utr+=chars.charAt(Math.floor(Math.random()*chars.length));currentUTR=utr;
+await push(ref(db,'deposits'),{uid:currentUser.uid,utr,amount:depositAmount,fee:depositAmount*0.05,total:depositAmount*1.05,status:'pending',timestamp:Date.now()});
+const upiId="Paytmqr6i3w0w@ptys",name=encodeURIComponent("SACHIN SAYSING RAUT"),upiString=`upi://pay?pa=${upiId}&pn=${name}&am=${depositAmount}&cu=INR&tr=${utr}`,qrUrl=`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiString)}&size=300x300`;
+document.getElementById('qrImage').src=qrUrl;document.getElementById('utrDisplay').textContent=`UTR: ${utr} (Save for reference)`;document.getElementById('upiLink').href=upiString;document.getElementById('qrSection').classList.remove('hidden');document.getElementById('qrSection').scrollIntoView({behavior:'smooth'})}
+
+// Verify Deposit (Call your API)
+window.verifyDeposit=async function(){if(!currentUTR){alert('No active deposit found');return}
+alert('🔍 Verifying payment...\n\nIn production, this calls: https://verify.pikaapis.workers.dev/?trn='+currentUTR+'&id=YOUR_MERCHANT_ID\n\nFor now, contact @Vip3rxyt on Telegram with UTR: '+currentUTR)
+/* Production code:
+try{const merchantId="MdXwlu49903940058924";const res=await fetch(`https://verify.pikaapis.workers.dev/?trn=${currentUTR}&id=${merchantId}`);const data=await res.json();if(data.STATUS==="TXN_SUCCESS"&&data.RESPMSG==="Txn Success"){const userRef=ref(db,`users/${currentUser.uid}`);const snap=await get(userRef);const bal=snap.val()?.balance||0;await update(userRef,{balance:bal+depositAmount});alert('✅ Payment Successful! ₹'+depositAmount+' added');document.getElementById('qrSection').classList.add('hidden')}else{alert('❌ Payment not verified. Contact support with UTR: '+currentUTR)}}catch(e){console.error(e);alert('⚠️ Verification failed. Contact @Vip3rxyt')}
+*/}
+
+// Load Orders
+window.loadOrders=async function(filter='all'){if(!currentUser)return;const snap=await get(ref(db,'orders'));const container=document.getElementById('ordersList');if(!snap.exists()){container.innerHTML='<p style="color:#aaa">No orders found.</p>';return}
+let html='';snap.forEach(child=>{const o=child.val();if(o.uid!==currentUser.uid)return;if(filter!=='all'&&o.status!==filter)return;const sc=o.status==='completed'?'status-completed':o.status==='pending'?'status-pending':'status-cancelled';html+=`<div class="order-item"><div><strong>${o.service||'Service'}</strong><br/><small style="color:#aaa">${new Date(o.timestamp).toLocaleTimeString()}</small></div><div style="text-align:right"><span class="status-badge ${sc}">${o.status}</span><br/><strong>₹${(o.amount||0).toFixed(2)}</strong></div></div>`});container.innerHTML=html||'<p style="color:#aaa">No orders found.</p>'}
+window.filterOrders=function(f){loadOrders(f)}
+
+// Load History
+window.loadHistory=async function(type='all'){if(!currentUser)return;const snap=await get(ref(db,`users/${currentUser.uid}/transactions`));const container=document.getElementById('balanceHistory');if(!snap.exists()){container.innerHTML='<p style="color:#aaa">No transactions yet.</p>';return}
+let html='';snap.forEach(child=>{const tx=child.val();if(type==='deposits'&&tx.type!=='credit')return;if(type==='spending'&&tx.type!=='debit')return;const sign=tx.type==='credit'?'+':'-',cls=tx.type==='credit'?'positive':'negative';html+=`<div class="history-item"><span>${tx.desc||'Transaction'}</span><span class="amount ${cls}">${sign}₹${(tx.amount||0).toFixed(2)}</span></div>`});container.innerHTML=html||'<p style="color:#aaa">No transactions yet.</p>'}
+
+// Load Commissions/Referrals/Services
+window.loadCommissions=async function(){if(!currentUser)return;const snap=await get(ref(db,`affiliates/${currentUser.uid}/commissions`));const el=document.getElementById('commissionHistory');if(!snap.exists()){el.innerHTML='No commissions earned yet. Share your referral link!';return}let h='';snap.forEach(c=>{const d=c.val();h+=`<div style="padding:8px 0;border-bottom:1px solid #333">₹${(d.amount||0).toFixed(2)} from ${d.referralEmail||'Referral'} <small style="color:#aaa">(${new Date(d.timestamp).toLocaleDateString()})</small></div>`});el.innerHTML=h}
+window.loadReferrals=async function(){if(!currentUser)return;const snap=await get(ref(db,`referrals/${currentUser.uid}`));const el=document.getElementById('referralHistory');if(!snap.exists()){el.innerHTML='No referrals yet<br/>Share your referral link to start earning commissions';return}let h='';snap.forEach(c=>{const d=c.val();h+=`<div style="padding:8px 0;border-bottom:1px solid #333">${d.referredEmail||'User'} <small style="color:#aaa">(${new Date(d.timestamp).toLocaleDateString()})</small></div>`});el.innerHTML=h}
+window.loadServices=async function(){const snap=await get(ref(db,'services'));const el=document.getElementById('servicesList');if(!snap.exists()){el.innerHTML='No services available. Contact admin.';return}let h='<ul style="color:#e0e0ff">';snap.forEach(c=>{const s=c.val();h+=`<li>${s.name} - ₹${s.price} <small style="color:#aaa">(${s.desc||''})</small></li>`});h+='</ul>';el.innerHTML=h}
+
+// Share Links
+function setupShareLinks(rc){const link=`https://sastaotp.com/register?ref=${rc}`,txt=`Join sastaotp.com with my link: ${link}`;document.getElementById('waShare').href=`https://wa.me/?text=${encodeURIComponent(txt)}`;document.getElementById('tgShare').href=`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join sastaotp.com with my link')}`;document.getElementById('twShare').href=`https://twitter.com/intent/tweet?text=${encodeURIComponent(txt)}`}
+window.copyRefLink=function(){const inp=document.getElementById('refLink');inp.select();document.execCommand('copy');alert('📋 Link copied!')}
+
+// Other Functions
+window.redeemGift=function(){const code=prompt('Enter gift code:');if(code)alert('🎁 Contact @Vip3rxyt to redeem codes')}
+window.updatePassword=async function(){const cp=document.getElementById('currPass').value,np=document.getElementById('newPass').value,cf=document.getElementById('confirmPass').value;if(np!==cf){alert('❌ Passwords do not match');return}if(np.length<6){alert('❌ Password must be 6+ characters');return}try{const cred=EmailAuthProvider.credential(currentUser.email,cp);await reauthenticateWithCredential(currentUser,cred);await updatePassword(currentUser,np);alert('✅ Password updated!');document.getElementById('currPass').value='';document.getElementById('newPass').value='';document.getElementById('confirmPass').value=''}catch(e){alert('❌ '+ (e.message||'Check current password'))}}
+window.logout=async function(){if(confirm('Logout?')){await signOut(auth);localStorage.removeItem('session');window.location.href='login.html'}}
+
+// Init
+document.addEventListener('DOMContentLoaded',()=>{updateSummary()});
+</script>
+</body>
+</html>
