@@ -1,69 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top Provider | Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <style>
-        body { background-color: #030303; color: white; font-family: 'Inter', sans-serif; overflow: hidden; }
-        .glass { background: rgba(15, 17, 26, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .bg-neon-grad { background: linear-gradient(135deg, #A855F7 0%, #3B82F6 100%); }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login | Top Provider</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+    body{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .login-card{background:#1e1e2e;border-radius:20px;padding:30px;max-width:400px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.4);border:1px solid #333}
+    .logo{text-align:center;margin-bottom:25px}
+    .logo img{width:60px;height:60px;border-radius:50%;border:3px solid #6366f1}
+    .logo h2{color:#fff;margin-top:10px;font-size:1.3rem}
+    .input-group{margin-bottom:20px}
+    .input-group label{display:block;color:#aaa;margin-bottom:8px;font-size:0.9rem}
+    .input-group input{width:100%;padding:12px 15px;background:#2a2a3e;border:1px solid #3a3a5a;border-radius:10px;color:#fff;font-size:1rem;outline:none;transition:0.3s}
+    .input-group input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.2)}
+    .btn{width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-size:1rem;font-weight:600;cursor:pointer;transition:0.3s}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 5px 20px rgba(99,102,241,0.4)}
+    .btn:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+    .error{color:#f87171;background:#3f2323;padding:10px;border-radius:8px;margin-bottom:15px;font-size:0.9rem;display:none}
+    .footer{text-align:center;margin-top:25px;color:#666;font-size:0.85rem}
+    .footer a{color:#6366f1;text-decoration:none}
+    .loader{display:none;width:20px;height:20px;border:3px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:#fff;animation:spin 1s linear infinite;margin:10px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
 </head>
-<body class="flex items-center justify-center h-screen relative">
-    <div class="glass w-[90%] max-w-sm rounded-[32px] p-8 z-10">
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-black">Welcome</h1>
-            <p class="text-xs text-gray-400 mt-2">Login or Create Account</p>
-        </div>
-        <div class="space-y-4">
-            <input type="email" id="email" placeholder="Email" class="w-full bg-[#0F111A] border border-white/10 rounded-xl px-4 py-3 text-white outline-none">
-            <input type="password" id="password" placeholder="Password" class="w-full bg-[#0F111A] border border-white/10 rounded-xl px-4 py-3 text-white outline-none">
-            <button id="authBtn" class="w-full bg-neon-grad text-white font-black py-3 rounded-xl">Login / Register</button>
-            <p id="msg" class="text-red-400 text-xs text-center hidden"></p>
-        </div>
+<body>
+  <div class="login-card">
+    <div class="logo">
+      <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Logo"/>
+      <h2>Top Provider</h2>
     </div>
+    
+    <div class="error" id="errorMsg"></div>
+    
+    <form id="loginForm">
+      <div class="input-group">
+        <label>Email / Phone</label>
+        <input type="text" id="identifier" placeholder="Enter email or phone" required/>
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password" required/>
+      </div>
+      <button type="submit" class="btn" id="loginBtn">Login</button>
+      <div class="loader" id="loader"></div>
+    </form>
+    
+    <div class="footer">
+      <p>Don't have an account? <a href="#" id="signupLink">Sign Up</a></p>
+      <p style="margin-top:8px"><a href="#" id="forgotLink">Forgot Password?</a></p>
+    </div>
+  </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCCQ8323U6o9UkptArtel1YNtV-BgaZQJQ",
-            authDomain: "provider-46c14.firebaseapp.com",
-            databaseURL: "https://provider-46c14-default-rtdb.firebaseio.com",
-            projectId: "provider-46c14",
-            storageBucket: "provider-46c14.firebasestorage.app",
-            messagingSenderId: "1032460066158",
-            appId: "1:1032460066158:web:8a52fb3c0651169c55f57f"
-        };
+    const firebaseConfig = {
+      apiKey: "AIzaSyCCQ8323U6o9UkptArtel1YNtV-BgaZQJQ",
+      authDomain: "provider-46c14.firebaseapp.com",
+      databaseURL: "https://provider-46c14-default-rtdb.firebaseio.com",
+      projectId: "provider-46c14",
+      storageBucket: "provider-46c14.firebasestorage.app",
+      messagingSenderId: "1032460066158",
+      appId: "1:1032460066158:web:8a52fb3c0651169c55f57f"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
-        document.getElementById('authBtn').onclick = async () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const msg = document.getElementById('msg');
-            
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                window.location.href = 'index.html';
-            } catch (e) {
-                try {
-                    const res = await createUserWithEmailAndPassword(auth, email, password);
-                    await set(ref(db, 'users/' + res.user.uid), { email, balance: 0, createdAt: Date.now() });
-                    window.location.href = 'index.html';
-                } catch (err) {
-                    msg.innerText = err.message;
-                    msg.classList.remove('hidden');
-                }
-            }
-        };
-    </script>
+    // UI Elements
+    const loginForm = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const loginBtn = document.getElementById('loginBtn');
+    const loader = document.getElementById('loader');
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+      setTimeout(() => errorMsg.style.display = 'none', 4000);
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const identifier = document.getElementById('identifier').value.trim();
+      const password = document.getElementById('password').value;
+      
+      loginBtn.disabled = true;
+      loader.style.display = 'block';
+      errorMsg.style.display = 'none';
+
+      try {
+        // For demo: using email/password auth
+        // In production: use phone auth or custom token from your backend
+        const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
+        const user = userCredential.user;
+        
+        // Check if user exists in RTDB
+        const dbRef = ref(db);
+        const snapshot = await get(child(dbRef, `users/${user.uid}`));
+        
+        if (snapshot.exists()) {
+          // Save session & redirect
+          localStorage.setItem('userSession', JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            loggedIn: true,
+            timestamp: Date.now()
+          }));
+          window.location.href = 'index.html';
+        } else {
+          showError('Account not found. Contact admin.');
+          await auth.signOut();
+        }
+      } catch (error) {
+        console.error(error);
+        let msg = 'Login failed';
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+          msg = 'Invalid email or password';
+        } else if (error.code === 'auth/too-many-requests') {
+          msg = 'Too many attempts. Try later.';
+        }
+        showError(msg);
+      } finally {
+        loginBtn.disabled = false;
+        loader.style.display = 'none';
+      }
+    });
+
+    // Check if already logged in
+    onAuthStateChanged(auth, (user) => {
+      if (user && localStorage.getItem('userSession')) {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // Signup / Forgot links (placeholder)
+    document.getElementById('signupLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      showError('Sign up is admin-only. Contact @Vip3rxyt on Telegram.');
+    });
+    document.getElementById('forgotLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      showError('Contact @Vip3rxyt on Telegram for password reset.');
+    });
+  </script>
 </body>
 </html>
