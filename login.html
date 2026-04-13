@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Login | Top Provider</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+body{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#1e1e2e;border-radius:16px;padding:28px;max-width:400px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.4);border:1px solid #333}
+.logo{text-align:center;margin-bottom:20px}
+.logo img{width:56px;height:56px;border-radius:50%;border:2px solid #6366f1}
+.logo h2{color:#fff;margin-top:8px}
+.tabs{display:flex;background:#2a2a3e;border-radius:10px;padding:4px;margin-bottom:18px}
+.tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;color:#aaa;transition:0.2s}
+.tab.active{background:#6366f1;color:#fff}
+.inp{margin-bottom:14px}
+.inp label{display:block;color:#aaa;margin-bottom:6px;font-size:0.9rem}
+.inp input{width:100%;padding:12px;background:#2a2a3e;border:1px solid #3a3a5a;border-radius:8px;color:#fff;outline:none}
+.inp input:focus{border-color:#6366f1}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;margin-top:4px}
+.btn:disabled{opacity:0.6;cursor:not-allowed}
+.msg{padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.9rem;display:none;text-align:center}
+.err{background:#3f2323;color:#f87171}.ok{background:#1a3f2e;color:#10b981}
+.foot{text-align:center;margin-top:16px;color:#666;font-size:0.85rem}
+.foot a{color:#6366f1;text-decoration:none}
+.loader{display:none;width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin:10px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sec{display:none}.sec.act{display:block}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Logo"/><h2>Top Provider</h2></div>
+  <div class="tabs"><div class="tab active" onclick="sw('login')">Login</div><div class="tab" onclick="sw('signup')">Sign Up</div></div>
+  <div class="msg err" id="err"></div><div class="msg ok" id="ok"></div>
+  
+  <form id="loginF" class="sec act">
+    <div class="inp"><label>Email</label><input type="email" id="lEm" required/></div>
+    <div class="inp"><label>Password</label><input type="password" id="lPw" required/></div>
+    <button type="submit" class="btn" id="lBtn">Login</button><div class="loader" id="lLoad"></div>
+  </form>
+  
+  <form id="signupF" class="sec">
+    <div class="inp"><label>Name</label><input type="text" id="sNm" required/></div>
+    <div class="inp"><label>Email</label><input type="email" id="sEm" required/></div>
+    <div class="inp"><label>Password (min 6)</label><input type="password" id="sPw" minlength="6" required/></div>
+    <div class="inp"><label>Referral (Optional)</label><input type="text" id="sRef"/></div>
+    <button type="submit" class="btn" id="sBtn">Create Account</button><div class="loader" id="sLoad"></div>
+  </form>
+  
+  <div class="foot"><a href="#" onclick="forgot();return false;">Forgot Password?</a></div>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,sendPasswordResetEmail,updateProfile,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import{getDatabase,ref,set,get,update,push}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig={apiKey:"AIzaSyCCQ8323U6o9UkptArtel1YNtV-BgaZQJQ",authDomain:"provider-46c14.firebaseapp.com",databaseURL:"https://provider-46c14-default-rtdb.firebaseio.com",projectId:"provider-46c14",storageBucket:"provider-46c14.firebasestorage.app",messagingSenderId:"1032460066158",appId:"1:1032460066158:web:8a52fb3c0651169c55f57f"};
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getDatabase(app);
+const errEl=document.getElementById('err'),okEl=document.getElementById('ok');
+
+function showErr(t){errEl.textContent=t;errEl.style.display='block';okEl.style.display='none';setTimeout(()=>errEl.style.display='none',4000)}
+function showOk(t){okEl.textContent=t;okEl.style.display='block';errEl.style.display='none';setTimeout(()=>okEl.style.display='none',3000)}
+function load(f,b){document.getElementById(f+'Btn').disabled=b;document.getElementById(f+'Load').style.display=b?'block':'none'}
+
+window.sw=function(t){document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.sec').forEach(e=>e.classList.remove('act'));document.querySelectorAll('.tab')[t==='login'?0:1].classList.add('active');document.getElementById(t+'F').classList.add('act');errEl.style.display='none';okEl.style.display='none'}
+
+// ✅ SIGNUP - ANY USER CAN SIGN UP (NO ADMIN CHECK)
+document.getElementById('signupF').addEventListener('submit',async e=>{e.preventDefault();load('signup',true);errEl.style.display='none';
+const nm=document.getElementById('sNm').value.trim(),em=document.getElementById('sEm').value.trim(),pw=document.getElementById('sPw').value,rf=document.getElementById('sRef').value.trim();
+try{const cred=await createUserWithEmailAndPassword(auth,em,pw),u=cred.user;await updateProfile(u,{displayName:nm});
+await set(ref(db,`users/${u.uid}`),{uid:u.uid,name:nm,email:em,balance:0,referralCode:u.uid.substring(0,8),referredBy:rf||null,createdAt:Date.now(),lastLogin:Date.now(),isActive:true,affiliate:{totalEarned:0,todayEarned:0,totalReferrals:0,activeReferrals:0},stats:{totalOrders:0,completed:0,active:0,cancelled:0,totalSpent:0}});
+if(rf){const snap=await get(ref(db,'users'));let ru=null;snap.forEach(c=>{if(c.val().referralCode===rf)ru=c.key});if(ru){await update(ref(db,`users/${ru}/affiliate`),{totalReferrals:(snap.child(ru).val().affiliate?.totalReferrals||0)+1});await push(ref(db,`referrals/${ru}`),{referredUid:u.uid,referredEmail:em,timestamp:Date.now()})}}
+showOk('✅ Account created!');localStorage.setItem('session',JSON.stringify({uid:u.uid,email:em,loggedIn:true,ts:Date.now()}));setTimeout(()=>window.location.href='index.html',1200)}
+catch(err){console.error(err);if(err.code==='permission-denied')showErr('❌ Database blocked. Contact @Vip3rxyt');else if(err.code==='auth/email-already-in-use')showErr('❌ Email already registered');else if(err.code==='auth/weak-password')showErr('❌ Password min 6 chars');else showErr('❌ '+err.code);load('signup',false)}});
+
+// ✅ LOGIN - ANY USER CAN LOGIN
+document.getElementById('loginF').addEventListener('submit',async e=>{e.preventDefault();load('login',true);errEl.style.display='none';
+const em=document.getElementById('lEm').value.trim(),pw=document.getElementById('lPw').value;
+try{const cred=await signInWithEmailAndPassword(auth,em,pw),u=cred.user;const snap=await get(ref(db,`users/${u.uid}`));if(!snap.exists())await set(ref(db,`users/${u.uid}`),{uid:u.uid,name:u.displayName||em.split('@')[0],email:em,balance:0,referralCode:u.uid.substring(0,8),createdAt:Date.now(),lastLogin:Date.now(),isActive:true,affiliate:{totalEarned:0,todayEarned:0,totalReferrals:0,activeReferrals:0},stats:{totalOrders:0,completed:0,active:0,cancelled:0,totalSpent:0}});else await update(ref(db,`users/${u.uid}`),{lastLogin:Date.now()});
+showOk('✅ Logged in!');localStorage.setItem('session',JSON.stringify({uid:u.uid,email:em,loggedIn:true,ts:Date.now()}));setTimeout(()=>window.location.href='index.html',1000)}
+catch(err){console.error(err);if(err.code==='auth/user-not-found'||err.code==='auth/wrong-password')showErr('❌ Invalid email or password');else if(err.code==='permission-denied')showErr('❌ Database blocked. Fix Firebase Rules');else showErr('❌ '+err.code);load('login',false)}});
+
+window.forgot=async()=>{const em=prompt('Enter email:');if(!em)return;try{await sendPasswordResetEmail(auth,em);alert('✅ Reset link sent')}catch(e){alert('❌ '+e.message)}}
+onAuthStateChanged(auth,u=>{if(u&&localStorage.getItem('session'))window.location.href='index.html'});
+</script>
+</body>
+</html>
