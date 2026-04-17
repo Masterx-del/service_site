@@ -1,326 +1,2558 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Top Provider | Premium Dashboard</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-body{background:#0f0f1a;color:#e0e0ff;min-height:100vh}
-.container{max-width:1200px;margin:0 auto;padding:15px}
-.header{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:#1a1a2e;border-radius:15px;margin-bottom:20px;border:1px solid #333}
-.logo{display:flex;align-items:center;gap:12px}.logo img{width:45px;height:45px;border-radius:50%;border:2px solid #6366f1}
-.logo h1{font-size:1.3rem;color:#fff}.balance-badge{background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:8px 16px;border-radius:20px;font-weight:600}
-.nav-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-.nav-tab{padding:10px 18px;background:#1e1e2e;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:0.3s;border:1px solid #333}
-.nav-tab.active,.nav-tab:hover{background:#6366f1;color:#fff}
-.card{background:#1a1a2e;border-radius:15px;padding:20px;margin-bottom:15px;border:1px solid #333}
-.price-drop{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;padding:12px 18px;border-radius:12px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center}
-.price-drop .old{text-decoration:line-through;opacity:0.8}.price-drop .new{font-size:1.3rem;font-weight:700}
-.support-card{text-align:center;padding:15px}.support-card a{display:inline-block;margin-top:10px;padding:10px 20px;background:#6366f1;color:#fff;border-radius:10px;text-decoration:none;font-weight:500}
-.updates-card .channel-link{display:block;padding:10px;background:#2a2a3e;border-radius:8px;margin:8px 0;color:#6366f1;text-decoration:none}
-.social-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-.social-links a{padding:8px 15px;background:#2a2a3e;border-radius:8px;color:#fff;text-decoration:none;font-size:0.85rem}
-.affiliate-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:15px 0}
-.stat-box{background:#2a2a3e;padding:15px;border-radius:12px;text-align:center}.stat-box .value{font-size:1.4rem;font-weight:700;color:#6366f1;margin:5px 0}.stat-box .label{font-size:0.8rem;color:#aaa}
-.referral-box{background:#2a2a3e;padding:15px;border-radius:12px;margin:15px 0}.referral-box input{width:100%;padding:10px;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff;margin:10px 0}
-.share-btns{display:flex;gap:8px;flex-wrap:wrap}.share-btns a{flex:1;padding:10px;background:#6366f1;color:#fff;border-radius:8px;text-align:center;text-decoration:none;font-size:0.85rem}
-.deposit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0}
-.deposit-option{background:#2a2a3e;padding:15px;border-radius:12px;cursor:pointer;border:2px solid transparent;transition:0.3s}.deposit-option.selected{border-color:#6366f1;background:#1e1e2e}
-.amount-presets{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.amount-btn{padding:8px 16px;background:#2a2a3e;border-radius:8px;border:none;color:#fff;cursor:pointer}.amount-btn:hover{background:#6366f1}
-.deposit-summary{background:#1e1e2e;padding:15px;border-radius:12px;margin:15px 0}
-.btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-weight:600;cursor:pointer;margin-top:10px}
-.order-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #333}.order-item:last-child{border-bottom:none}
-.status-badge{padding:4px 10px;border-radius:20px;font-size:0.8rem}.status-completed{background:#10b981;color:#fff}.status-pending{background:#f59e0b;color:#000}.status-cancelled{background:#ef4444;color:#fff}
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.stat-card{background:#2a2a3e;padding:15px;border-radius:12px;text-align:center}.stat-card .num{font-size:1.5rem;font-weight:700;color:#6366f1}
-.wallet-actions{display:flex;gap:10px;margin:15px 0}.wallet-actions button{flex:1;padding:12px;background:#2a2a3e;border:none;border-radius:10px;color:#fff;cursor:pointer}
-.history-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #333;font-size:0.9rem}.history-item .type{color:#6366f1}.history-item .amount.positive{color:#10b981}.history-item .amount.negative{color:#ef4444}
-.danger-zone{background:#3f2323;padding:15px;border-radius:12px;margin-top:20px}.danger-zone input{width:100%;padding:10px;margin:8px 0;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff}
-.logout-btn{width:100%;padding:12px;background:#ef4444;color:#fff;border:none;border-radius:10px;cursor:pointer;margin-top:10px;font-weight:500}
-.section{display:none}.section.active{display:block}
-.qr-container{text-align:center;margin:15px 0}.qr-container img{max-width:200px;border-radius:10px;border:3px solid #6366f1}
-.hidden{display:none!important}
-@media(max-width:600px){.header{flex-direction:column;gap:10px;text-align:center}.deposit-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Shop - Premium Store</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: env(safe-area-inset-bottom, 80px);
+            padding-top: env(safe-area-inset-top, 0);
+            scroll-behavior: smooth;
+        }
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .loading-content {
+            text-align: center;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: #00ffff;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .loading-text {
+            color: #00ffff;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        /* Notification Toast */
+        .notification-toast {
+            position: fixed;
+            top: max(20px, env(safe-area-inset-top, 20px));
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid #00ffff;
+            border-radius: 12px;
+            padding: 12px 20px;
+            color: #00ffff;
+            z-index: 10001;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .notification-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .notification-toast.success {
+            border-color: #00ff88;
+            color: #00ff88;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.2);
+        }
+        .notification-toast.error {
+            border-color: #ff006e;
+            color: #ff006e;
+            box-shadow: 0 4px 20px rgba(255, 0, 110, 0.2);
+        }
+        /* Header */
+        .header {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: max(10px, env(safe-area-inset-top, 10px)) 15px 10px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .hamburger {
+            width: 24px;
+            height: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        .hamburger span {
+            width: 100%;
+            height: 2px;
+            background: #00ffff;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translateY(6px) translateX(6px);
+        }
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translateY(-6px) translateX(6px);
+        }
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid #00ffff;
+        }
+        .brand-name {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00ffff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-icons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .header-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            color: #00ffff;
+            font-size: 14px;
+            position: relative;
+        }
+        .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ff006e;
+            color: #fff;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 10px;
+            min-width: 16px;
+            text-align: center;
+        }
+        /* Sidebar Menu */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -100%;
+            width: 260px;
+            height: 100vh;
+            background: rgba(15, 10, 25, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(0, 255, 255, 0.1);
+            padding: calc(60px + env(safe-area-inset-top, 0)) 20px 20px;
+            transition: left 0.3s ease;
+            z-index: 999;
+            overflow-y: auto;
+        }
+        .sidebar.active {
+            left: 0;
+        }
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 998;
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .menu-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            color: #ccc;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background 0.2s ease;
+        }
+        .menu-item:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .menu-item i {
+            font-size: 16px;
+            color: #00ffff;
+            width: 20px;
+            text-align: center;
+        }
+        .menu-username {
+            padding: 15px;
+            margin-bottom: 20px;
+            background: rgba(0, 255, 255, 0.05);
+            border-radius: 12px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+        }
+        /* Search Bar */
+        .search-container {
+            padding: 15px;
+            position: sticky;
+            top: calc(53px + env(safe-area-inset-top, 0));
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 990;
+        }
+        .search-wrapper {
+            position: relative;
+        }
+        .search-bar {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .search-bar:focus {
+            outline: none;
+            border-color: #00ffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 14px;
+        }
+        /* Filter Slider */
+        .filter-slider-container {
+            padding: 0 15px 15px;
+        }
+        .filter-slider {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding-bottom: 5px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .filter-slider::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: #ccc;
+            font-size: 13px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .filter-btn.active {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+        /* Product Grid - 2 columns for Mobile */
+        .container {
+            padding: 0 15px 20px;
+        }
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #fff;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title i {
+            color: #00ffff;
+            font-size: 16px;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .products-grid.subscription-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px;
+        }
+        .product-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 10px;
+            position: relative;
+        }
+        .subscription-card {
+            background: rgba(255,255,255,0.03);
+            border: 2px solid rgba(0,255,255,0.3);
+            border-radius: 12px;
+            padding: 18px 15px;
+            position: relative;
+        }
+        .subscription-card.subscribed {
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.08);
+        }
+        .subscribed-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #00ff88;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .remaining-days {
+            color: #ff006e;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .product-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: #ff006e;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: 700;
+            z-index: 2;
+        }
+        .product-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .product-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.3;
+            height: 34px;
+        }
+        .product-price-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+        .product-price-discount {
+            color: #00ff88;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .product-price-original {
+            text-decoration: line-through;
+            color: #666;
+            font-size: 11px;
+        }
+        .product-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .btn {
+            flex: 1;
+            padding: 8px;
+            background: #00ffff;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .btn-icon {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00ffff;
+            font-size: 13px;
+            border: none;
+        }
+        /* Modals - Mobile Optimized */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 2000;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #121212;
+            width: 100%;
+            max-height: 90vh;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0));
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        /* Full Screen Modals (Chat) */
+        #chatModal .modal-content {
+            height: 100vh;
+            max-height: 100vh;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            padding: env(safe-area-inset-top, 0) 0 0 0;
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            z-index: 10;
+        }
+        .modal-image {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .modal-description {
+            font-size: 13px;
+            color: #aaa;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        /* Chat UI adjustments */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+        }
+        #chatModal .modal-title {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 0;
+            text-align: center;
+        }
+        #chatModal .modal-close {
+            top: calc(15px + env(safe-area-inset-top, 0));
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .chat-input-container {
+            padding: 10px 15px calc(10px + env(safe-area-inset-bottom, 0));
+            background: #1a1a1a;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Bottom Navigation - Fixed */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(15, 10, 25, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px 5px calc(10px + env(safe-area-inset-bottom, 0));
+            z-index: 997;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 5px;
+            min-width: 60px;
+        }
+        .bottom-nav-item i {
+            font-size: 20px;
+            color: #666;
+        }
+        .bottom-nav-item span {
+            font-size: 10px;
+            color: #666;
+        }
+        .bottom-nav-item.active i,
+        .bottom-nav-item.active span {
+            color: #00ffff;
+        }
+        /* Specific element tweaks for mobile */
+        .input-group input,
+        .input-group textarea {
+            font-size: 16px;
+            padding: 12px;
+        }
+        .cart-sidebar {
+            width: 100%;
+            right: -100%;
+        }
+        .qr-image {
+            max-width: 200px;
+        }
+        .price-section {
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .btn-group {
+            gap: 10px;
+        }
+        .empty-state {
+            padding: 40px 20px;
+        }
+        .empty-icon {
+            font-size: 50px;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <!-- Header -->
-  <div class="header">
-    <div class="logo"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar"/><div><h1>Top Provider</h1><small id="userEmail">Loading...</small></div></div>
-    <div class="balance-badge">₹<span id="liveBalance">0.00</span></div>
-  </div>
-
-  <!-- Navigation -->
-  <div class="nav-tabs">
-    <div class="nav-tab active" data-section="services">Service Selection</div>
-    <div class="nav-tab" data-section="orders">Order History</div>
-    <div class="nav-tab" data-section="affiliate">Affiliate</div>
-    <div class="nav-tab" data-section="stats">Statistics</div>
-    <div class="nav-tab" data-section="wallet">Wallet / Balance</div>
-    <div class="nav-tab" data-section="settings">Settings</div>
-  </div>
-
-  <!-- Services Section -->
-  <div id="services" class="section active">
-    <div class="price-drop"><span>⚡ PRICE DROP !</span><div><span class="old">₹70</span> <span class="new">₹45</span> <small>100K Views</small></div></div>
-    
-    <div class="card support-card">
-      <h3>🎧 Customer Support</h3><p>Available 24/7 for your queries</p>
-      <!-- ✅ Updated: @Vip3rxyt -->
-      <a href="https://t.me/Vip3rxyt" target="_blank">Contact</a>
-    </div>
-
-    <div class="card updates-card">
-      <h3>📢 Latest Updates</h3>
-      <!-- ✅ Updated: @Instagramfreefollowersrx -->
-      <a href="https://t.me/Instagramfreefollowersrx" target="_blank" class="channel-link">Join our Telegram channel</a>
-      <div class="social-links">
-        <a href="#" onclick="return false">Instagram</a><a href="#" onclick="return false">Facebook</a><a href="#" onclick="return false">YouTube</a>
-        <a href="https://t.me/Instagramfreefollowersrx" target="_blank">Telegram</a><a href="#" onclick="return false">WhatsApp</a><a href="#" onclick="return false">Other</a>
-      </div>
-    </div>
-
-    <div class="card"><h3>Other Services</h3><p id="servicesList" style="color:#aaa;margin-top:10px">Loading services...</p></div>
-  </div>
-
-  <!-- Orders Section -->
-  <div id="orders" class="section">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:15px"><h3>Order History</h3><button class="nav-tab" style="padding:5px 10px;font-size:0.8rem" onclick="loadOrders()">Refresh</button></div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="filterOrders('all')">All</button>
-        <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="filterOrders('completed')">Completed</button>
-        <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="filterOrders('pending')">Pending</button>
-        <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="filterOrders('cancelled')">Cancelled</button>
-      </div>
-      <div id="ordersList"><p style="color:#aaa">Loading orders...</p></div>
-    </div>
-  </div>
-
-  <!-- Affiliate Section -->
-  <div id="affiliate" class="section">
-    <div class="card">
-      <h3>🎯 AFFILIATE PROGRAM</h3>
-      <p style="margin:10px 0">Earn with Every Referral<br/><small>Share your link. Earn 5% commission on every recharge — forever, no limits.</small></p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0"><span style="background:#2a2a3e;padding:5px 12px;border-radius:8px;font-size:0.85rem">Lifetime Commission</span><span style="background:#2a2a3e;padding:5px 12px;border-radius:8px;font-size:0.85rem">Instant Tracking</span><span style="background:#2a2a3e;padding:5px 12px;border-radius:8px;font-size:0.85rem">Auto Payouts</span></div>
-      
-      <div class="affiliate-grid">
-        <div class="stat-box"><div class="value" id="affTotalEarned">₹0.00</div><div class="label">Total Earned</div></div>
-        <div class="stat-box"><div class="value" id="affTodayEarned">₹0.00</div><div class="label">Today's Earnings</div></div>
-        <div class="stat-box"><div class="value" id="affTotalRefs">0</div><div class="label">Total Referrals</div></div>
-        <div class="stat-box"><div class="value" id="affActiveRefs">0</div><div class="label">Active Referrals</div></div>
-        <div class="stat-box"><div class="value">5%</div><div class="label">Commission Rate</div></div>
-      </div>
-
-      <div class="referral-box">
-        <label>Your Referral Link</label>
-        <input type="text" id="refLink" readonly value="https://sastaotp.com/register?ref=LOADING..."/>
-        <button class="btn-primary" style="padding:10px;margin-top:8px" onclick="copyRefLink()">Copy</button>
-        <div class="share-btns" style="margin-top:10px">
-          <a href="#" id="waShare" target="_blank">WhatsApp</a><a href="#" id="tgShare" target="_blank">Telegram</a><a href="#" id="twShare" target="_blank">Twitter/X</a>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading...</div>
         </div>
-      </div>
-
-      <div style="margin-top:20px"><h4>How It Works</h4><ol style="margin:10px 0 10px 20px;color:#aaa;font-size:0.9rem"><li>Share Your Link<br/><small style="color:#888">Copy your referral link and share anywhere.</small></li><li>Friend Registers & Recharges<br/><small style="color:#888">Referral tracked automatically.</small></li><li>You Earn 5% Commission<br/><small style="color:#888">Earnings added instantly, no limits.</small></li></ol></div>
-
-      <div><h4>Commission History <button class="nav-tab" style="padding:5px 10px;font-size:0.8rem" onclick="loadCommissions()">Refresh</button></h4><div id="commissionHistory" style="margin-top:10px;color:#aaa">No commissions earned yet. Share your referral link!</div></div>
-      <div style="margin-top:15px"><h4>Referral History <button class="nav-tab" style="padding:5px 10px;font-size:0.8rem" onclick="loadReferrals()">Refresh</button></h4><div id="referralHistory" style="margin-top:10px;color:#aaa">No referrals yet<br/>Share your referral link to start earning commissions</div></div>
     </div>
-  </div>
-
-  <!-- Statistics Section -->
-  <div id="stats" class="section">
-    <div class="card"><h3>Statistics</h3><div class="stats-grid" style="margin-top:15px">
-      <div class="stat-card"><div class="num" id="statTotalOrders">0</div><div>Total Orders</div></div>
-      <div class="stat-card"><div class="num" id="statCompleted" style="color:#10b981">0</div><div>Completed</div></div>
-      <div class="stat-card"><div class="num" id="statActive" style="color:#f59e0b">0</div><div>Active</div></div>
-      <div class="stat-card"><div class="num" id="statCancelled" style="color:#ef4444">0</div><div>Cancelled</div></div>
-      <div class="stat-card"><div class="num" id="statTotalSpent">₹0</div><div>Total Spent</div></div>
-      <div class="stat-card"><div class="num" id="statSuccessRate">0%</div><div>Success Rate</div></div>
-    </div></div>
-  </div>
-
-  <!-- Wallet Section -->
-  <div id="wallet" class="section">
-    <div class="card">
-      <h3>Wallet / Balance</h3>
-      <p style="margin:10px 0">Balance: <strong style="font-size:1.2rem;color:#6366f1">₹<span id="walletBalance">0.00</span></strong></p>
-      
-      <div class="wallet-actions">
-        <button onclick="toggleDeposit()">📱 Add Funds</button>
-        <button onclick="redeemGift()">🎁 Redeem Gift Code</button>
-      </div>
-
-      <!-- Deposit Panel -->
-      <div id="depositPanel" class="hidden" style="margin-top:15px;padding-top:15px;border-top:1px solid #333">
-        <h4>Add Funds</h4>
-        <p style="color:#aaa;font-size:0.9rem;margin:5px 0">Minimum deposit: ₹20 • Maximum: ₹30,000</p>
-        
-        <div class="deposit-grid">
-          <div class="deposit-option selected" data-method="upi" onclick="selectDeposit('upi')"><div>📱 UPI</div><small>Instant • 5% fees</small></div>
-          <div class="deposit-option" data-method="crypto" onclick="selectDeposit('crypto')"><div>₿ Crypto</div><small>100+ coins</small></div>
+    <!-- Notification Toast -->
+    <div class="notification-toast" id="notificationToast"></div>
+    <!-- Confirm Dialog -->
+    <div class="confirm-dialog" id="confirmDialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; padding: 20px; border-radius: 12px; z-index: 10002; border: 1px solid rgba(0,255,255,0.2); width: 85%; max-width: 320px; text-align: center;">
+        <div class="confirm-dialog-title" id="confirmTitle" style="color: #fff; font-size: 18px; margin-bottom: 10px; font-weight: bold;">Confirm Action</div>
+        <div class="confirm-dialog-message" id="confirmMessage" style="color: #ccc; font-size: 14px; margin-bottom: 20px;">Are you sure?</div>
+        <div class="confirm-dialog-buttons" style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" id="confirmNo" style="flex: 1;">Cancel</button>
+            <button class="btn" id="confirmYes" style="flex: 1; background: #ff006e; color: white;">Confirm</button>
         </div>
-
-        <!-- UPI Flow -->
-        <div id="upiFlow">
-          <div style="margin:15px 0">
-            <label>Deposit amount</label>
-            <input type="number" id="depositAmount" placeholder="₹100.00" min="20" max="30000" style="width:100%;padding:12px;margin-top:5px;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff"/>
-            <div class="amount-presets">
-              <button class="amount-btn" onclick="setAmount(50)">₹50</button><button class="amount-btn" onclick="setAmount(100)">₹100</button>
-              <button class="amount-btn" onclick="setAmount(250)">₹250</button><button class="amount-btn" onclick="setAmount(500)">₹500</button>
-              <button class="amount-btn" onclick="setAmount(1000)">₹1000</button>
+    </div>
+    <!-- Header -->
+    <div class="header">
+        <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="brand-section">
+            <img id="headerLogo" class="brand-logo" src="" alt="Logo" style="display:none;">
+            <div id="headerBrandName" class="brand-name">Premium Shop</div>
+        </div>
+        <div class="header-icons">
+            <div class="header-icon" onclick="toggleCart()" title="Shopping Cart">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="badge" id="cartBadge" style="display: none;">0</span>
+            </div>
+        </div>
+    </div>
+    <!-- Sidebar Menu -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMenu()"></div>
+    <div class="sidebar" id="sidebar">
+        <div id="menuContent"></div>
+    </div>
+    <!-- Cart Sidebar -->
+    <div class="sidebar sidebar-right" id="cartSidebar" style="left: auto; right: -100%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div style="font-size: 18px; font-weight: bold; color: #fff;"><i class="fas fa-shopping-cart" style="color: #00ffff;"></i> Cart</div>
+            <div onclick="toggleCart()" style="width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px;">×</div>
+        </div>
+        <div id="cartItems"></div>
+        <div id="cartTotal" style="display: none; padding: 15px; background: rgba(0,255,255,0.05); border-radius: 12px; margin-top: 15px;">
+            <div style="color: #aaa; font-size: 12px;">Total Amount:</div>
+            <div id="cartTotalAmount" style="color: #00ff88; font-size: 24px; font-weight: bold;">₹0</div>
+        </div>
+        <button class="btn" id="cartCheckoutBtn" onclick="checkoutCart()" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 14px;" disabled>
+            <i class="fas fa-credit-card"></i> Proceed to Checkout
+        </button>
+    </div>
+    <!-- Search Bar -->
+    <div class="search-container">
+        <div class="search-wrapper">
+            <input type="text" class="search-bar" id="searchBar" placeholder="Search Services..." oninput="searchServices()">
+            <span class="search-icon"><i class="fas fa-search"></i></span>
+        </div>
+    </div>
+    <!-- Main Container -->
+    <div class="container">
+        <div id="mainContent">
+            <!-- Filter Slider Container -->
+            <div class="filter-slider-container" id="filterSliderContainer" style="display: none;">
+                <div class="filter-slider" id="filterSlider">
+                    <button class="filter-btn active" data-filter="all" onclick="filterServices('all')">
+                        <i class="fas fa-th"></i> All
+                    </button>
+                    <button class="filter-btn" data-filter="premium" onclick="filterServices('premium')">
+                        <i class="fas fa-star"></i> Premium
+                    </button>
+                    <button class="filter-btn" data-filter="budget" onclick="filterServices('budget')">
+                        <i class="fas fa-fire"></i> Budget
+                    </button>
+                    <button class="filter-btn" data-filter="free" onclick="filterServices('free')">
+                        <i class="fas fa-tag"></i> Free
+                    </button>
+                </div>
+            </div>
+            <h2 class="section-title"><i class="fas fa-shopping-bag"></i> Services</h2>
+            <div id="productsGrid" class="products-grid"></div>
+            <!-- Pagination -->
+            <div id="pagination" style="display: none; justify-content: center; gap: 8px; margin-top: 20px;"></div>
+        </div>
+    </div>
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav" id="bottomNav">
+        <div class="bottom-nav-item active" id="bnav-services" onclick="bottomNavClick('services')">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </div>
+        <div class="bottom-nav-item" id="bnav-subscriptions" onclick="bottomNavClick('subscriptions')">
+            <i class="fas fa-calendar-check"></i>
+            <span>Subs</span>
+        </div>
+        <div class="bottom-nav-item" id="bnav-orders" onclick="bottomNavClick('orders')">
+            <i class="fas fa-history"></i>
+            <span>Orders</span>
+        </div>
+        <div class="bottom-nav-item" id="bnav-support" onclick="showAdminSupport()">
+            <i class="fas fa-headset"></i>
+            <span>Support</span>
+        </div>
+        <div class="bottom-nav-item" id="bnav-setting" onclick="bottomNavClick('setting')">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </div>
+    </div>
+    <!-- Product Detail Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('productModal')">×</span>
+            <img id="modalImage" class="modal-image" src="" alt="Product">
+            <h2 id="modalTitle" class="modal-title"></h2>
+            <p id="modalDescription" class="modal-description"></p>
+            <!-- Screenshots Section -->
+            <div id="screenshotsSection" style="display: none; margin-bottom: 15px;">
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #fff;">Screenshots</div>
+                <div id="screenshotsGrid" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px;"></div>
+            </div>
+            <div class="price-section" style="background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; align-items: center; gap: 10px;">
+                <span id="modalPriceDiscount" style="font-size: 24px; font-weight: bold; color: #00ff88;"></span>
+                <span id="modalPriceOriginal" style="text-decoration: line-through; color: #666; font-size: 14px;"></span>
+                <span id="modalDiscountBadge" style="background: #ff006e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; display: none;"></span>
+            </div>
+            <div style="display: flex; gap: 10px;" id="modalButtonGroup">
+                <!-- Buttons will be dynamically added -->
+            </div>
+        </div>
+    </div>
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('checkoutModal')">×</span>
+            <h2 class="modal-title"><i class="fas fa-credit-card"></i> Checkout</h2>
+            <div id="checkoutItems" style="margin-bottom: 15px;"></div>
+            <!-- Coupon Section -->
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="font-size: 14px; margin-bottom: 10px;"><i class="fas fa-ticket-alt"></i> Apply Coupon</div>
+                <div id="appliedCouponDisplay" style="display: none;"></div>
+                <div id="couponInputSection" style="display: flex; gap: 8px;">
+                    <input type="text" id="couponInput" placeholder="Enter code" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: white; font-size: 14px;">
+                    <button class="btn" onclick="applyCoupon()" style="width: auto; padding: 0 15px;">Apply</button>
+                </div>
+                <div id="couponMessage" style="display: none; margin-top: 8px; font-size: 12px; padding: 8px; border-radius: 6px;"></div>
+            </div>
+            <!-- Price Breakdown -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <span style="color: #aaa;">Subtotal:</span>
+                    <span id="checkoutSubtotal" style="color: #fff;">₹0</span>
+                </div>
+                <div id="discountRow" style="display: none; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <span style="color: #aaa;">Discount:</span>
+                    <span id="checkoutDiscount" style="color: #ff006e;">-₹0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 16px; font-weight: bold;">
+                    <span>Total:</span>
+                    <span id="checkoutTotal" style="color: #00ff88;">₹0</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="closeModal('checkoutModal')">Cancel</button>
+                <button class="btn" onclick="proceedToPayment()">Proceed to Pay</button>
+            </div>
+        </div>
+    </div>
+    <!-- Payment Modal (QR) - SIRF UTR (Amount Paid field completely removed) -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('paymentModal')">×</span>
+            <h2 class="modal-title"><i class="fas fa-qrcode"></i> Complete Payment</h2>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <div style="color: #aaa; font-size: 12px;">Scan QR to pay</div>
+            </div>
+            <div style="text-align: center;">
+                <img style="width: 180px; height: 180px; border-radius: 12px; border: 2px solid #00ffff; padding: 5px; margin: 0 auto 15px;" src="https://i.ibb.co/GQfzjpKT/Screenshot-2026-04-15-03-18-10-459-com-paytm-business.png" alt="QR Code">
+            </div>
+            <p style="text-align: center; font-size: 12px; color: #aaa; margin-bottom: 15px;">
+                Enter UTR / Transaction ID below.
+            </p>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 12px; margin-bottom: 4px; color: #00ffff;">UTR / Transaction ID <span style="color:#ff006e">*</span></label>
+                <input type="text" id="utrId" placeholder="12-digit UTR number" maxlength="16" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="closeModal('paymentModal')">Cancel</button>
+                <button class="btn" onclick="confirmPurchase()">Confirm Order</button>
+            </div>
+        </div>
+    </div>
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('authModal')">×</span>
+            <h2 class="modal-title" id="authTitle"><i class="fas fa-sign-in-alt"></i> Login</h2>
+            <div id="loginForm">
+                <div style="margin-bottom: 12px;">
+                    <input type="email" id="loginEmail" placeholder="Email Address" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <input type="password" id="loginPassword" placeholder="Password" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                </div>
+                <button class="btn" onclick="loginUser()" style="width: 100%; padding: 12px; font-size: 15px;">Login</button>
+                <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #aaa;">
+                    Don't have an account? <span style="color: #00ffff; padding: 5px; font-weight: bold;" onclick="switchToSignup()">Sign up</span>
+                </p>
+            </div>
+            <div id="signupForm" style="display: none;">
+                <div style="margin-bottom: 12px;">
+                    <input type="text" id="signupName" placeholder="Full Name" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <input type="email" id="signupEmail" placeholder="Email Address" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <input type="password" id="signupPassword" placeholder="Password (min 6 chars)" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                </div>
+                <button class="btn" onclick="signupUser()" style="width: 100%; padding: 12px; font-size: 15px;">Create Account</button>
+                <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #aaa;">
+                    Already have an account? <span style="color: #00ffff; padding: 5px; font-weight: bold;" onclick="switchToLogin()">Login</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    <!-- Admin Support Chat Modal -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('chatModal')">×</span>
+            <h2 class="modal-title">Support</h2>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="empty-state" style="padding: 20px;">
+                        <div class="empty-icon" style="font-size: 40px; margin-bottom: 10px;">💬</div>
+                        <div style="font-size: 14px;">Start a conversation</div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="chatInput" placeholder="Type message..." style="flex: 1; padding: 12px; border-radius: 20px; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 14px;">
+                        <button onclick="sendMessage()" style="width: 44px; height: 44px; border-radius: 50%; background: #00ffff; border: none; color: #000; display: flex; align-items: center; justify-content: center;"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Screenshot Preview Modal -->
+    <div id="screenshotModal" class="modal">
+        <div class="modal-content" style="background: transparent; padding: 0; box-shadow: none; display: flex; align-items: center; justify-content: center; max-height: 100vh; height: 100vh;">
+            <span class="modal-close" onclick="closeModal('screenshotModal')" style="top: 20px; right: 20px; background: rgba(0,0,0,0.5);">×</span>
+            <img id="screenshotPreview" src="" alt="Screenshot" style="max-width: 100%; max-height: 80vh; object-fit: contain;">
+        </div>
+    </div>
+    <!-- Floating Action Button -->
+    <div id="fab" onclick="scrollToTop()" style="display: none; position: fixed; bottom: 80px; right: 20px; width: 45px; height: 45px; border-radius: 50%; background: #00ffff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 990; box-shadow: 0 4px 10px rgba(0,255,255,0.3);">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+    <!-- Subscription Detail Modal -->
+    <div id="subscriptionModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('subscriptionModal')">×</span>
+            <h2 id="subModalTitle" class="modal-title"></h2>
+            <div id="subModalDuration" style="font-size:15px;color:#00ffff;font-weight:600;margin-bottom:10px;"></div>
+            <div class="price-section" style="background:rgba(255,255,255,0.05);border-radius:12px;display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                <span id="subModalPrice" style="font-size:28px;font-weight:bold;color:#00ff88;"></span>
+            </div>
+            <div class="features-list">
+                <div style="font-size:14px;font-weight:bold;margin-bottom:8px;color:#fff;">What you get</div>
+                <div id="subFeaturesList"></div>
+            </div>
+            <p id="subModalDescription" class="modal-description"></p>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-secondary" onclick="closeModal('subscriptionModal')">Cancel</button>
+                <button class="btn" onclick="buySubscriptionNow()">Subscribe Now</button>
+            </div>
+        </div>
+    </div>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import {
+            initializeApp
+        } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            updateProfile
+        } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+        import {
+            getDatabase,
+            ref,
+            set,
+            get,
+            push,
+            onValue,
+            remove,
+            update,
+            query,
+            orderByChild,
+            limitToLast
+        } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js';
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrjP8o8adBYGih_28XrDrCwVpL3WRu9rE",
+            authDomain: "selll-d5149.firebaseapp.com",
+            databaseURL: "https://selll-d5149-default-rtdb.firebaseio.com",
+            projectId: "selll-d5149",
+            storageBucket: "selll-d5149.firebasestorage.app",
+            messagingSenderId: "633734276998",
+            appId: "1:633734276998:web:b486015bd345028a406e07"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        window.auth = auth;
+        window.db = db;
+        window.dbRef = ref;
+        window.dbSet = set;
+        window.dbGet = get;
+        window.dbPush = push;
+        window.dbOnValue = onValue;
+        window.dbRemove = remove;
+        window.dbUpdate = update;
+        window.dbQuery = query;
+        window.dbOrderByChild = orderByChild;
+        window.dbLimitToLast = limitToLast;
+        window.authCreateUser = createUserWithEmailAndPassword;
+        window.authSignIn = signInWithEmailAndPassword;
+        window.authSignOut = signOut;
+        window.authUpdateProfile = updateProfile;
+        window.currentUser = null;
+        window.allServices = [];
+        window.allSubscriptions = [];
+        window.currentProduct = null;
+        window.currentSubscription = null;
+        window.cart = [];
+        window.appliedCoupon = null;
+        window.currentFilter = 'all';
+        window.confirmCallback = null;
+        onAuthStateChanged(auth, (user) => {
+            window.currentUser = user;
+            updateMenu();
+            loadServices();
+            loadSubscriptions();
+            loadCartFromStorage();
+            if (user) {
+                loadChatMessages();
+            }
+        });
+        async function loadBrandSettings() {
+            try {
+                const snapshot = await get(ref(db, 'meta/brand'));
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    if (data.logoUrl) {
+                        document.getElementById('headerLogo').src = data.logoUrl;
+                        document.getElementById('headerLogo').style.display = 'block';
+                    }
+                    if (data.name) {
+                        document.getElementById('headerBrandName').textContent = data.name;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading brand:', error);
+            }
+        }
+        loadBrandSettings();
+        onValue(ref(db, 'products'), (snapshot) => {
+            if (snapshot.exists()) {
+                window.allServices = Object.entries(snapshot.val()).map(([id, product]) => ({
+                    id,
+                    ...product
+                }));
+                displayServices(window.allServices);
+            }
+        });
+        function loadSubscriptions() {
+            onValue(ref(db, 'subscriptions'), (snapshot) => {
+                if (snapshot.exists()) {
+                    window.allSubscriptions = Object.entries(snapshot.val()).map(([id, sub]) => ({ id, ...sub }))
+                        .sort((a, b) => parseInt(a.duration) - parseInt(b.duration));
+                }
+            });
+        }
+    </script>
+    <script>
+        // Global variables
+        let isLoading = false;
+        const ITEMS_PER_PAGE = 12;
+        let currentPage = 1;
+        function showLoading(text = 'Loading...') {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.querySelector('.loading-text').textContent = text;
+            overlay.classList.add('active');
+            isLoading = true;
+        }
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+            isLoading = false;
+        }
+        function showNotification(message, type = 'success') {
+            const toast = document.getElementById('notificationToast');
+            toast.textContent = message;
+            toast.className = `notification-toast show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        function showConfirmDialog(title, message, callback) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmDialog').style.display = 'block';
+            window.confirmCallback = callback;
+        }
+        function hideConfirmDialog() {
+            document.getElementById('confirmDialog').style.display = 'none';
+            window.confirmCallback = null;
+        }
+        document.getElementById('confirmYes').addEventListener('click', function() {
+            if (window.confirmCallback) {
+                window.confirmCallback(true);
+            }
+            hideConfirmDialog();
+        });
+        document.getElementById('confirmNo').addEventListener('click', function() {
+            if (window.confirmCallback) {
+                window.confirmCallback(false);
+            }
+            hideConfirmDialog();
+        });
+        function toggleMenu() {
+            document.getElementById('hamburger').classList.toggle('active');
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+            document.body.style.overflow = document.getElementById('sidebar').classList.contains('active') ? 'hidden' : '';
+        }
+        function updateMenu() {
+            const menuContent = document.getElementById('menuContent');
+            const user = window.currentUser;
+            if (user) {
+                menuContent.innerHTML = `
+          <div class="menu-username">
+            <div style="width: 40px; height: 40px; background: #00ffff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
+                <i class="fas fa-user"></i>
+            </div>
+            ${escapeHtml(user.displayName || user.email.split('@')[0])}
+          </div>
+          <div class="menu-item" onclick="showServices()">
+            <i class="fas fa-home"></i> Home
+          </div>
+          <div class="menu-item" onclick="showPurchaseHistory()">
+            <i class="fas fa-box"></i> My Orders
+          </div>
+          <div class="menu-item" onclick="showBookmarks()">
+            <i class="fas fa-heart"></i> Saved Items
+          </div>
+          <div class="menu-item" onclick="showAdminSupport()">
+            <i class="fas fa-headset"></i> Support
+          </div>
+          <div class="menu-item" onclick="logoutUser()" style="margin-top: 20px; color: #ff006e;">
+            <i class="fas fa-sign-out-alt" style="color: #ff006e;"></i> Logout
+          </div>
+        `;
+            } else {
+                menuContent.innerHTML = `
+          <div class="menu-item" onclick="showServices()">
+            <i class="fas fa-home"></i> Home
+          </div>
+          <div class="menu-item" onclick="requireLogin('view orders')">
+            <i class="fas fa-box"></i> My Orders
+          </div>
+          <div class="menu-item" onclick="requireLogin('view saved items')">
+            <i class="fas fa-heart"></i> Saved Items
+          </div>
+          <div class="menu-item" onclick="requireLogin('contact support')">
+            <i class="fas fa-headset"></i> Support
+          </div>
+          <div class="menu-item" onclick="showAuth()" style="margin-top: 20px; background: rgba(0,255,255,0.1); color: #00ffff; justify-content: center;">
+            <i class="fas fa-sign-in-alt"></i> Login / Register
+          </div>
+        `;
+            }
+        }
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        function formatCurrency(amount) {
+            return '₹' + parseFloat(amount).toLocaleString('en-IN', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+        }
+        function calculateDiscountPercent(original, discounted) {
+            if (!original || original <= 0) return 0;
+            const discount = ((original - discounted) / original) * 100;
+            return Math.round(discount);
+        }
+        async function loadServices() {
+            try {
+                if (window.allServices.length === 0) {
+                    showLoading('Loading...');
+                    const snapshot = await window.dbGet(window.dbRef(window.db, 'products'));
+                    hideLoading();
+                    if (snapshot.exists()) {
+                        window.allServices = Object.entries(snapshot.val()).map(([id, product]) => ({
+                            id,
+                            ...product
+                        })).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                        displayServices(window.allServices);
+                    } else {
+                        displayEmptyState('products');
+                    }
+                } else {
+                    displayServices(window.allServices);
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Error loading products:', error);
+                showNotification('Failed to load products', 'error');
+            }
+        }
+        function displayServices(products) {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+            if (products.length === 0) {
+                displayEmptyState('products');
+                document.getElementById('filterSliderContainer').style.display = 'none';
+                return;
+            }
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const paginatedServices = products.slice(startIndex, endIndex);
+            paginatedServices.forEach((product, index) => {
+                const card = createProductCard(product, index);
+                grid.appendChild(card);
+            });
+            updatePagination(products.length);
+            document.getElementById('filterSliderContainer').style.display = 'block';
+        }
+        function createProductCard(product, index) {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            const discountPercent = calculateDiscountPercent(product.realPrice, product.discountedPrice);
+            const showBadge = discountPercent >= 10;
+            const isFree = parseFloat(product.discountedPrice) === 0;
+            card.innerHTML = `
+    ${showBadge && !isFree ? `<div class="product-badge">${discountPercent}% OFF</div>` : ''}
+    ${isFree ? `<div class="product-badge" style="background: #00ff88; color: #000;">FREE</div>` : ''}
+    <img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(product.title)}" class="product-image"
+         onerror="this.src='https://via.placeholder.com/150/1a1a1a/00ffff?text=No+Img'" loading="lazy">
+    <div class="product-title">${escapeHtml(product.title)}</div>
+    <div class="product-price-section">
+      <span class="product-price-discount">${isFree ? 'FREE' : formatCurrency(product.discountedPrice)}</span>
+      ${!isFree && product.realPrice > product.discountedPrice ? `<span class="product-price-original">${formatCurrency(product.realPrice)}</span>` : '<span style="height: 14px;"></span>'}
+    </div>
+    <div class="product-actions">
+      <button class="btn" onclick="showProductDetail('${product.id}')">View</button>
+      ${!isFree ? `
+        <button class="btn-icon" onclick="quickAddToCart('${product.id}'); event.stopPropagation();">
+          <i class="fas fa-cart-plus"></i>
+        </button>
+      ` : ''}
+    </div>
+  `;
+            card.onclick = (e) => {
+                if (!e.target.closest('button')) {
+                    showProductDetail(product.id);
+                }
+            };
+            return card;
+        }
+        async function showProductDetail(productId) {
+            try {
+                showLoading();
+                const snapshot = await window.dbGet(window.dbRef(window.db, `products/${productId}`));
+                hideLoading();
+                if (snapshot.exists()) {
+                    window.currentProduct = {
+                        id: productId,
+                        ...snapshot.val()
+                    };
+                    const product = window.currentProduct;
+                    document.getElementById('modalImage').src = product.imageUrl;
+                    document.getElementById('modalTitle').textContent = product.title;
+                    document.getElementById('modalDescription').textContent = product.description;
+                    const isFree = parseFloat(product.discountedPrice) === 0;
+                    if (!isFree && product.realPrice > product.discountedPrice) {
+                        document.getElementById('modalPriceOriginal').textContent = formatCurrency(product.realPrice);
+                        document.getElementById('modalPriceOriginal').style.display = 'inline';
+                    } else {
+                        document.getElementById('modalPriceOriginal').style.display = 'none';
+                    }
+                    document.getElementById('modalPriceDiscount').textContent = isFree ? 'FREE' : formatCurrency(product.discountedPrice);
+                    const discountPercent = calculateDiscountPercent(product.realPrice, product.discountedPrice);
+                    const badge = document.getElementById('modalDiscountBadge');
+                    if (discountPercent >= 10 && !isFree) {
+                        badge.textContent = `${discountPercent}% OFF`;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                    const screenshotsSection = document.getElementById('screenshotsSection');
+                    const screenshotsGrid = document.getElementById('screenshotsGrid');
+                    if (product.screenshots && product.screenshots.length > 0) {
+                        screenshotsGrid.innerHTML = '';
+                        product.screenshots.forEach((screenshot) => {
+                            const img = document.createElement('img');
+                            img.src = screenshot;
+                            img.style.cssText = 'height: 60px; width: 60px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: rgba(0,0,0,0.2);';
+                            img.onclick = () => showScreenshotPreview(screenshot);
+                            img.onerror = function() {
+                                this.style.display = 'none';
+                            };
+                            screenshotsGrid.appendChild(img);
+                        });
+                        screenshotsSection.style.display = 'block';
+                    } else {
+                        screenshotsSection.style.display = 'none';
+                    }
+                    const buttonGroup = document.getElementById('modalButtonGroup');
+                    if (isFree) {
+                        buttonGroup.innerHTML = `
+              <button class="btn" style="flex: 1; background: #00ff88; color: #000;" onclick="window.open('${escapeHtml(product.downloadLink || '#')}', '_blank')">
+                <i class="fas fa-download"></i> Get Free
+              </button>
+              <button class="btn-icon" id="bookmarkBtn" onclick="toggleBookmark()" style="width: 40px; height: 40px;">
+                <i class="far fa-heart"></i>
+              </button>
+            `;
+                    } else {
+                        buttonGroup.innerHTML = `
+              <button class="btn btn-secondary" onclick="addToCart()">Add to Cart</button>
+              <button class="btn" onclick="buyNow()">Buy Now</button>
+              <button class="btn-icon" id="bookmarkBtn" onclick="toggleBookmark()" style="width: 40px; height: 40px;">
+                <i class="far fa-heart"></i>
+              </button>
+            `;
+                    }
+                    await updateBookmarkButton();
+                    document.getElementById('productModal').classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Error loading product:', error);
+                showNotification('Failed to load details', 'error');
+            }
+        }
+        function showScreenshotPreview(imageUrl) {
+            document.getElementById('screenshotPreview').src = imageUrl;
+            document.getElementById('screenshotModal').classList.add('active');
+        }
+        async function updateBookmarkButton() {
+            const btn = document.getElementById('bookmarkBtn');
+            if (!window.currentUser || !window.currentProduct) {
+                btn.querySelector('i').className = 'far fa-heart';
+                return;
+            }
+            try {
+                const snapshot = await window.dbGet(
+                    window.dbRef(window.db, `users/${window.currentUser.uid}/bookmarks/${window.currentProduct.id}`)
+                );
+                if (snapshot.exists()) {
+                    btn.querySelector('i').className = 'fas fa-heart';
+                    btn.querySelector('i').style.color = '#ff006e';
+                } else {
+                    btn.querySelector('i').className = 'far fa-heart';
+                    btn.querySelector('i').style.color = '';
+                }
+            } catch (error) {
+                console.error('Error checking bookmark:', error);
+            }
+        }
+        async function toggleBookmark() {
+            if (!window.currentUser) {
+                closeModal('productModal');
+                showNotification('Login to save items', 'error');
+                showAuth();
+                return;
+            }
+            if (!window.currentProduct) return;
+            try {
+                const bookmarkRef = window.dbRef(
+                    window.db,
+                    `users/${window.currentUser.uid}/bookmarks/${window.currentProduct.id}`
+                );
+                const snapshot = await window.dbGet(bookmarkRef);
+                const btn = document.getElementById('bookmarkBtn');
+                if (snapshot.exists()) {
+                    await window.dbRemove(bookmarkRef);
+                    btn.querySelector('i').className = 'far fa-heart';
+                    btn.querySelector('i').style.color = '';
+                    showNotification('Removed from saved items', 'success');
+                } else {
+                    await window.dbSet(bookmarkRef, {
+                        productId: window.currentProduct.id,
+                        addedAt: new Date().toISOString()
+                    });
+                    btn.querySelector('i').className = 'fas fa-heart';
+                    btn.querySelector('i').style.color = '#ff006e';
+                    showNotification('Saved for later', 'success');
+                }
+            } catch (error) {
+                console.error('Error toggling bookmark:', error);
+                showNotification('Failed to save item', 'error');
+            }
+        }
+        function searchServices() {
+            const query = document.getElementById('searchBar').value.toLowerCase().trim();
+            let filtered = window.allServices;
+            if (query) {
+                filtered = window.allServices.filter(product =>
+                    product.title.toLowerCase().includes(query) ||
+                    (product.description && product.description.toLowerCase().includes(query))
+                );
+            }
+            if (window.currentFilter !== 'all') {
+                filtered = applyFilter(filtered, window.currentFilter);
+            }
+            currentPage = 1;
+            displayServices(filtered);
+            if (query && filtered.length === 0) {
+                displayEmptyState('search');
+            }
+        }
+        function filterServices(filter) {
+            window.currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+            let filtered = window.allServices;
+            if (filter !== 'all') {
+                filtered = applyFilter(window.allServices, filter);
+            }
+            currentPage = 1;
+            displayServices(filtered);
+        }
+        function applyFilter(products, filter) {
+            switch (filter) {
+                case 'premium':
+                    return products.filter(p => {
+                        const price = parseFloat(p.discountedPrice);
+                        return price >= 199 && price <= 2999;
+                    });
+                case 'budget':
+                    return products.filter(p => {
+                        const price = parseFloat(p.discountedPrice);
+                        return price >= 1 && price <= 198;
+                    });
+                case 'free':
+                    return products.filter(p => {
+                        const price = parseFloat(p.discountedPrice);
+                        return price === 0;
+                    });
+                default:
+                    return products;
+            }
+        }
+        function updatePagination(totalItems) {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            pagination.style.display = 'flex';
+            pagination.innerHTML = '';
+            const prevBtn = document.createElement('button');
+            prevBtn.style.cssText = 'padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.1); border: none; color: white;';
+            prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            prevBtn.disabled = currentPage === 1;
+            if (currentPage === 1) prevBtn.style.opacity = '0.3';
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayServices(getFilteredServices());
+                    scrollToTop();
+                }
+            };
+            pagination.appendChild(prevBtn);
+            const info = document.createElement('span');
+            info.style.cssText = 'font-size: 14px; padding: 6px 10px; color: #ccc;';
+            info.textContent = `${currentPage} / ${totalPages}`;
+            pagination.appendChild(info);
+            const nextBtn = document.createElement('button');
+            nextBtn.style.cssText = 'padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.1); border: none; color: white;';
+            nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            nextBtn.disabled = currentPage === totalPages;
+            if (currentPage === totalPages) nextBtn.style.opacity = '0.3';
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayServices(getFilteredServices());
+                    scrollToTop();
+                }
+            };
+            pagination.appendChild(nextBtn);
+        }
+        function getFilteredServices() {
+            const query = document.getElementById('searchBar').value.toLowerCase().trim();
+            let filtered = window.allServices;
+            if (query) {
+                filtered = filtered.filter(product =>
+                    product.title.toLowerCase().includes(query) ||
+                    (product.description && product.description.toLowerCase().includes(query))
+                );
+            }
+            if (window.currentFilter !== 'all') {
+                filtered = applyFilter(filtered, window.currentFilter);
+            }
+            return filtered;
+        }
+        function loadCartFromStorage() {
+            try {
+                const savedCart = localStorage.getItem('shoppingCart');
+                if (savedCart) {
+                    window.cart = JSON.parse(savedCart);
+                    updateCartUI();
+                }
+            } catch (error) {
+                console.error('Error loading cart:', error);
+                window.cart = [];
+            }
+        }
+        function saveCartToStorage() {
+            try {
+                localStorage.setItem('shoppingCart', JSON.stringify(window.cart));
+            } catch (error) {
+                console.error('Error saving cart:', error);
+            }
+        }
+        function updateCartUI() {
+            const badge = document.getElementById('cartBadge');
+            const cartItems = document.getElementById('cartItems');
+            const cartTotal = document.getElementById('cartTotal');
+            const cartTotalAmount = document.getElementById('cartTotalAmount');
+            const checkoutBtn = document.getElementById('cartCheckoutBtn');
+            if (window.cart.length === 0) {
+                badge.style.display = 'none';
+                cartItems.innerHTML = `
+          <div class="empty-state" style="text-align: center; margin-top: 40px;">
+            <div style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;">🛒</div>
+            <div style="font-size: 16px; color: #fff;">Cart is Empty</div>
+          </div>
+        `;
+                cartTotal.style.display = 'none';
+                checkoutBtn.disabled = true;
+                return;
+            }
+            badge.textContent = window.cart.length;
+            badge.style.display = 'block';
+            cartTotal.style.display = 'block';
+            checkoutBtn.disabled = false;
+            let total = 0;
+            cartItems.innerHTML = '';
+            window.cart.forEach((item, index) => {
+                total += parseFloat(item.price);
+                const cartItem = document.createElement('div');
+                cartItem.style.cssText = 'display: flex; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 10px; align-items: center;';
+                cartItem.innerHTML = `
+          <img src="${escapeHtml(item.image)}" class="cart-item-image" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover;"
+               onerror="this.src='https://via.placeholder.com/50/1a1a1a/00ffff?text=Img'">
+          <div style="flex: 1; overflow: hidden;">
+            <div style="font-size: 13px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.title)}</div>
+            <div style="color: #00ff88; font-size: 14px; font-weight: bold; margin-top: 4px;">${formatCurrency(item.price)}</div>
+          </div>
+          <div onclick="removeFromCart(${index})" style="color: #ff006e; padding: 5px; font-size: 16px;">
+            <i class="fas fa-trash-alt"></i>
+          </div>
+        `;
+                cartItems.appendChild(cartItem);
+            });
+            cartTotalAmount.textContent = formatCurrency(total);
+        }
+        function toggleCart() {
+            const cartSidebar = document.getElementById('cartSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (cartSidebar.style.right === '0px') {
+                cartSidebar.style.right = '-100%';
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            } else {
+                cartSidebar.style.right = '0px';
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        async function addToCart() {
+            if (!window.currentProduct) return;
+            const product = window.currentProduct;
+            const cartItem = {
+                id: product.id,
+                title: product.title,
+                price: product.discountedPrice,
+                image: product.imageUrl
+            };
+            window.cart.push(cartItem);
+            saveCartToStorage();
+            updateCartUI();
+            showNotification(`Added to cart`, 'success');
+            closeModal('productModal');
+        }
+        async function quickAddToCart(productId) {
+            try {
+                const snapshot = await window.dbGet(window.dbRef(window.db, `products/${productId}`));
+                if (snapshot.exists()) {
+                    const product = snapshot.val();
+                    const cartItem = {
+                        id: productId,
+                        title: product.title,
+                        price: product.discountedPrice,
+                        image: product.imageUrl
+                    };
+                    window.cart.push(cartItem);
+                    saveCartToStorage();
+                    updateCartUI();
+                    showNotification(`Added to cart`, 'success');
+                }
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showNotification('Failed to add to cart', 'error');
+            }
+        }
+        function removeFromCart(index) {
+            window.cart.splice(index, 1);
+            saveCartToStorage();
+            updateCartUI();
+            showNotification(`Removed from cart`, 'success');
+        }
+        function clearCart() {
+            window.cart = [];
+            saveCartToStorage();
+            updateCartUI();
+        }
+        function buyNow() {
+            if (!window.currentProduct) return;
+            window.cart = [{
+                id: window.currentProduct.id,
+                title: window.currentProduct.title,
+                price: window.currentProduct.discountedPrice,
+                image: window.currentProduct.imageUrl
+            }];
+            saveCartToStorage();
+            updateCartUI();
+            closeModal('productModal');
+            checkoutCart();
+        }
+        function checkoutCart() {
+            if (!window.currentUser) {
+                if (document.getElementById('cartSidebar').style.right === '0px') {
+                    toggleCart();
+                }
+                showNotification('Login to checkout', 'error');
+                showAuth();
+                return;
+            }
+            if (window.cart.length === 0) {
+                showNotification('Cart is empty', 'error');
+                return;
+            }
+            if (document.getElementById('cartSidebar').style.right === '0px') {
+                toggleCart();
+            }
+            const checkoutItems = document.getElementById('checkoutItems');
+            checkoutItems.innerHTML = '';
+            window.cart.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.cssText = 'display: flex; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px;';
+                itemDiv.innerHTML = `
+          <img src="${escapeHtml(item.image)}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;"
+               onerror="this.src='https://via.placeholder.com/40/1a1a1a/00ffff?text=Img'">
+          <div style="flex: 1; overflow: hidden;">
+            <div style="font-size: 13px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.title)}</div>
+            <div style="color: #00ff88; font-size: 13px; font-weight: bold; margin-top: 2px;">${formatCurrency(item.price)}</div>
+          </div>
+        `;
+                checkoutItems.appendChild(itemDiv);
+            });
+            const subtotal = window.cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+            document.getElementById('checkoutSubtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('checkoutTotal').textContent = formatCurrency(subtotal);
+            document.getElementById('discountRow').style.display = 'none';
+            window.appliedCoupon = null;
+            document.getElementById('couponInput').value = '';
+            document.getElementById('couponMessage').style.display = 'none';
+            document.getElementById('appliedCouponDisplay').style.display = 'none';
+            document.getElementById('couponInputSection').style.display = 'flex';
+            document.getElementById('checkoutModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        async function applyCoupon() {
+            const couponCode = document.getElementById('couponInput').value.trim().toUpperCase();
+            if (!couponCode) {
+                showCouponMessage('Enter a code', 'error');
+                return;
+            }
+            try {
+                showLoading();
+                const couponsSnapshot = await window.dbGet(window.dbRef(window.db, 'coupons'));
+                hideLoading();
+                if (!couponsSnapshot.exists()) {
+                    showCouponMessage('Invalid code', 'error');
+                    return;
+                }
+                const coupons = couponsSnapshot.val();
+                let foundCoupon = null;
+                let couponId = null;
+                for (const [id, coupon] of Object.entries(coupons)) {
+                    if (coupon.code === couponCode) {
+                        foundCoupon = coupon;
+                        couponId = id;
+                        break;
+                    }
+                }
+                if (!foundCoupon) {
+                    showCouponMessage('Invalid code', 'error');
+                    return;
+                }
+                const now = Date.now();
+                if (!foundCoupon.isActive) {
+                    showCouponMessage('Code inactive', 'error');
+                    return;
+                }
+                if (foundCoupon.expiryDate && new Date(foundCoupon.expiryDate).getTime() <= now) {
+                    showCouponMessage('Code expired', 'error');
+                    return;
+                }
+                if (foundCoupon.usageLimit > 0 && (foundCoupon.usedCount || 0) >= foundCoupon.usageLimit) {
+                    showCouponMessage('Limit reached', 'error');
+                    return;
+                }
+                const subtotal = window.cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+                if (foundCoupon.minAmount > 0 && subtotal < foundCoupon.minAmount) {
+                    showCouponMessage(`Min purchase: ${formatCurrency(foundCoupon.minAmount)}`, 'error');
+                    return;
+                }
+                let discountAmount = 0;
+                if (foundCoupon.discountType === 'percentage') {
+                    discountAmount = (subtotal * foundCoupon.discountValue) / 100;
+                    if (foundCoupon.maxDiscount > 0 && discountAmount > foundCoupon.maxDiscount) {
+                        discountAmount = foundCoupon.maxDiscount;
+                    }
+                } else {
+                    discountAmount = foundCoupon.discountValue;
+                }
+                window.appliedCoupon = {
+                    id: couponId,
+                    code: foundCoupon.code,
+                    discount: discountAmount
+                };
+                updateCheckoutTotals();
+                document.getElementById('couponInputSection').style.display = 'none';
+                document.getElementById('appliedCouponDisplay').innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 8px;">
+            <div>
+              <i class="fas fa-check-circle" style="color: #00ff88;"></i>
+              <span style="color: #fff; font-weight: bold; margin: 0 5px;">${foundCoupon.code}</span>
+              <span style="color: #00ff88; font-size: 12px;">(-${formatCurrency(discountAmount)})</span>
+            </div>
+            <div onclick="removeCoupon()" style="color: #ff006e; padding: 0 5px; font-size: 16px;">×</div>
+          </div>
+        `;
+                document.getElementById('appliedCouponDisplay').style.display = 'block';
+            } catch (error) {
+                hideLoading();
+                console.error('Error applying coupon:', error);
+                showCouponMessage('Failed to apply', 'error');
+            }
+        }
+        function removeCoupon() {
+            window.appliedCoupon = null;
+            document.getElementById('couponInput').value = '';
+            document.getElementById('appliedCouponDisplay').style.display = 'none';
+            document.getElementById('couponInputSection').style.display = 'flex';
+            updateCheckoutTotals();
+        }
+        function showCouponMessage(message, type) {
+            const messageDiv = document.getElementById('couponMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = type === 'error' ? '#ff006e' : '#00ff88';
+            messageDiv.style.background = type === 'error' ? 'rgba(255,0,110,0.1)' : 'rgba(0,255,136,0.1)';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+        function updateCheckoutTotals() {
+            const subtotal = window.cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+            document.getElementById('checkoutSubtotal').textContent = formatCurrency(subtotal);
+            if (window.appliedCoupon) {
+                document.getElementById('discountRow').style.display = 'flex';
+                document.getElementById('checkoutDiscount').textContent = `-${formatCurrency(window.appliedCoupon.discount)}`;
+                const total = Math.max(0, subtotal - window.appliedCoupon.discount);
+                document.getElementById('checkoutTotal').textContent = formatCurrency(total);
+            } else {
+                document.getElementById('discountRow').style.display = 'none';
+                document.getElementById('checkoutTotal').textContent = formatCurrency(subtotal);
+            }
+        }
+        function proceedToPayment() {
+            if (window.cart.length === 0) return;
+            closeModal('checkoutModal');
+            document.getElementById('paymentModal').classList.add('active');
+        }
+        // confirmPurchase - with single use UTR check (this is the part taken from the code you provided)
+        async function confirmPurchase() {
+            const utrId = document.getElementById('utrId').value.trim();
+            if (!utrId || utrId.length < 10) {
+                showNotification('Please enter valid UTR / Transaction ID', 'error');
+                return;
+            }
+            try {
+                showLoading();
+                // SINGLE USE UTR CHECK
+                const ordersSnapshot = await window.dbGet(window.dbRef(window.db, 'orders'));
+                if (ordersSnapshot.exists()) {
+                    const allOrders = ordersSnapshot.val();
+                    const utrAlreadyUsed = Object.values(allOrders).some(order =>
+                        order.utrId && order.utrId.toUpperCase() === utrId.toUpperCase()
+                    );
+                    if (utrAlreadyUsed) {
+                        hideLoading();
+                        showNotification('This UTR has already been used. Please enter a valid new UTR.', 'error');
+                        return;
+                    }
+                }
+                const subtotal = window.cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+                const discount = window.appliedCoupon ? window.appliedCoupon.discount : 0;
+                const finalTotal = Math.max(0, subtotal - discount);
+                const hasSubscription = window.cart.some(i => i.isSubscription);
+                for (const item of window.cart) {
+                    const orderRef = window.dbPush(window.dbRef(window.db, 'orders'));
+                    const orderId = orderRef.key;
+                    const orderData = {
+                        productId: item.id,
+                        utrId: utrId,
+                        productSnapshot: {
+                            title: item.title,
+                            imageUrl: item.image,
+                            discountedPrice: item.price
+                        },
+                        userId: window.currentUser.uid,
+                        userEmail: window.currentUser.email,
+                        couponUsed: window.appliedCoupon ? window.appliedCoupon.code : null,
+                        discountAmount: discount,
+                        finalAmount: finalTotal,
+                        status: 'pending',
+                        createdAt: new Date().toISOString(),
+                        isSubscription: !!item.isSubscription,
+                        duration: item.duration || null
+                    };
+                    await window.dbSet(orderRef, orderData);
+                    await window.dbSet(window.dbRef(window.db, `users/${window.currentUser.uid}/purchases/${orderId}`), {
+                        orderId: orderId,
+                        productId: item.id,
+                        purchasedAt: new Date().toISOString(),
+                        isSubscription: !!item.isSubscription,
+                        duration: item.duration || null
+                    });
+                }
+                if (window.appliedCoupon) {
+                    const couponRef = window.dbRef(window.db, `coupons/${window.appliedCoupon.id}`);
+                    const couponSnapshot = await window.dbGet(couponRef);
+                    if (couponSnapshot.exists()) {
+                        const currentUsage = couponSnapshot.val().usedCount || 0;
+                        await window.dbUpdate(couponRef, {
+                            usedCount: currentUsage + 1
+                        });
+                    }
+                }
+                hideLoading();
+                clearCart();
+                window.appliedCoupon = null;
+                document.getElementById('utrId').value = '';
+                closeModal('paymentModal');
+                showNotification('Order placed successfully!', 'success');
+                showPurchaseHistory();
+                if (hasSubscription) displaySubscriptions();
+            } catch (error) {
+                hideLoading();
+                console.error('Order placement error:', error);
+                showNotification('Failed to place order. Please try again.', 'error');
+            }
+        }
+        function bottomNavClick(tab) {
+            document.querySelectorAll('.bottom-nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeEl = document.getElementById('bnav-' + tab);
+            if (activeEl) activeEl.classList.add('active');
+            if (tab === 'services') {
+                showServices();
+            } else if (tab === 'subscriptions') {
+                displaySubscriptions();
+            } else if (tab === 'orders') {
+                showPurchaseHistory();
+            } else if (tab === 'setting') {
+                showSettingCards();
+            }
+        }
+        function showSettingCards() {
+            const user = window.currentUser;
+            document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+            const el = document.getElementById('bnav-setting');
+            if (el) el.classList.add('active');
+            if (!user) {
+                document.getElementById('mainContent').innerHTML = `
+          <h2 class="section-title"><i class="fas fa-user"></i> Profile</h2>
+          <div style="background: rgba(255,255,255,0.05); border-radius: 16px; padding: 30px 20px; text-align: center; margin-bottom: 20px;">
+            <div style="width: 80px; height: 80px; background: rgba(0,255,255,0.1); color: #00ffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 15px;">
+                <i class="fas fa-user-secret"></i>
+            </div>
+            <div style="font-size: 18px; color: #fff; margin-bottom: 5px; font-weight: bold;">Guest User</div>
+            <div style="font-size: 13px; color: #aaa; margin-bottom: 20px;">Login to track orders and save items</div>
+            <button class="btn" onclick="showAuth()" style="width: 100%; max-width: 200px;">Login / Register</button>
+          </div>
+      
+          <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+            <div onclick="requireLogin('view orders')" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;">
+                <div style="width: 36px; height: 36px; background: rgba(0,255,255,0.1); color: #00ffff; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-box"></i></div>
+                <div style="flex: 1; font-size: 14px; color: #fff;">My Orders</div>
+                <i class="fas fa-chevron-right" style="color: #666; font-size: 12px;"></i>
+            </div>
+            <div onclick="requireLogin('view saved items')" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;">
+                <div style="width: 36px; height: 36px; background: rgba(255,0,110,0.1); color: #ff006e; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-heart"></i></div>
+                <div style="flex: 1; font-size: 14px; color: #fff;">Saved Items</div>
+                <i class="fas fa-chevron-right" style="color: #666; font-size: 12px;"></i>
             </div>
           </div>
-
-          <div class="deposit-summary">
-            <div style="display:flex;justify-content:space-between;margin:5px 0"><span>Deposit amount</span><strong>₹<span id="summaryAmount">0.00</span></strong></div>
-            <div style="display:flex;justify-content:space-between;margin:5px 0"><span>Gateway fee (5%)</span><strong>+₹<span id="summaryFee">0.00</span></strong></div>
-            <div style="display:flex;justify-content:space-between;margin:10px 0;padding-top:10px;border-top:1px solid #333"><span>You pay</span><strong style="color:#6366f1">₹<span id="summaryTotal">0.00</span></strong></div>
+        `;
+                return;
+            }
+            document.getElementById('mainContent').innerHTML = `
+        <h2 class="section-title"><i class="fas fa-user"></i> Profile</h2>
+        <div style="background: rgba(255,255,255,0.05); border-radius: 16px; padding: 25px 20px; text-align: center; margin-bottom: 20px;">
+          <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #00ffff, #a855f7); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 15px; font-weight: bold;">
+              ${(user.displayName || user.email.charAt(0)).substring(0,1).toUpperCase()}
           </div>
-
-          <button class="btn-primary" onclick="generateUPI()">Pay ₹<span id="payAmount">0.00</span> (incl. fee)</button>
-          
-          <!-- QR Section -->
-          <div id="qrSection" class="hidden qr-container">
-            <p style="margin-bottom:10px">Scan QR or click link to pay:</p>
-            <img id="qrImage" src="" alt="QR Code"/>
-            <p id="utrDisplay" style="margin:10px 0;font-size:0.85rem;color:#aaa"></p>
-            <a id="upiLink" href="#" target="_blank" style="display:inline-block;margin:10px 0;padding:10px 20px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none">🔗 Open UPI App</a>
-            <br/>
-            <button class="btn-primary" style="background:#10b981;margin-top:10px" onclick="verifyDeposit()">✅ I Have Paid</button>
+          <div style="font-size: 18px; color: #fff; margin-bottom: 5px; font-weight: bold;">${escapeHtml(user.displayName || 'User')}</div>
+          <div style="font-size: 13px; color: #aaa;">${escapeHtml(user.email)}</div>
+        </div>
+    
+        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+          <div onclick="showPurchaseHistory()" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;">
+              <div style="width: 36px; height: 36px; background: rgba(0,255,255,0.1); color: #00ffff; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-box"></i></div>
+              <div style="flex: 1; font-size: 14px; color: #fff;">My Orders</div>
+              <i class="fas fa-chevron-right" style="color: #666; font-size: 12px;"></i>
+          </div>
+          <div onclick="showBookmarks()" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;">
+              <div style="width: 36px; height: 36px; background: rgba(255,0,110,0.1); color: #ff006e; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-heart"></i></div>
+              <div style="flex: 1; font-size: 14px; color: #fff;">Saved Items</div>
+              <i class="fas fa-chevron-right" style="color: #666; font-size: 12px;"></i>
+          </div>
+          <div onclick="showAdminSupport()" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;">
+              <div style="width: 36px; height: 36px; background: rgba(168,85,247,0.1); color: #a855f7; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-headset"></i></div>
+              <div style="flex: 1; font-size: 14px; color: #fff;">Help & Support</div>
+              <i class="fas fa-chevron-right" style="color: #666; font-size: 12px;"></i>
+          </div>
+          <div onclick="logoutUser()" style="background: rgba(255,0,110,0.05); border: 1px solid rgba(255,0,110,0.2); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+              <div style="width: 36px; height: 36px; color: #ff006e; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-sign-out-alt"></i></div>
+              <div style="flex: 1; font-size: 14px; color: #ff006e; font-weight: bold;">Logout</div>
           </div>
         </div>
-
-        <!-- Crypto Flow -->
-        <div id="cryptoFlow" class="hidden">
-          <p style="color:#aaa">Crypto Deposit<br/>Contact our support team on Telegram to deposit using cryptocurrency.</p>
-          <a href="https://t.me/Vip3rxyt" target="_blank" class="btn-primary" style="margin-top:10px">Contact on Telegram</a>
+      `;
+        }
+        function showServices() {
+            document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+            const el = document.getElementById('bnav-services');
+            if (el) el.classList.add('active');
+            document.getElementById('mainContent').innerHTML = `
+        <div class="filter-slider-container" id="filterSliderContainer">
+          <div class="filter-slider" id="filterSlider">
+            <button class="filter-btn active" data-filter="all" onclick="filterServices('all')">All</button>
+            <button class="filter-btn" data-filter="premium" onclick="filterServices('premium')">Premium</button>
+            <button class="filter-btn" data-filter="budget" onclick="filterServices('budget')">Budget</button>
+            <button class="filter-btn" data-filter="free" onclick="filterServices('free')">Free</button>
+          </div>
         </div>
-
-        <button class="nav-tab" style="margin-top:15px;width:100%" onclick="toggleDeposit()">Close</button>
-      </div>
-
-      <!-- Balance History -->
-      <div style="margin-top:20px">
-        <h4>Balance History</h4>
-        <div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap">
-          <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="loadHistory('all')">+ Add Funds</button>
-          <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="loadHistory('deposits')">All</button>
-          <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="loadHistory('deposits')">Deposits</button>
-          <button class="nav-tab" style="padding:5px 12px;font-size:0.8rem" onclick="loadHistory('spending')">Spending</button>
+        <h2 class="section-title"><i class="fas fa-shopping-bag"></i> Services</h2>
+        <div id="productsGrid" class="products-grid"></div>
+        <div id="pagination" style="display: none; justify-content: center; gap: 8px; margin-top: 20px;"></div>
+      `;
+            window.currentFilter = 'all';
+            currentPage = 1;
+            loadServices();
+            document.getElementById('searchBar').value = '';
+        }
+        async function showBookmarks() {
+            if (!window.currentUser) {
+                requireLogin('view saved items');
+                return;
+            }
+            document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+            const el = document.getElementById('bnav-setting');
+            if (el) el.classList.add('active');
+            try {
+                showLoading();
+                const snapshot = await window.dbGet(window.dbRef(window.db, `users/${window.currentUser.uid}/bookmarks`));
+                hideLoading();
+                document.getElementById('mainContent').innerHTML = `
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+              <div onclick="showSettingCards()" style="width: 32px; height: 32px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;"><i class="fas fa-arrow-left"></i></div>
+              <h2 class="section-title" style="margin: 0;"><i class="fas fa-heart"></i> Saved Items</h2>
+          </div>
+          <div id="bookmarksGrid" class="products-grid"></div>
+        `;
+                const grid = document.getElementById('bookmarksGrid');
+                if (snapshot.exists()) {
+                    const bookmarks = snapshot.val();
+                    const bookmarkIds = Object.keys(bookmarks);
+                    const bookmarkedServices = [];
+                    for (const productId of bookmarkIds) {
+                        const productSnapshot = await window.dbGet(window.dbRef(window.db, `products/${productId}`));
+                        if (productSnapshot.exists()) {
+                            bookmarkedServices.push({
+                                id: productId,
+                                ...productSnapshot.val()
+                            });
+                        }
+                    }
+                    if (bookmarkedServices.length > 0) {
+                        bookmarkedServices.forEach((product, index) => {
+                            const card = createProductCard(product, index);
+                            grid.appendChild(card);
+                        });
+                    } else {
+                        displayEmptyState('bookmarks');
+                    }
+                } else {
+                    displayEmptyState('bookmarks');
+                }
+            } catch (error) {
+                hideLoading();
+                displayEmptyState('bookmarks');
+            }
+        }
+        async function showPurchaseHistory() {
+            if (!window.currentUser) {
+                requireLogin('view orders');
+                return;
+            }
+            document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+            const el = document.getElementById('bnav-orders');
+            if (el) el.classList.add('active');
+            try {
+                showLoading();
+                const snapshot = await window.dbGet(window.dbRef(window.db, `users/${window.currentUser.uid}/purchases`));
+                hideLoading();
+                document.getElementById('mainContent').innerHTML = `
+          <h2 class="section-title"><i class="fas fa-box"></i> My Orders</h2>
+          <div id="purchasesList"></div>
+        `;
+                const list = document.getElementById('purchasesList');
+                if (snapshot.exists()) {
+                    const purchases = Object.values(snapshot.val())
+                        .sort((a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt));
+                    for (const purchase of purchases) {
+                        const orderSnapshot = await window.dbGet(window.dbRef(window.db, `orders/${purchase.orderId}`));
+                        if (orderSnapshot.exists()) {
+                            const order = orderSnapshot.val();
+                            const productSnapshot = await window.dbGet(window.dbRef(window.db, `products/${purchase.productId}`));
+                            let downloadLink = null;
+                            if (productSnapshot.exists()) {
+                                downloadLink = productSnapshot.val().downloadLink || null;
+                            }
+                            const card = createOrderCard(purchase.orderId, order, downloadLink);
+                            list.appendChild(card);
+                        }
+                    }
+                } else {
+                    displayEmptyState('orders');
+                }
+            } catch (error) {
+                hideLoading();
+                displayEmptyState('orders');
+            }
+        }
+        function createOrderCard(orderId, order, downloadLink) {
+            const date = new Date(order.createdAt);
+            const formattedDate = date.toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+            const formattedTime = date.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const card = document.createElement('div');
+            card.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 12px; margin-bottom: 12px;';
+            const status = order.status || 'pending';
+            let statusColor = '#ffa500';
+            let statusBg = 'rgba(255,165,0,0.1)';
+            if (status === 'confirmed') {
+                statusColor = '#00ff88';
+                statusBg = 'rgba(0,255,136,0.1)';
+            }
+            if (status === 'processing') {
+                statusColor = '#00ffff';
+                statusBg = 'rgba(0,255,255,0.1)';
+            }
+            const showDownloadBtn = status === 'confirmed' && downloadLink;
+            card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+          <div>
+            <div style="font-size: 11px; color: #888;">Order #${orderId.substring(0, 8)}</div>
+            <div style="font-size: 11px; color: #aaa; margin-top: 2px;">${formattedDate}, ${formattedTime}</div>
+          </div>
+          <div style="background: ${statusBg}; color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase;">${status}</div>
         </div>
-        <div id="balanceHistory"><p style="color:#aaa">Loading transactions...</p></div>
-      </div>
-    </div>
-  </div>
+        <div style="display: flex; gap: 12px;">
+          <img src="${escapeHtml(order.productSnapshot?.imageUrl || '')}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;" onerror="this.src='https://via.placeholder.com/60/1a1a1a/00ffff?text=Img'">
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: bold; color: #fff; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(order.productSnapshot?.title || 'Product')}</div>
+            <div style="color: #00ff88; font-size: 14px; font-weight: bold;">${formatCurrency(order.finalAmount || order.productSnapshot?.discountedPrice || 0)}</div>
+          </div>
+        </div>
+        ${showDownloadBtn ? `
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+            <button onclick="window.open('${escapeHtml(downloadLink)}', '_blank')" style="width: 100%; background: #00ffff; color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <i class="fas fa-download"></i> Access Product
+            </button>
+          </div>
+        ` : ''}
+      `;
+            return card;
+        }
+        function showAdminSupport() {
+            if (!window.currentUser) {
+                requireLogin('contact support');
+                return;
+            }
+            document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+            const el = document.getElementById('bnav-support');
+            if (el) el.classList.add('active');
+            document.getElementById('chatModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            loadChatMessages();
+        }
+        async function loadChatMessages() {
+            if (!window.currentUser) return;
+            try {
+                const chatRef = window.dbRef(window.db, `chats/${window.currentUser.uid}/messages`);
+                window.dbOnValue(chatRef, (snapshot) => {
+                    const messagesContainer = document.getElementById('chatMessages');
+                    messagesContainer.innerHTML = '';
+                    if (snapshot.exists()) {
+                        const messages = Object.entries(snapshot.val()).map(([id, msg]) => ({
+                            id,
+                            ...msg
+                        })).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                        messages.forEach(msg => {
+                            const isUser = msg.sender === 'user';
+                            const messageDiv = document.createElement('div');
+                            messageDiv.style.cssText = `display: flex; margin-bottom: 12px; ${isUser ? 'justify-content: flex-end;' : ''}`;
+                            const time = new Date(msg.timestamp).toLocaleTimeString('en-IN', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            messageDiv.innerHTML = `
+                <div style="max-width: 80%;">
+                  <div style="background: ${isUser ? '#00ffff' : '#1a1a1a'}; color: ${isUser ? '#000' : '#fff'}; border: 1px solid ${isUser ? 'transparent' : 'rgba(255,255,255,0.1)'}; padding: 10px 14px; border-radius: ${isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px'}; font-size: 14px; line-height: 1.4;">
+                    ${escapeHtml(msg.message)}
+                  </div>
+                  <div style="font-size: 10px; color: #666; margin-top: 4px; text-align: ${isUser ? 'right' : 'left'};">${time}</div>
+                </div>
+              `;
+                            messagesContainer.appendChild(messageDiv);
+                        });
+                        setTimeout(() => {
+                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        }, 100);
+                    } else {
+                        messagesContainer.innerHTML = `
+              <div class="empty-state" style="padding: 40px 20px;">
+                <div class="empty-icon" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;">💬</div>
+                <div style="font-size: 14px;">How can we help you today?</div>
+              </div>
+            `;
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+        async function sendMessage() {
+            if (!window.currentUser) return;
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            try {
+                const chatRef = window.dbRef(window.db, `chats/${window.currentUser.uid}/messages`);
+                const newMessageRef = window.dbPush(chatRef);
+                await window.dbSet(newMessageRef, {
+                    message: message,
+                    sender: 'user',
+                    timestamp: new Date().toISOString(),
+                    userName: window.currentUser.displayName || window.currentUser.email
+                });
+                await window.dbSet(window.dbRef(window.db, `chats/${window.currentUser.uid}/info`), {
+                    lastMessage: message,
+                    lastMessageTime: new Date().toISOString(),
+                    userName: window.currentUser.displayName || window.currentUser.email,
+                    userEmail: window.currentUser.email
+                });
+                input.value = '';
+            } catch (error) {
+                showNotification('Failed to send', 'error');
+            }
+        }
+        function showAuth() {
+            if (window.currentUser) return;
+            document.getElementById('authModal').classList.add('active');
+        }
+        function switchToSignup() {
+            document.getElementById('authTitle').innerHTML = '<i class="fas fa-user-plus"></i> Register';
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+        }
+        function switchToLogin() {
+            document.getElementById('authTitle').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+        // MODIFIED LOGIN FUNCTION - CHECKS CREDENTIALS FROM LOCALSTORAGE
+        async function loginUser() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            if (!email || !password) {
+                showNotification('Fill all fields', 'error');
+                return;
+            }
+            try {
+                showLoading();
+                let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+                const found = users.find(u => 
+                    u.email.toLowerCase() === email.toLowerCase() && u.password === password
+                );
+                if (found) {
+                    window.currentUser = {
+                        uid: found.uid,
+                        email: found.email,
+                        displayName: found.displayName || email.split('@')[0]
+                    };
+                    hideLoading();
+                    closeModal('authModal');
+                    updateMenu();
+                    showNotification(`Welcome back, ${window.currentUser.displayName || 'User'}!`, 'success');
+                } else {
+                    hideLoading();
+                    showNotification('Invalid credentials. Switching to signup form...', 'error');
+                    setTimeout(() => {
+                        switchToSignup();
+                    }, 1200);
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Login failed', 'error');
+            }
+        }
+        // MODIFIED SIGNUP FUNCTION - STORES CREDENTIALS IN LOCALSTORAGE (SO LOGIN CAN CHECK THEM)
+        async function signupUser() {
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            if (!name || !email || !password) {
+                showNotification('Fill all fields', 'error');
+                return;
+            }
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters', 'error');
+                return;
+            }
+            try {
+                showLoading();
+                let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+                if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+                    hideLoading();
+                    showNotification('Email already exists. Please login.', 'error');
+                    switchToLogin();
+                    return;
+                }
+                const uid = 'local_' + Date.now();
+                const newUser = {
+                    uid: uid,
+                    email: email,
+                    displayName: name,
+                    password: password
+                };
+                users.push(newUser);
+                localStorage.setItem('appUsers', JSON.stringify(users));
+                window.currentUser = {
+                    uid: uid,
+                    email: email,
+                    displayName: name
+                };
+                hideLoading();
+                closeModal('authModal');
+                updateMenu();
+                showNotification(`Account created! Welcome, ${name}!`, 'success');
+            } catch (error) {
+                hideLoading();
+                showNotification('Signup failed', 'error');
+            }
+        }
+        // MODIFIED LOGOUT FUNCTION - CLEARS LOCAL CURRENTUSER
+        async function logoutUser() {
+            try {
+                showLoading();
+                window.currentUser = null;
+                hideLoading();
+                if (document.getElementById('sidebar').classList.contains('active')) {
+                    toggleMenu();
+                }
+                showServices();
+                showNotification('Logged out', 'success');
+            } catch (error) {
+                hideLoading();
+                showNotification('Logout failed', 'error');
+            }
+        }
+        function requireLogin(feature) {
+            if (document.getElementById('sidebar').classList.contains('active')) {
+                toggleMenu();
+            }
+            showNotification(`Login to ${feature}`, 'error');
+            showAuth();
+        }
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            document.body.style.overflow = '';
+            if (modalId === 'chatModal') {
+                const el = document.getElementById('bnav-support');
+                if (el) el.classList.remove('active');
+                const isHome = document.getElementById('productsGrid') !== null;
+                const isOrders = document.getElementById('purchasesList') !== null;
+                if (isHome) document.getElementById('bnav-services')?.classList.add('active');
+                else if (isOrders) document.getElementById('bnav-orders')?.classList.add('active');
+                else document.getElementById('bnav-setting')?.classList.add('active');
+            }
+        }
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeModal(event.target.id);
+            }
+        }
+        function displayEmptyState(type) {
+            const grid = type === 'products' ? document.getElementById('productsGrid') :
+                type === 'bookmarks' ? document.getElementById('bookmarksGrid') :
+                type === 'orders' ? document.getElementById('purchasesList') :
+                document.getElementById('productsGrid');
+            const states = {
+                products: {
+                    icon: '📦',
+                    title: 'No Services',
+                    text: 'Check back later'
+                },
+                search: {
+                    icon: '🔍',
+                    title: 'No Results',
+                    text: 'Try different keywords'
+                },
+                bookmarks: {
+                    icon: '🛍️',
+                    title: 'No Saved Items',
+                    text: 'Items you save will appear here'
+                },
+                orders: {
+                    icon: '🛒️',
+                    title: 'No Orders',
+                    text: 'Your purchases will appear here'
+                },
+                subscriptions: {
+                    icon: '📅',
+                    title: 'No Subscription Plans',
+                    text: 'Check back later'
+                }
+            };
+            const state = states[type] || states.products;
+            grid.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 40px 20px; grid-column: 1 / -1;">
+          <div style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;">${state.icon}</div>
+          <div style="font-size: 18px; color: #fff; margin-bottom: 5px; font-weight: bold;">${state.title}</div>
+          <div style="font-size: 13px; color: #aaa;">${state.text}</div>
+        </div>
+      `;
+        }
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        window.addEventListener('scroll', function() {
+            const fab = document.getElementById('fab');
+            if (window.scrollY > 300) {
+                fab.style.display = 'flex';
+            } else {
+                fab.style.display = 'none';
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+        });
+        window.auth.onAuthStateChanged((user) => {
+            if (user && !window.currentUser) {
+                updateMenu();
+            } else if (!user && window.currentUser) {
+                updateMenu();
+            }
+        });
+        window.addEventListener('load', function() {
+            hideLoading();
+            loadServices();
+            updateMenu();
+            loadCartFromStorage();
+        });
+        window.addEventListener('beforeunload', function() {
+            saveCartToStorage();
+        });
+        // === NEW SUBSCRIPTION FUNCTIONS ===
+        async function getUserActiveSubscription() {
+            if (!window.currentUser) return null;
+            try {
+                const snap = await window.dbGet(window.dbRef(window.db, `users/${window.currentUser.uid}/purchases`));
+                if (!snap.exists()) return null;
+                const purchases = Object.values(snap.val()).filter(p => p.isSubscription)
+                    .sort((a,b) => new Date(b.purchasedAt) - new Date(a.purchasedAt));
+                if (purchases.length === 0) return null;
+                const latest = purchases[0];
+                const orderSnap = await window.dbGet(window.dbRef(window.db, `orders/${latest.orderId}`));
+                if (!orderSnap.exists()) return null;
+                const order = orderSnap.val();
+                const purchasedAt = new Date(order.createdAt);
+                const duration = parseInt(order.duration || 30);
+                const daysPassed = Math.floor((Date.now() - purchasedAt) / 86400000);
+                const remaining = Math.max(0, duration - daysPassed);
+                return { id: order.productId, remainingDays: remaining };
+            } catch (e) { return null; }
+        }
+        async function displaySubscriptions() {
+            const userSub = await getUserActiveSubscription();
+            document.getElementById('mainContent').innerHTML = `
+                <h2 class="section-title"><i class="fas fa-calendar-check"></i> Subscription Plans</h2>
+                <div id="productsGrid" class="products-grid subscription-grid"></div>
+            `;
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+            if (!window.allSubscriptions || window.allSubscriptions.length === 0) {
+                displayEmptyState('subscriptions');
+                return;
+            }
+            window.allSubscriptions.forEach(sub => {
+                const isSubscribed = userSub && userSub.id === sub.id && userSub.remainingDays > 0;
+                const remaining = isSubscribed ? userSub.remainingDays : 0;
+                let btnHTML = '';
+                if (isSubscribed) {
+                    btnHTML = `<button class="btn" style="background:#00ff88;color:#000;width:100%;" disabled>SUBSCRIBED</button>`;
+                } else if (remaining <= 0 && userSub && userSub.id === sub.id) {
+                    btnHTML = `<button class="btn" onclick="showSubscriptionDetail('${sub.id}');event.stopImmediatePropagation();" style="width:100%;">Renew Now</button>`;
+                } else {
+                    btnHTML = `<button class="btn" onclick="showSubscriptionDetail('${sub.id}');event.stopImmediatePropagation();">Subscribe</button>`;
+                }
+                const card = document.createElement('div');
+                card.className = `subscription-card ${isSubscribed ? 'subscribed' : ''}`;
+                card.innerHTML = `
+                    ${isSubscribed ? `<div class="subscribed-badge">SUBSCRIBED</div>` : ''}
+                    <div style="font-weight:700;font-size:16px;margin:8px 0;">${sub.planName}</div>
+                    <div style="color:#00ff88;font-size:26px;font-weight:800;">${formatCurrency(sub.price)}</div>
+                    <div style="font-size:13px;color:#aaa;margin-bottom:12px;">${sub.duration} Days • ${sub.description || ''}</div>
+                    <div class="remaining-days">
+                        <i class="fas fa-clock"></i> ${isSubscribed ? remaining + ' days remaining' : 'No active plan'}
+                    </div>
+                    ${btnHTML}
+                `;
+                grid.appendChild(card);
+            });
+        }
+        async function showSubscriptionDetail(subId) {
+            try {
+                showLoading();
+                const snapshot = await window.dbGet(window.dbRef(window.db, `subscriptions/${subId}`));
+                hideLoading();
+                if (snapshot.exists()) {
+                    window.currentSubscription = { id: subId, ...snapshot.val() };
+                    const sub = window.currentSubscription;
+                    document.getElementById('subModalTitle').textContent = sub.planName;
+                    document.getElementById('subModalDuration').innerHTML = `<i class="fas fa-clock"></i> ${sub.duration} Days Plan`;
+                    document.getElementById('subModalPrice').textContent = formatCurrency(sub.price);
+                    document.getElementById('subModalDescription').textContent = sub.description || '';
+                    const featuresHTML = sub.features ? sub.features.map(f => `<li style="margin:6px 0;">${f}</li>`).join('') : '<li>No features listed</li>';
+                    document.getElementById('subFeaturesList').innerHTML = `<ul style="padding-left:20px;color:#ccc;">${featuresHTML}</ul>`;
+                    document.getElementById('subscriptionModal').classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            } catch (e) {
+                hideLoading();
+                showNotification('Failed to load plan', 'error');
+            }
+        }
+        function buySubscriptionNow() {
+            if (!window.currentSubscription) return;
+            const active = getUserActiveSubscription();
+            if (active && active.remainingDays > 0) {
+                showNotification('You already have an active subscription!', 'error');
+                closeModal('subscriptionModal');
+                return;
+            }
+            window.cart = [{
+                id: window.currentSubscription.id,
+                title: window.currentSubscription.planName,
+                price: window.currentSubscription.price,
+                image: 'https://placehold.co/400x300/00ffff/000000?text=SUB',
+                isSubscription: true,
+                duration: window.currentSubscription.duration
+            }];
+            closeModal('subscriptionModal');
+            checkoutCart();
+        }
+        // === END OF NEW SUBSCRIPTION CODE ===
 
-  <!-- Settings Section -->
-  <div id="settings" class="section">
-    <div class="card">
-      <h3>Danger Zone</h3>
-      <div style="margin:15px 0">
-        <label>Change Password</label>
-        <input type="password" id="currPass" placeholder="Current Password" style="width:100%;padding:10px;margin:5px 0;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff"/>
-        <input type="password" id="newPass" placeholder="New Password" style="width:100%;padding:10px;margin:5px 0;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff"/>
-        <input type="password" id="confirmPass" placeholder="Confirm New Password" style="width:100%;padding:10px;margin:5px 0;background:#1e1e2e;border:1px solid #3a3a5a;border-radius:8px;color:#fff"/>
-        <button class="btn-primary" onclick="updatePassword()">✓ Update Password</button>
-      </div>
-      <div class="danger-zone">
-        <p style="color:#f87171;margin:10px 0">Log out from your account on this device</p>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Bottom Nav (Mobile) -->
-<div style="position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;border-top:1px solid #333;padding:10px;display:flex;justify-content:space-around;font-size:0.8rem;z-index:100" class="mobile-nav">
-  <a href="#" onclick="switchSection('services');return false" style="color:#aaa;text-decoration:none;text-align:center">Home</a>
-  <a href="#" onclick="switchSection('orders');return false" style="color:#aaa;text-decoration:none;text-align:center">Orders</a>
-  <a href="#" onclick="switchSection('stats');return false" style="color:#aaa;text-decoration:none;text-align:center">Stats</a>
-  <a href="#" onclick="switchSection('wallet');return false" style="color:#aaa;text-decoration:none;text-align:center">Wallet</a>
-  <a href="#" onclick="switchSection('settings');return false" style="color:#aaa;text-decoration:none;text-align:center">User</a>
-</div>
-
-<!-- Firebase + App Logic -->
-<script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getAuth,onAuthStateChanged,signOut,updatePassword,reauthenticateWithCredential,EmailAuthProvider}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import{getDatabase,ref,get,set,update,push,onValue,query,orderByChild,equalTo}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const firebaseConfig={apiKey:"AIzaSyCCQ8323U6o9UkptArtel1YNtV-BgaZQJQ",authDomain:"provider-46c14.firebaseapp.com",databaseURL:"https://provider-46c14-default-rtdb.firebaseio.com",projectId:"provider-46c14",storageBucket:"provider-46c14.firebasestorage.app",messagingSenderId:"1032460066158",appId:"1:1032460066158:web:8a52fb3c0651169c55f57f"};
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getDatabase(app);
-let currentUser=null,currentUTR=null,depositAmount=0;
-
-// Auth Check
-onAuthStateChanged(auth,async user=>{
-  if(user){currentUser=user;document.getElementById('userEmail').textContent=user.email?.split('@')[0]||'User';await loadUserData();setupRealtimeListeners()}
-  else{window.location.href='login.html'}
-});
-
-// Load User Data
-async function loadUserData(){if(!currentUser)return;const snap=await get(ref(db,`users/${currentUser.uid}`));if(snap.exists()){const d=snap.val();
-document.getElementById('liveBalance').textContent=(d.balance||0).toFixed(2);document.getElementById('walletBalance').textContent=(d.balance||0).toFixed(2);
-if(d.affiliate){document.getElementById('affTotalEarned').textContent=`₹${(d.affiliate.totalEarned||0).toFixed(2)}`;document.getElementById('affTodayEarned').textContent=`₹${(d.affiliate.todayEarned||0).toFixed(2)}`;document.getElementById('affTotalRefs').textContent=d.affiliate.totalReferrals||0;document.getElementById('affActiveRefs').textContent=d.affiliate.activeReferrals||0;document.getElementById('refLink').value=`https://sastaotp.com/register?ref=${d.referralCode||currentUser.uid.substring(0,8)}`;setupShareLinks(d.referralCode||currentUser.uid.substring(0,8))}
-if(d.stats){document.getElementById('statTotalOrders').textContent=d.stats.totalOrders||0;document.getElementById('statCompleted').textContent=d.stats.completed||0;document.getElementById('statActive').textContent=d.stats.active||0;document.getElementById('statCancelled').textContent=d.stats.cancelled||0;document.getElementById('statTotalSpent').textContent=`₹${(d.stats.totalSpent||0).toFixed(2)}`;const r=d.stats.totalOrders>0?((d.stats.completed/d.stats.totalOrders)*100).toFixed(1):0;document.getElementById('statSuccessRate').textContent=`${r}%`}
-loadOrders();loadHistory('all');loadCommissions();loadReferrals();loadServices()}}
-
-// Realtime Balance Listener
-function setupRealtimeListeners(){if(!currentUser)return;onValue(ref(db,`users/${currentUser.uid}/balance`),snap=>{const b=snap.val()||0;document.getElementById('liveBalance').textContent=b.toFixed(2);document.getElementById('walletBalance').textContent=b.toFixed(2)})}
-
-// Tab Navigation
-document.querySelectorAll('.nav-tab[data-section]').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.nav-tab[data-section]').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));tab.classList.add('active');document.getElementById(tab.dataset.section).classList.add('active')}));
-window.switchSection=function(s){document.querySelectorAll('.nav-tab[data-section]').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.section').forEach(sec=>sec.classList.remove('active'));document.querySelector(`.nav-tab[data-section="${s}"]`)?.classList.add('active');document.getElementById(s)?.classList.add('active')}
-
-// Deposit Functions
-window.toggleDeposit=function(){document.getElementById('depositPanel').classList.toggle('hidden');if(!document.getElementById('depositPanel').classList.contains('hidden'))document.getElementById('depositPanel').scrollIntoView({behavior:'smooth'})}
-window.selectDeposit=function(m){document.querySelectorAll('.deposit-option').forEach(el=>el.classList.remove('selected'));document.querySelector(`.deposit-option[data-method="${m}"]`)?.classList.add('selected');document.getElementById('upiFlow').classList.toggle('hidden',m!=='upi');document.getElementById('cryptoFlow').classList.toggle('hidden',m!=='crypto')}
-window.setAmount=function(amt){document.getElementById('depositAmount').value=amt;updateSummary()}
-document.getElementById('depositAmount')?.addEventListener('input',updateSummary);
-function updateSummary(){const amt=parseFloat(document.getElementById('depositAmount').value)||0;const fee=amt*0.05;document.getElementById('summaryAmount').textContent=amt.toFixed(2);document.getElementById('summaryFee').textContent=fee.toFixed(2);document.getElementById('summaryTotal').textContent=(amt+fee).toFixed(2);document.getElementById('payAmount').textContent=(amt+fee).toFixed(2);depositAmount=amt}
-
-// Generate UPI Payment (From your bot code)
-window.generateUPI=async function(){if(!depositAmount||depositAmount<20){alert('Please enter amount ≥ ₹20');return}
-const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";let utr="";for(let i=0;i<12;i++)utr+=chars.charAt(Math.floor(Math.random()*chars.length));currentUTR=utr;
-await push(ref(db,'deposits'),{uid:currentUser.uid,utr,amount:depositAmount,fee:depositAmount*0.05,total:depositAmount*1.05,status:'pending',timestamp:Date.now()});
-const upiId="Paytmqr6i3w0w@ptys",name=encodeURIComponent("SACHIN SAYSING RAUT"),upiString=`upi://pay?pa=${upiId}&pn=${name}&am=${depositAmount}&cu=INR&tr=${utr}`,qrUrl=`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiString)}&size=300x300`;
-document.getElementById('qrImage').src=qrUrl;document.getElementById('utrDisplay').textContent=`UTR: ${utr} (Save for reference)`;document.getElementById('upiLink').href=upiString;document.getElementById('qrSection').classList.remove('hidden');document.getElementById('qrSection').scrollIntoView({behavior:'smooth'})}
-
-// Verify Deposit (Call your API)
-window.verifyDeposit=async function(){if(!currentUTR){alert('No active deposit found');return}
-alert('🔍 Verifying payment...\n\nIn production, this calls: https://verify.pikaapis.workers.dev/?trn='+currentUTR+'&id=YOUR_MERCHANT_ID\n\nFor now, contact @Vip3rxyt on Telegram with UTR: '+currentUTR)
-/* Production code:
-try{const merchantId="MdXwlu49903940058924";const res=await fetch(`https://verify.pikaapis.workers.dev/?trn=${currentUTR}&id=${merchantId}`);const data=await res.json();if(data.STATUS==="TXN_SUCCESS"&&data.RESPMSG==="Txn Success"){const userRef=ref(db,`users/${currentUser.uid}`);const snap=await get(userRef);const bal=snap.val()?.balance||0;await update(userRef,{balance:bal+depositAmount});alert('✅ Payment Successful! ₹'+depositAmount+' added');document.getElementById('qrSection').classList.add('hidden')}else{alert('❌ Payment not verified. Contact support with UTR: '+currentUTR)}}catch(e){console.error(e);alert('⚠️ Verification failed. Contact @Vip3rxyt')}
-*/}
-
-// Load Orders
-window.loadOrders=async function(filter='all'){if(!currentUser)return;const snap=await get(ref(db,'orders'));const container=document.getElementById('ordersList');if(!snap.exists()){container.innerHTML='<p style="color:#aaa">No orders found.</p>';return}
-let html='';snap.forEach(child=>{const o=child.val();if(o.uid!==currentUser.uid)return;if(filter!=='all'&&o.status!==filter)return;const sc=o.status==='completed'?'status-completed':o.status==='pending'?'status-pending':'status-cancelled';html+=`<div class="order-item"><div><strong>${o.service||'Service'}</strong><br/><small style="color:#aaa">${new Date(o.timestamp).toLocaleTimeString()}</small></div><div style="text-align:right"><span class="status-badge ${sc}">${o.status}</span><br/><strong>₹${(o.amount||0).toFixed(2)}</strong></div></div>`});container.innerHTML=html||'<p style="color:#aaa">No orders found.</p>'}
-window.filterOrders=function(f){loadOrders(f)}
-
-// Load History
-window.loadHistory=async function(type='all'){if(!currentUser)return;const snap=await get(ref(db,`users/${currentUser.uid}/transactions`));const container=document.getElementById('balanceHistory');if(!snap.exists()){container.innerHTML='<p style="color:#aaa">No transactions yet.</p>';return}
-let html='';snap.forEach(child=>{const tx=child.val();if(type==='deposits'&&tx.type!=='credit')return;if(type==='spending'&&tx.type!=='debit')return;const sign=tx.type==='credit'?'+':'-',cls=tx.type==='credit'?'positive':'negative';html+=`<div class="history-item"><span>${tx.desc||'Transaction'}</span><span class="amount ${cls}">${sign}₹${(tx.amount||0).toFixed(2)}</span></div>`});container.innerHTML=html||'<p style="color:#aaa">No transactions yet.</p>'}
-
-// Load Commissions/Referrals/Services
-window.loadCommissions=async function(){if(!currentUser)return;const snap=await get(ref(db,`affiliates/${currentUser.uid}/commissions`));const el=document.getElementById('commissionHistory');if(!snap.exists()){el.innerHTML='No commissions earned yet. Share your referral link!';return}let h='';snap.forEach(c=>{const d=c.val();h+=`<div style="padding:8px 0;border-bottom:1px solid #333">₹${(d.amount||0).toFixed(2)} from ${d.referralEmail||'Referral'} <small style="color:#aaa">(${new Date(d.timestamp).toLocaleDateString()})</small></div>`});el.innerHTML=h}
-window.loadReferrals=async function(){if(!currentUser)return;const snap=await get(ref(db,`referrals/${currentUser.uid}`));const el=document.getElementById('referralHistory');if(!snap.exists()){el.innerHTML='No referrals yet<br/>Share your referral link to start earning commissions';return}let h='';snap.forEach(c=>{const d=c.val();h+=`<div style="padding:8px 0;border-bottom:1px solid #333">${d.referredEmail||'User'} <small style="color:#aaa">(${new Date(d.timestamp).toLocaleDateString()})</small></div>`});el.innerHTML=h}
-window.loadServices=async function(){const snap=await get(ref(db,'services'));const el=document.getElementById('servicesList');if(!snap.exists()){el.innerHTML='No services available. Contact admin.';return}let h='<ul style="color:#e0e0ff">';snap.forEach(c=>{const s=c.val();h+=`<li>${s.name} - ₹${s.price} <small style="color:#aaa">(${s.desc||''})</small></li>`});h+='</ul>';el.innerHTML=h}
-
-// Share Links
-function setupShareLinks(rc){const link=`https://sastaotp.com/register?ref=${rc}`,txt=`Join sastaotp.com with my link: ${link}`;document.getElementById('waShare').href=`https://wa.me/?text=${encodeURIComponent(txt)}`;document.getElementById('tgShare').href=`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join sastaotp.com with my link')}`;document.getElementById('twShare').href=`https://twitter.com/intent/tweet?text=${encodeURIComponent(txt)}`}
-window.copyRefLink=function(){const inp=document.getElementById('refLink');inp.select();document.execCommand('copy');alert('📋 Link copied!')}
-
-// Other Functions
-window.redeemGift=function(){const code=prompt('Enter gift code:');if(code)alert('🎁 Contact @Vip3rxyt to redeem codes')}
-window.updatePassword=async function(){const cp=document.getElementById('currPass').value,np=document.getElementById('newPass').value,cf=document.getElementById('confirmPass').value;if(np!==cf){alert('❌ Passwords do not match');return}if(np.length<6){alert('❌ Password must be 6+ characters');return}try{const cred=EmailAuthProvider.credential(currentUser.email,cp);await reauthenticateWithCredential(currentUser,cred);await updatePassword(currentUser,np);alert('✅ Password updated!');document.getElementById('currPass').value='';document.getElementById('newPass').value='';document.getElementById('confirmPass').value=''}catch(e){alert('❌ '+ (e.message||'Check current password'))}}
-window.logout=async function(){if(confirm('Logout?')){await signOut(auth);localStorage.removeItem('session');window.location.href='login.html'}}
-
-// Init
-document.addEventListener('DOMContentLoaded',()=>{updateSummary()});
-</script>
+        // confirmPurchase - with single use UTR check (this is the part taken from the code you provided)
+        async function confirmPurchase() {
+            const utrId = document.getElementById('utrId').value.trim();
+            if (!utrId || utrId.length < 10) {
+                showNotification('Please enter valid UTR / Transaction ID', 'error');
+                return;
+            }
+            try {
+                showLoading();
+                // SINGLE USE UTR CHECK
+                const ordersSnapshot = await window.dbGet(window.dbRef(window.db, 'orders'));
+                if (ordersSnapshot.exists()) {
+                    const allOrders = ordersSnapshot.val();
+                    const utrAlreadyUsed = Object.values(allOrders).some(order =>
+                        order.utrId && order.utrId.toUpperCase() === utrId.toUpperCase()
+                    );
+                    if (utrAlreadyUsed) {
+                        hideLoading();
+                        showNotification('This UTR has already been used. Please enter a valid new UTR.', 'error');
+                        return;
+                    }
+                }
+                const subtotal = window.cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+                const discount = window.appliedCoupon ? window.appliedCoupon.discount : 0;
+                const finalTotal = Math.max(0, subtotal - discount);
+                const hasSubscription = window.cart.some(i => i.isSubscription);
+                for (const item of window.cart) {
+                    const orderRef = window.dbPush(window.dbRef(window.db, 'orders'));
+                    const orderId = orderRef.key;
+                    const orderData = {
+                        productId: item.id,
+                        utrId: utrId,
+                        productSnapshot: {
+                            title: item.title,
+                            imageUrl: item.image,
+                            discountedPrice: item.price
+                        },
+                        userId: window.currentUser.uid,
+                        userEmail: window.currentUser.email,
+                        couponUsed: window.appliedCoupon ? window.appliedCoupon.code : null,
+                        discountAmount: discount,
+                        finalAmount: finalTotal,
+                        status: 'pending',
+                        createdAt: new Date().toISOString(),
+                        isSubscription: !!item.isSubscription,
+                        duration: item.duration || null
+                    };
+                    await window.dbSet(orderRef, orderData);
+                    await window.dbSet(window.dbRef(window.db, `users/${window.currentUser.uid}/purchases/${orderId}`), {
+                        orderId: orderId,
+                        productId: item.id,
+                        purchasedAt: new Date().toISOString(),
+                        isSubscription: !!item.isSubscription,
+                        duration: item.duration || null
+                    });
+                }
+                if (window.appliedCoupon) {
+                    const couponRef = window.dbRef(window.db, `coupons/${window.appliedCoupon.id}`);
+                    const couponSnapshot = await window.dbGet(couponRef);
+                    if (couponSnapshot.exists()) {
+                        const currentUsage = couponSnapshot.val().usedCount || 0;
+                        await window.dbUpdate(couponRef, {
+                            usedCount: currentUsage + 1
+                        });
+                    }
+                }
+                hideLoading();
+                clearCart();
+                window.appliedCoupon = null;
+                document.getElementById('utrId').value = '';
+                closeModal('paymentModal');
+                showNotification('Order placed successfully!', 'success');
+                showPurchaseHistory();
+                if (hasSubscription) displaySubscriptions();
+            } catch (error) {
+                hideLoading();
+                console.error('Order placement error:', error);
+                showNotification('Failed to place order. Please try again.', 'error');
+            }
+        }
+    </script>
 </body>
 </html>
