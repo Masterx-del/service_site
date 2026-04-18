@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -977,7 +978,9 @@
         window.currentFilter = 'all';
         window.confirmCallback = null;
         onAuthStateChanged(auth, (user) => {
-            window.currentUser = user;
+            if (user) {
+                window.currentUser = user;
+            }
             updateMenu();
             loadServices();
             loadSubscriptions();
@@ -1747,7 +1750,6 @@
             closeModal('checkoutModal');
             document.getElementById('paymentModal').classList.add('active');
         }
-        // confirmPurchase - with single use UTR check (this is the part taken from the code you provided)
         async function confirmPurchase() {
             const utrId = document.getElementById('utrId').value.trim();
             if (!utrId || utrId.length < 10) {
@@ -1756,7 +1758,6 @@
             }
             try {
                 showLoading();
-                // SINGLE USE UTR CHECK
                 const ordersSnapshot = await window.dbGet(window.dbRef(window.db, 'orders'));
                 if (ordersSnapshot.exists()) {
                     const allOrders = ordersSnapshot.val();
@@ -2168,7 +2169,6 @@
             document.getElementById('signupForm').style.display = 'none';
             document.getElementById('loginForm').style.display = 'block';
         }
-        // MODIFIED LOGIN FUNCTION - CHECKS CREDENTIALS FROM LOCALSTORAGE
         async function loginUser() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
@@ -2188,6 +2188,7 @@
                         email: found.email,
                         displayName: found.displayName || email.split('@')[0]
                     };
+                    localStorage.setItem('currentUser', JSON.stringify(window.currentUser));
                     hideLoading();
                     closeModal('authModal');
                     updateMenu();
@@ -2204,7 +2205,6 @@
                 showNotification('Login failed', 'error');
             }
         }
-        // MODIFIED SIGNUP FUNCTION - STORES CREDENTIALS IN LOCALSTORAGE (SO LOGIN CAN CHECK THEM)
         async function signupUser() {
             const name = document.getElementById('signupName').value.trim();
             const email = document.getElementById('signupEmail').value.trim();
@@ -2240,6 +2240,7 @@
                     email: email,
                     displayName: name
                 };
+                localStorage.setItem('currentUser', JSON.stringify(window.currentUser));
                 hideLoading();
                 closeModal('authModal');
                 updateMenu();
@@ -2249,11 +2250,11 @@
                 showNotification('Signup failed', 'error');
             }
         }
-        // MODIFIED LOGOUT FUNCTION - CLEARS LOCAL CURRENTUSER
         async function logoutUser() {
             try {
                 showLoading();
                 window.currentUser = null;
+                localStorage.removeItem('currentUser');
                 hideLoading();
                 if (document.getElementById('sidebar').classList.contains('active')) {
                     toggleMenu();
@@ -2364,8 +2365,13 @@
             }
         });
         window.addEventListener('load', function() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                window.currentUser = JSON.parse(savedUser);
+            }
             hideLoading();
             loadServices();
+            loadSubscriptions();
             updateMenu();
             loadCartFromStorage();
         });
@@ -2470,88 +2476,6 @@
             }];
             closeModal('subscriptionModal');
             checkoutCart();
-        }
-        // === END OF NEW SUBSCRIPTION CODE ===
-
-        // confirmPurchase - with single use UTR check (this is the part taken from the code you provided)
-        async function confirmPurchase() {
-            const utrId = document.getElementById('utrId').value.trim();
-            if (!utrId || utrId.length < 10) {
-                showNotification('Please enter valid UTR / Transaction ID', 'error');
-                return;
-            }
-            try {
-                showLoading();
-                // SINGLE USE UTR CHECK
-                const ordersSnapshot = await window.dbGet(window.dbRef(window.db, 'orders'));
-                if (ordersSnapshot.exists()) {
-                    const allOrders = ordersSnapshot.val();
-                    const utrAlreadyUsed = Object.values(allOrders).some(order =>
-                        order.utrId && order.utrId.toUpperCase() === utrId.toUpperCase()
-                    );
-                    if (utrAlreadyUsed) {
-                        hideLoading();
-                        showNotification('This UTR has already been used. Please enter a valid new UTR.', 'error');
-                        return;
-                    }
-                }
-                const subtotal = window.cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
-                const discount = window.appliedCoupon ? window.appliedCoupon.discount : 0;
-                const finalTotal = Math.max(0, subtotal - discount);
-                const hasSubscription = window.cart.some(i => i.isSubscription);
-                for (const item of window.cart) {
-                    const orderRef = window.dbPush(window.dbRef(window.db, 'orders'));
-                    const orderId = orderRef.key;
-                    const orderData = {
-                        productId: item.id,
-                        utrId: utrId,
-                        productSnapshot: {
-                            title: item.title,
-                            imageUrl: item.image,
-                            discountedPrice: item.price
-                        },
-                        userId: window.currentUser.uid,
-                        userEmail: window.currentUser.email,
-                        couponUsed: window.appliedCoupon ? window.appliedCoupon.code : null,
-                        discountAmount: discount,
-                        finalAmount: finalTotal,
-                        status: 'pending',
-                        createdAt: new Date().toISOString(),
-                        isSubscription: !!item.isSubscription,
-                        duration: item.duration || null
-                    };
-                    await window.dbSet(orderRef, orderData);
-                    await window.dbSet(window.dbRef(window.db, `users/${window.currentUser.uid}/purchases/${orderId}`), {
-                        orderId: orderId,
-                        productId: item.id,
-                        purchasedAt: new Date().toISOString(),
-                        isSubscription: !!item.isSubscription,
-                        duration: item.duration || null
-                    });
-                }
-                if (window.appliedCoupon) {
-                    const couponRef = window.dbRef(window.db, `coupons/${window.appliedCoupon.id}`);
-                    const couponSnapshot = await window.dbGet(couponRef);
-                    if (couponSnapshot.exists()) {
-                        const currentUsage = couponSnapshot.val().usedCount || 0;
-                        await window.dbUpdate(couponRef, {
-                            usedCount: currentUsage + 1
-                        });
-                    }
-                }
-                hideLoading();
-                clearCart();
-                window.appliedCoupon = null;
-                document.getElementById('utrId').value = '';
-                closeModal('paymentModal');
-                showNotification('Order placed successfully!', 'success');
-                showPurchaseHistory();
-                if (hasSubscription) displaySubscriptions();
-            } catch (error) {
-                hideLoading();
-                console.error('Order placement error:', error);
-                showNotification('Failed to place order. Please try again.', 'error');
-            }
         }
     </script>
 </body>
