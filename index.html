@@ -2,7 +2,6 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <!-- Viewport-fit=cover is crucial for iOS notches and Android edge-to-edge screens -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SMM Panel - WebApp</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -17,18 +16,13 @@
   <style>
     body { 
       -webkit-tap-highlight-color: transparent; 
-      /* Prevents content from hiding behind the fixed bottom navbar */
       padding-bottom: calc(90px + env(safe-area-inset-bottom));
       padding-top: env(safe-area-inset-top);
     }
     .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
     .nav-active { color: #3b82f6; }
     .toast { transition: opacity 0.3s, transform 0.3s; }
-    
-    /* iOS Safe Area adjustments for the sticky bottom navbar */
-    .safe-bottom-nav {
-      padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    }
+    .safe-bottom-nav { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
   </style>
 </head>
 <body class="bg-gray-50 dark:bg-darkbg text-gray-900 dark:text-white select-none">
@@ -39,7 +33,7 @@
       <img id="user-avatar" src="https://ui-avatars.com/api/?name=User" class="w-10 h-10 rounded-full border-2 border-primary object-cover">
       <div>
         <h1 class="text-sm font-bold" id="user-name">Loading...</h1>
-        <p class="text-xs text-gray-400">Balance: $<span id="user-balance" class="text-green-500 font-bold">0.00</span></p>
+        <p class="text-xs text-gray-400">Balance: ₹<span id="user-balance" class="text-green-500 font-bold">0.00</span></p>
       </div>
     </div>
     <button id="theme-toggle" class="p-2 bg-gray-200 dark:bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center transition">
@@ -51,7 +45,6 @@
   <main class="p-4">
     <!-- HOME TAB -->
     <section id="tab-home" class="space-y-6">
-      <!-- Dashboard Stats -->
       <div class="grid grid-cols-2 gap-4">
         <div class="glass p-4 rounded-xl text-center shadow-sm">
           <i class="fa-solid fa-box text-primary text-xl mb-2"></i>
@@ -69,11 +62,9 @@
         <i class="fa-solid fa-wallet"></i> Add Funds
       </button>
 
-      <!-- Services List -->
       <div>
         <h3 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-fire text-orange-500"></i> Popular Services</h3>
         <div id="services-container" class="space-y-3">
-          <!-- Services rendered via JS -->
           <div class="text-center text-gray-500 text-sm py-4"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>
         </div>
       </div>
@@ -97,7 +88,7 @@
           <span id="ref-link" class="text-xs truncate w-3/4 select-all">Generating...</span>
           <button onclick="copyReferral()" class="text-primary p-2"><i class="fa-solid fa-copy"></i></button>
         </div>
-        <p class="text-sm">Total Earnings: <span class="text-green-500 font-bold">$<span id="ref-earnings">0.00</span></span></p>
+        <p class="text-sm">Total Earnings: <span class="text-green-500 font-bold">₹<span id="ref-earnings">0.00</span></span></p>
       </div>
     </section>
   </main>
@@ -118,7 +109,7 @@
     </button>
   </nav>
 
-  <!-- Buy Service Modal (Fixed for Keyboard Overlap) -->
+  <!-- Buy Service Modal -->
   <div id="buy-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center transition-opacity">
     <div class="glass w-full sm:w-96 rounded-t-3xl sm:rounded-2xl p-6 bg-white dark:bg-slate-800 space-y-4 transform transition-transform translate-y-full sm:translate-y-0 max-h-[90vh] overflow-y-auto" id="buy-modal-content">
       <div class="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-700">
@@ -133,7 +124,7 @@
       </div>
       
       <button id="confirm-buy-btn" class="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg mt-2 transition">Pay & Order</button>
-      <div class="pb-safe"></div> <!-- Extra padding for iOS keyboard -->
+      <div class="pb-safe"></div>
     </div>
   </div>
 
@@ -145,14 +136,14 @@
         <button onclick="closeModal('add-funds-modal')" class="text-gray-400"><i class="fa-solid fa-times"></i></button>
       </div>
       <div>
-        <label class="block text-xs font-bold text-gray-500 mb-1">Amount ($)</label>
+        <label class="block text-xs font-bold text-gray-500 mb-1">Amount (₹)</label>
         <input type="number" id="fund-amount" placeholder="e.g. 10" class="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 focus:outline-none focus:border-primary text-sm">
       </div>
       <div>
         <label class="block text-xs font-bold text-gray-500 mb-1">Payment Method</label>
         <select id="fund-method" class="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 focus:outline-none focus:border-primary text-sm">
+          <option value="UPI">UPI</option>
           <option value="Crypto">Crypto (USDT/TRX)</option>
-          <option value="Card">Credit Card</option>
         </select>
       </div>
       <button onclick="submitDeposit()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl shadow-lg transition">Submit Request</button>
@@ -179,27 +170,29 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const tg = window.Telegram.WebApp;
-    tg.expand(); // Expands app to full screen
+    tg.expand();
 
-    // Global State
     let currentUser = null;
     let selectedService = null;
     let smmSettings = { api_url: "", api_key: "" };
-    const BOT_USERNAME = "YourBotUsername";
+    const BOT_USERNAME = "SPECTORX7BOT"; // Change if bot username is different
 
-    // Fake Live Counter
     setInterval(() => {
       let statElement = document.getElementById('stat-views');
       let current = parseInt(statElement.innerText.replace(/,/g, ''));
       statElement.innerText = (current + Math.floor(Math.random() * 10)).toLocaleString();
     }, 3000);
 
-    // Initialization
+    // Initialization (Isme bot ka balance update hone ka system add kiya hai)
     async function init() {
       const tgUser = tg.initDataUnsafe?.user || { id: "123456", first_name: "Test User", username: "tester" };
       document.getElementById('user-name').innerText = tgUser.first_name;
       if(tgUser.photo_url) document.getElementById('user-avatar').src = tgUser.photo_url;
       
+      // ✅ URL Se Bot ka Balance nikalna
+      const urlParams = new URLSearchParams(window.location.search);
+      const botBalance = urlParams.get('balance');
+
       const userRef = doc(db, "users", tgUser.id.toString());
       const userSnap = await getDoc(userRef);
 
@@ -208,7 +201,7 @@
         currentUser = {
           name: tgUser.first_name,
           username: tgUser.username || "",
-          balance: 0,
+          balance: botBalance !== null ? parseFloat(botBalance) : 0, 
           total_orders: 0,
           referral_earnings: 0,
           referred_by: startParam && startParam.startsWith('ref_') ? startParam.split('_')[1] : null,
@@ -221,6 +214,12 @@
         }
       } else {
         currentUser = userSnap.data();
+        
+        // ✅ Agar bot ka balance mila toh user ka balance Firebase me update karo
+        if (botBalance !== null) {
+            currentUser.balance = parseFloat(botBalance);
+            await updateDoc(userRef, { balance: currentUser.balance });
+        }
       }
       
       currentUser.id = tgUser.id.toString();
@@ -265,7 +264,7 @@
               </div>
               <div class="max-w-[150px] sm:max-w-[200px]">
                 <h4 class="font-bold text-sm truncate">${s.name}</h4>
-                <p class="text-xs text-gray-400 mt-0.5">${s.quantity} units • <span class="text-green-500 font-bold">$${s.price}</span></p>
+                <p class="text-xs text-gray-400 mt-0.5">${s.quantity} units • <span class="text-green-500 font-bold">₹${s.price}</span></p>
               </div>
             </div>
             <button onclick="openBuyModal('${s.id}', '${s.name.replace(/'/g, "\\'")}', ${s.price}, '${s.smm_service_id}', ${s.quantity})" class="bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary hover:text-white transition">Buy</button>
@@ -279,7 +278,7 @@
       document.getElementById('selected-service-info').innerHTML = `
         <div class="flex justify-between items-center">
             <span class="font-bold">${name}</span>
-            <span class="text-lg font-black text-primary">$${price}</span>
+            <span class="text-lg font-black text-primary">₹${price}</span>
         </div>
         <div class="text-xs mt-1 text-blue-600 dark:text-blue-300">Quantity: ${qty}</div>
       `;
@@ -378,7 +377,7 @@
             </div>
             <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-800">
                 <p class="text-xs font-medium text-gray-500">Qty: <span class="text-gray-800 dark:text-gray-200">${o.quantity}</span></p>
-                <p class="text-xs font-bold text-green-500">-$${o.price}</p>
+                <p class="text-xs font-bold text-green-500">-₹${o.price}</p>
             </div>
           </div>
         `;
