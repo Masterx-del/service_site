@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -547,52 +549,415 @@
         </div>
     </div>
 
+<!-- ══════════════════════════════════════════════════════════
+     PREMIUM ADD FUNDS MODAL — replaces old walletFundModal
+     ══════════════════════════════════════════════════════════ -->
+<style>
+/* ── Add‑Funds Modal Core — Compact Mobile ── */
+#walletFundModal {
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+#walletFundModal .bottom-sheet {
+    border-radius: 22px;
+    padding: 0;
+    overflow: hidden;
+    max-height: 88vh;
+    max-height: 88dvh;
+    width: 100%;
+    transform: scale(0.92) translateY(20px);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease;
+    opacity: 0;
+}
+#walletFundModal.active .bottom-sheet {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+/* Header strip — compact */
+.af-header {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px 12px;
+    background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.af-header::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 90px; height: 90px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+}
+.af-close-btn {
+    position: absolute;
+    top: 10px; right: 12px;
+    width: 28px; height: 28px;
+    background: rgba(255,255,255,0.18);
+    border: none; border-radius: 50%;
+    color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+}
+.af-close-btn:active { background: rgba(255,255,255,0.35); }
+
+.af-icon-wrap {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.22);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; z-index: 1;
+}
+.af-header-text { z-index: 1; }
+.af-title {
+    font-size: 16px; font-weight: 800;
+    color: #fff; letter-spacing: -0.3px;
+    line-height: 1.2;
+}
+.af-subtitle {
+    font-size: 11px; font-weight: 500;
+    color: rgba(255,255,255,0.78);
+    margin-top: 1px;
+}
+.af-subtitle b { color: #bfdbfe; }
+
+/* Body scroll area */
+.af-body {
+    padding: 14px 16px 20px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Method toggle cards */
+.af-methods {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.af-method-card {
+    border: 2px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px 10px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    background: var(--card-bg);
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+.af-method-card.selected {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99,102,241,0.18);
+    background: rgba(99,102,241,0.04);
+}
+.af-method-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+}
+.af-method-text { display: contents; }
+.af-method-name {
+    font-size: 13px; font-weight: 700;
+    color: var(--text-primary); line-height: 1.2;
+}
+.af-method-sub {
+    font-size: 10px; color: var(--text-secondary);
+    font-weight: 500; line-height: 1.3; text-align: center;
+}
+.af-selected-dot {
+    position: absolute;
+    top: 7px; right: 9px;
+    width: 7px; height: 7px;
+    background: #6366f1;
+    border-radius: 50%;
+    display: none;
+}
+.af-method-card.selected .af-selected-dot { display: block; }
+
+/* Conditional sections */
+.af-section { display: none; }
+.af-section.visible { display: block; animation: afFadeUp 0.25s ease; }
+@keyframes afFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Crypto section */
+.af-crypto-box {
+    text-align: center;
+    padding: 18px 16px;
+    background: rgba(245,158,11,0.05);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 14px;
+    margin-bottom: 12px;
+}
+.af-crypto-icon { font-size: 36px; margin-bottom: 8px; }
+.af-crypto-title {
+    font-size: 15px; font-weight: 800;
+    color: var(--text-primary); margin-bottom: 6px;
+}
+.af-crypto-text {
+    font-size: 12px; color: var(--text-secondary);
+    line-height: 1.5;
+}
+.af-tg-btn {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, #229ED9 0%, #0088cc 100%);
+    border: none; border-radius: 12px;
+    color: #fff; font-weight: 700; font-size: 14px;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 8px;
+    box-shadow: 0 3px 12px rgba(0,136,204,0.3);
+    -webkit-tap-highlight-color: transparent;
+}
+.af-tg-btn:active { opacity: 0.88; transform: scale(0.98); }
+
+/* UPI section */
+.af-info-bar {
+    background: rgba(99,102,241,0.07);
+    border: 1px solid rgba(99,102,241,0.18);
+    border-radius: 10px; padding: 8px 12px;
+    font-size: 11px; font-weight: 600;
+    color: #6366f1; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+}
+
+.af-deposit-box {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 10px 12px;
+    margin-bottom: 12px;
+}
+.af-deposit-row {
+    display: flex; justify-content: space-between;
+    align-items: center; padding: 4px 0;
+    font-size: 12px; color: var(--text-secondary); font-weight: 500;
+}
+.af-deposit-row.total {
+    border-top: 1px dashed var(--border-color);
+    margin-top: 4px; padding-top: 8px;
+    font-size: 14px; font-weight: 800;
+    color: var(--text-primary);
+}
+.af-deposit-row.total .af-total-val {
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; font-size: 16px;
+}
+
+/* Chips */
+.af-chips {
+    display: flex; flex-wrap: wrap; gap: 7px;
+    margin-bottom: 12px;
+}
+.af-chip {
+    padding: 7px 13px; border-radius: 18px;
+    border: 1.5px solid var(--border-color);
+    background: var(--card-bg);
+    font-size: 12px; font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer; transition: all 0.15s;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.af-chip:active { transform: scale(0.95); }
+.af-chip.active {
+    border-color: #6366f1;
+    background: rgba(99,102,241,0.1);
+    color: #6366f1;
+}
+
+/* Custom amount input */
+.af-custom-input-wrap {
+    position: relative; margin-bottom: 12px;
+}
+.af-rupee-prefix {
+    position: absolute; left: 13px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px; font-weight: 700;
+    color: var(--text-secondary); pointer-events: none;
+}
+.af-custom-input {
+    width: 100%; padding: 12px 14px 12px 28px;
+    background: var(--input-bg);
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px; font-size: 15px;
+    font-weight: 700; color: var(--text-primary);
+    outline: none; transition: border-color 0.2s;
+    font-family: inherit;
+    -webkit-appearance: none;
+}
+.af-custom-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+.af-custom-input::placeholder { color: var(--text-secondary); font-weight: 500; font-size: 13px; }
+
+/* Pay button */
+.af-pay-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+    border: none; border-radius: 12px;
+    color: #fff; font-size: 15px; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 3px 16px rgba(99,102,241,0.35);
+    -webkit-tap-highlight-color: transparent;
+    margin-bottom: 0;
+}
+.af-pay-btn:active { transform: scale(0.98); opacity: 0.92; }
+.af-pay-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+</style>
+
 <div class="modal-overlay" id="walletFundModal">
-        <div class="bottom-sheet">
-            <div class="sheet-header">
-                <div class="sheet-title">Add Wallet Fund</div>
-                <button class="icon-btn" onclick="closeWalletFund()" style="background:transparent; border:none; box-shadow:none; height: 32px; width: 32px;"><i class="fas fa-times" style="font-size:18px;"></i></button>
-            </div>
+    <div class="bottom-sheet">
 
-            <div id="wfStep1">
-                <div class="input-group">
-                    <label>Enter Amount (₹)</label>
-                    <input type="number" id="wfAmountInput" placeholder="e.g., 100" min="10">
-                </div>
-                <div style="display:flex; justify-content:space-between; font-weight:700; font-size:16px; border-top:1px solid var(--border-color); padding-top:16px; margin-bottom: 20px; color: var(--text-primary);">
-                    <span>Total Amount</span><span id="wfFinalPrice" style="color:var(--accent-cyan);">₹0</span>
-                </div>
-                <button class="btn" onclick="goToWfStep2()">Proceed to Payment <i class="fas fa-arrow-right"></i></button>
+        <!-- ── Header ── -->
+        <div class="af-header">
+            <button class="af-close-btn" onclick="closeWalletFund()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="af-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
             </div>
-
-            <div id="wfStep2" style="display:none;">
-                <div class="payment-box">
-                    <div class="secure-badge"><i class="fas fa-shield-check"></i> 100% Safe & Secure</div>
-                    <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom: 4px;">Pay exactly <span id="wfPayAmt" style="color:var(--accent-cyan); font-size:18px; font-weight:800;"></span></div>
-                    <div class="qr-wrapper">
-                        <div class="qr-corner qr-tl"></div><div class="qr-corner qr-tr"></div>
-                        <div class="qr-corner qr-bl"></div><div class="qr-corner qr-br"></div>
-                        <img id="wf-dynamic-qr" src="" alt="Scan to Pay">
-                    </div>
-                    <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom: 15px; display:flex; justify-content:center; align-items:center; gap:8px;">
-                        <i class="fas fa-qrcode" style="font-size:16px;"></i><span>Scan to pay via Any UPI App</span>
-                    </div>
-                    <div class="upi-text" id="wfUpiId" title="Click to copy" style="font-size: 14px;">Paytmqr6i3w0w@ptys</div>
-                    <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 12px;">Tap UPI ID to copy</div>
-                    <div style="background: rgba(225, 29, 72, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed rgba(225, 29, 72, 0.3);">
-                        Ref ID: <b id="wfOrderIdDisplay" style="color:var(--accent-pink); font-family:monospace; font-size:15px; letter-spacing:1px;"></b>
-                        <div style="font-size:10px; margin-top:4px; color:var(--text-secondary);">* Do not change amount while paying</div>
-                    </div>
-                </div>
-                <div class="input-group" style="display:none; margin-top:12px;">
-                    <label>Enter UTR / Order Ref ID from your bank</label>
-                    <input type="text" id="wfUtrInput" placeholder="Enter UTR number from payment app">
-                </div>
-                <button class="btn" onclick="confirmWalletPayment()"><i class="fas fa-lock"></i> I Have Paid. Verify Now</button>
-                <button class="btn" style="background:transparent; color:var(--text-secondary); box-shadow:none; border:1px solid var(--border-color); margin-top:10px; height: 45px;" onclick="goBackWfStep1()"><i class="fas fa-arrow-left"></i> Back</button>
+            <div class="af-header-text">
+                <div class="af-title">Add Funds</div>
+                <div class="af-subtitle">Balance: <b id="afBalanceDisplay">₹0.00</b></div>
             </div>
         </div>
+
+        <!-- ── Step 1: Method + Amount ── -->
+        <div class="af-body" id="afStep1">
+
+            <!-- Payment Method Toggle -->
+            <div class="af-methods">
+                <div class="af-method-card selected" id="afMethodUPI" onclick="afSelectMethod('upi')">
+                    <div class="af-selected-dot"></div>
+                    <div class="af-method-icon" style="background:rgba(99,102,241,0.1);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="af-method-name">UPI</div>
+                    <div class="af-method-sub">Instant • No fees</div>
+                </div>
+                <div class="af-method-card" id="afMethodCrypto" onclick="afSelectMethod('crypto')">
+                    <div class="af-selected-dot"></div>
+                    <div class="af-method-icon" style="background:rgba(245,158,11,0.1);">
+                        <svg width="20" height="20" viewBox="0 0 32 32" fill="#f59e0b">
+                            <path d="M16 0C7.163 0 0 7.163 0 16s7.163 16 16 16 16-7.163 16-16S24.837 0 16 0zm3.67 22.11c-.26 1.04-1.04 1.82-2.08 2.08l-.52.13v1.04h-1.04v-1.04h-1.04v1.04h-1.04v-1.04c-1.82-.26-3.12-1.56-3.12-3.38h1.56c0 1.04.78 1.82 1.82 1.82h2.08c1.04 0 1.82-.78 1.82-1.82 0-.78-.52-1.3-1.56-1.56l-3.12-.78c-1.3-.26-2.08-1.3-2.08-2.6 0-1.3.78-2.34 2.08-2.6V12.8h1.04v1.04h1.04V12.8h1.04v1.04c1.56.26 2.6 1.3 2.6 2.86h-1.56c0-.78-.78-1.56-1.82-1.56H14.7c-1.04 0-1.82.78-1.82 1.82 0 .78.52 1.3 1.56 1.56l3.12.78c1.3.26 2.08 1.3 2.08 2.6l-.02.2z"/>
+                        </svg>
+                    </div>
+                    <div class="af-method-name">Crypto</div>
+                    <div class="af-method-sub">100+ coins</div>
+                </div>
+            </div>
+
+            <!-- ── Crypto Section ── -->
+            <div class="af-section" id="afCryptoSection">
+                <div class="af-crypto-box">
+                    <div class="af-crypto-icon">₿</div>
+                    <div class="af-crypto-title">Crypto Deposit</div>
+                    <div class="af-crypto-text">Contact our support team on Telegram to deposit using Bitcoin, USDT, ETH and 100+ other cryptocurrencies. Fast and easy!</div>
+                </div>
+                <button class="af-tg-btn" id="afTelegramBtn" onclick="afOpenTelegram()">
+                    <i class="fab fa-telegram-plane" style="font-size:18px;"></i>
+                    Contact on Telegram
+                </button>
+            </div>
+
+            <!-- ── UPI Section ── -->
+            <div class="af-section visible" id="afUPISection">
+                <div class="af-info-bar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Minimum ₹10 &nbsp;•&nbsp; Maximum ₹30,000
+                </div>
+
+                <!-- Deposit breakdown -->
+                <div class="af-deposit-box">
+                    <div class="af-deposit-row">
+                        <span>Deposit amount</span>
+                        <span id="afDepositAmt">₹0</span>
+                    </div>
+                    <div class="af-deposit-row">
+                        <span>Gateway fee</span>
+                        <span style="color:#10b981; font-weight:700;">FREE ✓</span>
+                    </div>
+                    <div class="af-deposit-row total">
+                        <span>You pay</span>
+                        <span class="af-total-val" id="afTotalVal">₹0</span>
+                    </div>
+                </div>
+
+                <!-- Quick amount chips -->
+                <div class="af-chips">
+                    <div class="af-chip" onclick="afSelectChip(this, 50)">₹50</div>
+                    <div class="af-chip" onclick="afSelectChip(this, 100)">₹100</div>
+                    <div class="af-chip" onclick="afSelectChip(this, 250)">₹250</div>
+                    <div class="af-chip" onclick="afSelectChip(this, 500)">₹500</div>
+                    <div class="af-chip" onclick="afSelectChip(this, 1000)">₹1,000</div>
+                </div>
+
+                <!-- Custom amount -->
+                <div class="af-custom-input-wrap">
+                    <span class="af-rupee-prefix">₹</span>
+                    <input type="number" class="af-custom-input" id="wfAmountInput" placeholder="Enter custom amount" min="10" max="30000" oninput="afOnAmountInput(this.value)">
+                </div>
+
+                <!-- Pay button -->
+                <button class="af-pay-btn" id="afPayBtn" onclick="goToWfStep2()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    Proceed to Pay
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Step 2: QR / Payment ── -->
+        <div class="af-body" id="wfStep2" style="display:none;">
+            <div class="payment-box">
+                <div class="secure-badge"><i class="fas fa-shield-check"></i> 100% Safe & Secure</div>
+                <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom: 4px;">
+                    Pay exactly <span id="wfPayAmt" style="background:linear-gradient(135deg,#6366f1,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:20px;font-weight:800;"></span>
+                </div>
+                <div class="qr-wrapper">
+                    <div class="qr-corner qr-tl"></div><div class="qr-corner qr-tr"></div>
+                    <div class="qr-corner qr-bl"></div><div class="qr-corner qr-br"></div>
+                    <img id="wf-dynamic-qr" src="" alt="Scan to Pay">
+                </div>
+                <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom: 15px; display:flex; justify-content:center; align-items:center; gap:8px;">
+                    <i class="fas fa-qrcode" style="font-size:16px;"></i><span>Scan to pay via Any UPI App</span>
+                </div>
+                <div class="upi-text" id="wfUpiId" title="Click to copy" style="font-size: 14px;">Paytmqr6i3w0w@ptys</div>
+                <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 12px;">Tap UPI ID to copy</div>
+                <div style="background: rgba(225, 29, 72, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed rgba(225, 29, 72, 0.3);">
+                    Ref ID: <b id="wfOrderIdDisplay" style="color:var(--accent-pink); font-family:monospace; font-size:15px; letter-spacing:1px;"></b>
+                    <div style="font-size:10px; margin-top:4px; color:var(--text-secondary);">* Do not change amount while paying</div>
+                </div>
+            </div>
+            <div class="input-group" style="display:none; margin-top:12px;">
+                <label>Enter UTR / Order Ref ID from your bank</label>
+                <input type="text" id="wfUtrInput" placeholder="Enter UTR number from payment app">
+            </div>
+            <button class="af-pay-btn" onclick="confirmWalletPayment()" style="margin-bottom:10px;">
+                <i class="fas fa-lock"></i> I Have Paid. Verify Now
+            </button>
+            <button class="btn" style="background:transparent; color:var(--text-secondary); box-shadow:none; border:1px solid var(--border-color); margin-top:0; height: 45px;" onclick="goBackWfStep1()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+        </div>
+
     </div>
+</div>
 
 <div class="modal-overlay" id="checkoutModal">
         <div class="bottom-sheet">
@@ -695,15 +1060,15 @@
     };
     const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getDatabase(app);
 
-    // Helper: fetch with timeout
-    const fetchWithTimeout = (url, opts = {}, ms = 8000) => {
+    // Helper: fetch with timeout — 5s for snappy UX
+    const fetchWithTimeout = (url, opts = {}, ms = 5000) => {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), ms);
         return fetch(url, { ...opts, signal: controller.signal, cache: 'no-store' })
             .finally(() => clearTimeout(timer));
     };
 
-    // Helper: try all URLs in PARALLEL, return first valid JSON result
+    // Helper: race all URLs in PARALLEL, resolve on first valid JSON
     const raceFetch = async (urls, validateFn) => {
         return new Promise((resolve) => {
             let settled = false;
@@ -714,7 +1079,6 @@
                     .then(text => {
                         try {
                             const json = JSON.parse(text);
-                            // If result matches the validation function, resolve immediately
                             if (!settled && validateFn(json)) {
                                 settled = true;
                                 resolve({ json, text });
@@ -722,13 +1086,23 @@
                         } catch(e) {}
                     })
                     .catch(() => {})
-                    .finally(() => { 
-                        pending--; 
-                        if(pending === 0 && !settled) resolve(null); 
+                    .finally(() => {
+                        pending--;
+                        if (pending === 0 && !settled) resolve(null);
                     });
             });
         });
     };
+
+    // Build full proxy list for payment verify — more proxies = faster race
+    const buildVerifyURLs = (verifyUrl) => [
+        { url: verifyUrl, opts: {} },
+        { url: `https://corsproxy.io/?${encodeURIComponent(verifyUrl)}`, opts: {} },
+        { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(verifyUrl)}`, opts: {} },
+        { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(verifyUrl)}`, opts: {} },
+        { url: `https://thingproxy.freeboard.io/fetch/${verifyUrl}`, opts: {} },
+        { url: `https://corsproxy.org/?${encodeURIComponent(verifyUrl)}`, opts: {} },
+    ];
 
     let currentUser = null; let productsData = {}; let subsData = {}; let activeSubscriptions = {}; 
     let couponsData = {}; let checkoutItem = null; let checkoutFinalAmt = 0; let appliedCouponKey = null; let notificationsBound = false;
@@ -767,6 +1141,12 @@
         if (targetId !== 'homeTab') { document.getElementById('categoryPane').style.display = 'none'; currentCatView.level = 0; }
         navItems.forEach(nav => { nav.classList.toggle('active', nav.dataset.target === targetId); });
         document.querySelector('.content-area').scrollTo(0,0);
+        // Reset userUnread badge when chat tab opened
+        if(targetId === 'chatTab' && currentUser) {
+            update(ref(db, `chats/${currentUser.uid}/info`), { userUnread: 0 });
+            const badge = document.getElementById('chatUnreadBadge');
+            if(badge) badge.style.display = 'none';
+        }
     }
     navItems.forEach(nav => { nav.addEventListener('click', () => switchTab(nav.dataset.target)); });
     document.getElementById('headerProfileBtn').addEventListener('click', () => switchTab('profileTab'));
@@ -861,7 +1241,7 @@
         onValue(ref(db, `chats/${uid}/info`), snap => {
             if(!snap.exists()) return;
             const info = snap.val();
-            const unread = info.adminUnread || 0;
+            const unread = info.userUnread || 0;
             const badge = document.getElementById('chatUnreadBadge');
             if(badge) {
                 if(unread > 0) { badge.textContent = unread; badge.style.display = 'flex'; }
@@ -886,6 +1266,9 @@
             if(chkBtn) chkBtn.innerHTML = `<i class="fas fa-wallet"></i> Pay via Wallet (Bal: ₹${walletBalance.toFixed(2)})`;
             const cartBtn = document.getElementById('cartWalletBtn');
             if(cartBtn) cartBtn.innerHTML = `<i class="fas fa-wallet"></i> Pay via Wallet (Bal: ₹${walletBalance.toFixed(2)})`;
+            // Sync AF header balance display
+            const afBal = document.getElementById('afBalanceDisplay');
+            if(afBal) afBal.textContent = `₹${walletBalance.toFixed(2)}`;
         });
         onValue(ref(db, `users/${currentUser.uid}/walletHistory`), snap => {
             const hist = document.getElementById('walletHistory');
@@ -909,39 +1292,112 @@
         });
     }
 
+    // ── Add Funds Modal helpers ──────────────────────────────────
     window.openWalletAddFund = () => {
         if(!currentUser) return showToast('Please login first');
-        document.getElementById('wfStep1').style.display = 'block';
+        // Reset to step 1 / UPI
+        document.getElementById('afStep1').style.display = 'block';
         document.getElementById('wfStep2').style.display = 'none';
         document.getElementById('wfAmountInput').value = '';
-        document.getElementById('wfFinalPrice').textContent = '₹0';
+        afUpdateCalc(0);
+        // Deselect all chips
+        document.querySelectorAll('.af-chip').forEach(c => c.classList.remove('active'));
+        // Reset method to UPI
+        afSelectMethod('upi');
+        // Sync balance display
+        document.getElementById('afBalanceDisplay').textContent = `₹${walletBalance.toFixed(2)}`;
         document.getElementById('walletFundModal').classList.add('active');
     };
+
     window.closeWalletFund = () => document.getElementById('walletFundModal').classList.remove('active');
 
-    document.getElementById('wfAmountInput').addEventListener('input', () => {
-        const v = parseFloat(document.getElementById('wfAmountInput').value) || 0;
-        document.getElementById('wfFinalPrice').textContent = `₹${v.toFixed(2)}`;
-    });
+    // Method toggle
+    window.afSelectMethod = (method) => {
+        const upiCard    = document.getElementById('afMethodUPI');
+        const cryptoCard = document.getElementById('afMethodCrypto');
+        const upiSec     = document.getElementById('afUPISection');
+        const cryptoSec  = document.getElementById('afCryptoSection');
+
+        if(method === 'upi') {
+            upiCard.classList.add('selected');
+            cryptoCard.classList.remove('selected');
+            upiSec.classList.add('visible');
+            cryptoSec.classList.remove('visible');
+        } else {
+            cryptoCard.classList.add('selected');
+            upiCard.classList.remove('selected');
+            cryptoSec.classList.add('visible');
+            upiSec.classList.remove('visible');
+            // Load Telegram link from Firebase
+            get(ref(db, 'meta/contact')).then(s => {
+                if(s.exists() && s.val().socialTelegram) {
+                    document.getElementById('afTelegramBtn').dataset.tgLink = s.val().socialTelegram;
+                }
+            }).catch(()=>{});
+        }
+    };
+
+    window.afOpenTelegram = () => {
+        const btn = document.getElementById('afTelegramBtn');
+        const link = btn.dataset.tgLink || '#';
+        if(link !== '#') { window.open(link, '_blank'); }
+        else { showToast('Telegram link not configured'); }
+    };
+
+    // Chip selection
+    window.afSelectChip = (el, amount) => {
+        document.querySelectorAll('.af-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('wfAmountInput').value = amount;
+        afOnAmountInput(amount);
+    };
+
+    // Sync input → breakdown
+    window.afOnAmountInput = (val) => {
+        // Deselect chips if manually typing
+        const chips = document.querySelectorAll('.af-chip');
+        const numVal = parseFloat(val) || 0;
+        let matched = false;
+        chips.forEach(c => {
+            const chipAmt = parseFloat(c.textContent.replace(/[₹,]/g,''));
+            if(chipAmt === numVal) { c.classList.add('active'); matched = true; }
+            else { c.classList.remove('active'); }
+        });
+        afUpdateCalc(numVal);
+    };
+
+    function afUpdateCalc(amount) {
+        const fmt = v => `₹${v.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+        document.getElementById('afDepositAmt').textContent = fmt(amount);
+        document.getElementById('afTotalVal').textContent   = fmt(amount);
+    }
+
     document.getElementById('wfUpiId').addEventListener('click', () => {
         const t = document.getElementById('wfUpiId').textContent;
-        if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(t).then(() => showToast('UPI ID Copied!')).catch(() => showToast('Copied!')); }
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(t).then(() => showToast('UPI ID Copied!')).catch(() => showToast('Copied!'));
+        }
     });
 
     window.goToWfStep2 = () => {
         wfAmount = parseFloat(document.getElementById('wfAmountInput').value);
-        if(!wfAmount || wfAmount < 10) return showToast('⚠️ Minimum ₹10 required');
+        if(!wfAmount || wfAmount < 10)  return showToast('⚠️ Minimum ₹10 required');
+        if(wfAmount > 30000)            return showToast('⚠️ Maximum ₹30,000 allowed');
         wfOrderId = generateUTR(12);
         const upiId = "Paytmqr6i3w0w@ptys";
-        document.getElementById('wfUpiId').textContent = upiId;
-        document.getElementById('wfPayAmt').textContent = `₹${wfAmount.toFixed(2)}`;
+        document.getElementById('wfUpiId').textContent     = upiId;
+        document.getElementById('wfPayAmt').textContent    = `₹${wfAmount.toFixed(2)}`;
         document.getElementById('wfOrderIdDisplay').textContent = wfOrderId;
         const upiStr = `upi://pay?pa=${upiId}&pn=${encodeURIComponent("SACHIN SAYSING RAUT")}&am=${wfAmount}&cu=INR&tr=${wfOrderId}`;
         document.getElementById('wf-dynamic-qr').src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(upiStr);
-        document.getElementById('wfStep1').style.display = 'none';
+        document.getElementById('afStep1').style.display = 'none';
         document.getElementById('wfStep2').style.display = 'block';
     };
-    window.goBackWfStep1 = () => { document.getElementById('wfStep2').style.display = 'none'; document.getElementById('wfStep1').style.display = 'block'; };
+
+    window.goBackWfStep1 = () => {
+        document.getElementById('wfStep2').style.display = 'none';
+        document.getElementById('afStep1').style.display = 'block';
+    };
 
     window.confirmWalletPayment = async () => {
         const utr = wfOrderId;
@@ -956,12 +1412,7 @@
             // ── Step 2: Payment verification (ALL proxies in PARALLEL) ──
             const MERCHANT_ID = "MdXwlu49903940058924";
             const verifyUrl = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
-            const verifyURLs = [
-                { url: verifyUrl, opts: {} },
-                { url: `https://corsproxy.io/?${encodeURIComponent(verifyUrl)}`, opts: {} },
-                { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(verifyUrl)}`, opts: {} },
-                { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(verifyUrl)}`, opts: {} },
-            ];
+            const verifyURLs = buildVerifyURLs(verifyUrl);
             const verifyResult = await raceFetch(verifyURLs, j => j && typeof j.STATUS !== 'undefined');
             
             if(!verifyResult) { hideLoader(); return showToast("❌ Network Error. Check internet."); }
@@ -1152,16 +1603,20 @@
         });
     }
 
-    document.getElementById('chatSendBtn').addEventListener('click', () => {
+    document.getElementById('chatSendBtn').addEventListener('click', async () => {
         if(!currentUser) return showToast('Please login');
         const input = document.getElementById('chatInput'); const msg = input.value.trim(); if(!msg) return;
 
         push(ref(db, `chats/${currentUser.uid}/messages`), { message: msg, sender: 'user', timestamp: new Date().toISOString() });
         
         const infoRef = ref(db, `chats/${currentUser.uid}/info`);
+        // Always get latest name from profile to ensure correct display
+        const profileSnap = await get(ref(db, `users/${currentUser.uid}/profile`));
+        const displayName = profileSnap.exists() ? (profileSnap.val().name || currentUser.displayName || 'User') : (currentUser.displayName || 'User');
+        
         get(infoRef).then(snap => {
             let unread = 1; if(snap.exists() && snap.val().adminUnread) { unread = snap.val().adminUnread + 1; }
-            update(infoRef, { userName: currentUser.displayName || 'User', lastMessage: msg, lastMessageTime: new Date().toISOString(), adminUnread: unread });
+            update(infoRef, { userName: displayName, lastMessage: msg, lastMessageTime: new Date().toISOString(), adminUnread: unread });
         });
         
         input.value = '';
@@ -1289,13 +1744,7 @@
             const MERCHANT_ID = "MdXwlu49903940058924"; 
             const verifyUrl   = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
             
-            const verifyURLs  =[
-                { url: verifyUrl,                                                                    opts: {} },
-                { url: `https://corsproxy.io/?${encodeURIComponent(verifyUrl)}`,                    opts: {} },
-                { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(verifyUrl)}`,       opts: {} },
-                { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(verifyUrl)}`,  opts: {} },
-            ];
-
+            const verifyURLs = buildVerifyURLs(verifyUrl);
             const verifyResult = await raceFetch(verifyURLs, j => j && typeof j.STATUS !== 'undefined');
 
             if (!verifyResult) { 
@@ -1423,17 +1872,13 @@
         showLoader();
         try {
             const utr = 'WALLET_' + generateUTR(8);
-            
-            // Deduct Wallet Balance
             const newBal = walletBalance - checkoutFinalAmt;
-            await update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal });
-            await push(ref(db, `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: checkoutFinalAmt, note: 'Purchased: ' + (checkoutItem.title || checkoutItem.planName), utrId: utr, createdAt: new Date().toISOString() });
-            
-            walletBalance = newBal; // update locally immediately
 
-            // Order creation logic
+            // Update local balance immediately — instant UX
+            walletBalance = newBal;
+
             const hasApiConfig = !!(
-                !( checkoutItem.purchaseType === 'subscription') &&
+                !(checkoutItem.purchaseType === 'subscription') &&
                 checkoutItem.apiUrl && checkoutItem.apiKey &&
                 checkoutItem.serviceId && checkoutItem.quantity && targetLink
             );
@@ -1459,12 +1904,14 @@
             };
 
             const newOrderRef = push(ref(db, 'orders'));
-            await set(newOrderRef, orderData);
 
-            if (appliedCouponKey) { 
-                const currentCount = couponsData[appliedCouponKey].usedCount || 0; 
-                await update(ref(db, `coupons/${appliedCouponKey}`), { usedCount: currentCount + 1 }); 
-            }
+            // Fire all Firebase writes IN PARALLEL — much faster than sequential awaits
+            await Promise.all([
+                update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
+                push(ref(db, `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: checkoutFinalAmt, note: 'Purchased: ' + (checkoutItem.title || checkoutItem.planName), utrId: utr, createdAt: new Date().toISOString() }),
+                set(newOrderRef, orderData),
+                ...(appliedCouponKey ? [update(ref(db, `coupons/${appliedCouponKey}`), { usedCount: (couponsData[appliedCouponKey].usedCount || 0) + 1 })] : []),
+            ]);
 
             closeCheckout(); 
             notifyLive('✅ Wallet Payment Successful! Order Placed.'); 
@@ -1777,11 +2224,14 @@
         try {
             const utr = 'WALLET_' + generateUTR(8);
 
-            // Deduct Wallet Balance
+            // Deduct Wallet Balance — update locally first for instant UI
             const newBal = walletBalance - cartFinalAmt;
-            await update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal });
-            await push(ref(db, `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: cartFinalAmt, note: 'Paid for Cart Orders', utrId: utr, createdAt: new Date().toISOString() });
             walletBalance = newBal;
+            // Fire balance + history write in parallel (non-blocking to order saves)
+            Promise.all([
+                update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
+                push(ref(db, `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: cartFinalAmt, note: 'Paid for Cart Orders', utrId: utr, createdAt: new Date().toISOString() }),
+            ]).catch(()=>{});
 
             // Save orders and call external API if needed
             const promises = cart.map(async item => {
