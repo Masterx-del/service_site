@@ -144,22 +144,29 @@
         }
 
         .product-list-card { 
-            display: flex; justify-content: space-between; align-items: center; 
             background: var(--card-solid); border: 1px solid var(--border-color); 
-            border-radius: var(--border-radius); padding: 16px; margin-bottom: 12px; 
-            box-shadow: var(--shadow); transition: var(--transition);
+            border-radius: var(--border-radius); padding: 20px; margin-bottom: 14px; 
+            box-shadow: var(--shadow); transition: var(--transition); display: flex; flex-direction: column;
         }
-        .product-list-card:hover { border-color: var(--border-color); box-shadow: 0 6px 12px -2px rgba(0,0,0,0.05); }
-        .plc-info { flex: 1; padding-right: 12px; }
-        .plc-name { font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 6px; color: var(--text-primary); }
-        .plc-right { display: flex; align-items: center; gap: 16px; }
-        .plc-price { font-weight: 700; color: var(--text-primary); font-size: 16px; }
+        .product-list-card:hover { border-color: var(--accent-cyan); box-shadow: 0 6px 16px rgba(37,99,235,0.08); }
+        .plc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
+        .plc-info { flex: 1; min-width: 0; }
+        .plc-name { font-size: 14px; font-weight: 700; line-height: 1.4; color: var(--text-primary); white-space: normal; word-break: break-word; }
+        .plc-price-badge { background: rgba(37,99,235,0.08); color: var(--accent-cyan); padding: 3px 10px; border: 1px solid rgba(37,99,235,0.2); border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.2px; }
+        .plc-price { font-size: 26px; font-weight: 800; color: var(--accent-cyan); margin-bottom: 14px; letter-spacing: -0.5px; margin-top: 4px; }
+        .plc-actions { display: flex; gap: 8px; margin-top: auto; }
         .plc-buy { 
-            padding: 8px 20px; border-radius: 8px; background: var(--accent-cyan); 
+            flex: 1; padding: 11px 16px; border-radius: 8px; background: var(--accent-cyan); 
             border: none; color: white; font-weight: 600; font-size: 13px; cursor: pointer; 
-            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); transition: var(--transition);
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); transition: var(--transition); text-align: center;
         }
         .plc-buy:hover { background: var(--accent-purple); }
+        .plc-cart-btn {
+            padding: 11px 14px; border-radius: 8px; background: var(--input-bg); 
+            border: 1px solid var(--accent-cyan); color: var(--accent-cyan); font-size: 13px; 
+            cursor: pointer; transition: var(--transition); flex-shrink: 0;
+        }
+        .plc-cart-btn:hover { background: var(--accent-cyan); color: white; }
 
         .back-btn-cat { 
             background: var(--card-solid); border: 1px solid var(--border-color); 
@@ -355,12 +362,45 @@
 
         @keyframes stroke { 100% { stroke-dashoffset: 0; } }
         @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+
+        /* ── ANNOUNCEMENT BANNER ── */
+        .ann-banner {
+            display: none; width: 100%; padding: 10px 16px;
+            font-size: 13px; font-weight: 600; text-align: center;
+            color: #fff; flex-shrink: 0; position: relative;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            animation: bannerSlideIn 0.4s ease;
+        }
+        .ann-banner.warn  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .ann-banner.danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .ann-banner.success { background: linear-gradient(135deg, #10b981, #059669); }
+        .ann-banner.visible { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .ann-banner-close { background: rgba(255,255,255,0.25); border: none; color: #fff; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; margin-left: 6px; }
+
+        /* ── WALLET FILTER TABS ── */
+        .wf-tab {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border-color);
+            background: var(--card-bg); color: var(--text-secondary);
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            transition: var(--transition); white-space: nowrap; font-family: inherit;
+        }
+        .wf-tab:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+        .wf-tab-active { background: var(--accent-cyan) !important; color: #fff !important; border-color: var(--accent-cyan) !important; }
+        @keyframes bannerSlideIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="light-mode">
 
 <div class="app-container">
     
+    <!-- ANNOUNCEMENT BANNER -->
+    <div class="ann-banner" id="annBanner">
+        <span id="annBannerText"></span>
+        <button class="ann-banner-close" onclick="document.getElementById('annBanner').classList.remove('visible');" title="Dismiss">×</button>
+    </div>
+
     <header class="header">
         <div class="brand-info">
             <img id="brandLogo" class="brand-logo" src="" alt="Logo">
@@ -402,7 +442,7 @@
                 <div class="service-cat-card" onclick="openCategory('Telegram')"><i class="fab fa-telegram" style="color: #0088cc;"></i><div class="service-cat-name">Telegram</div></div>
                 <div class="service-cat-card" onclick="openCategory('WhatsApp')"><i class="fab fa-whatsapp" style="color: #25D366;"></i><div class="service-cat-name">WhatsApp</div></div>
                 <div class="service-cat-card" onclick="openCategory('YouTube')"><i class="fab fa-youtube" style="color: #FF0000;"></i><div class="service-cat-name">YouTube</div></div>
-                <div class="service-cat-card" onclick="openCategory('Other')"><i class="fas fa-cubes" style="color: var(--accent-cyan);"></i><div class="service-cat-name">Other</div></div>
+                <div class="service-cat-card" onclick="openCategory('TikTok')"><i class="fab fa-tiktok" style="color: #010101;"></i><div class="service-cat-name">TikTok</div></div>
             </div>
 
             <div id="categoryPane" style="display: none; padding-top: 24px; border-top: 1px solid var(--border-color); margin-top: 20px; padding-bottom: 20px;">
@@ -435,7 +475,15 @@
                 <div id="walletRefEarned" style="font-size:12px; color:var(--text-secondary); margin-top:6px;">Referral Earned: <b id="walletRefAmount" style="color:var(--accent-cyan);">₹0.00</b></div>
                 <button class="btn" style="margin-top:20px; max-width:240px; margin-left:auto; margin-right:auto;" onclick="openWalletAddFund()"><i class="fas fa-plus"></i> Add Fund</button>
             </div>
-            <h2 class="section-title" style="margin-top:4px;"><i class="fas fa-history" style="color:var(--accent-cyan);"></i> Payment History</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                <h2 class="section-title" style="margin:0;"><i class="fas fa-history" style="color:var(--accent-cyan);"></i> Payment History</h2>
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;">
+                <button id="wfAll" class="wf-tab wf-tab-active" onclick="setWalletFilter('all',this)"><i class="fas fa-list"></i> All</button>
+                <button id="wfCredit" class="wf-tab" onclick="setWalletFilter('credit',this)"><i class="fas fa-plus-circle"></i> Credits</button>
+                <button id="wfDebit" class="wf-tab" onclick="setWalletFilter('debit',this)"><i class="fas fa-minus-circle"></i> Debits</button>
+                <button id="wfOrders" class="wf-tab" onclick="setWalletFilter('orders',this)"><i class="fas fa-shopping-bag"></i> Orders</button>
+            </div>
             <div id="walletHistory">
                 <div class="empty-state"><i class="fas fa-file-invoice"></i><p>No transactions yet</p></div>
             </div>
@@ -494,7 +542,7 @@
         <a class="nav-item" data-target="subsTab"><i class="fas fa-crown"></i>Premium</a>
         <a class="nav-item auth-req" data-target="ordersTab"><i class="fas fa-receipt"></i>Orders</a>
         <a class="nav-item auth-req" data-target="walletTab"><i class="fas fa-wallet"></i>Wallet</a>
-        <a class="nav-item auth-req" data-target="chatTab" id="navChatItem" style="position:relative;"><i class="fas fa-headset"></i>Support<span id="chatUnreadBadge" style="display:none;position:absolute;top:4px;right:calc(50% - 18px);background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center;"></span></a>
+        <a class="nav-item auth-req" data-target="chatTab" id="navChatItem" style="position:relative;"><i class="fas fa-headset"></i>Support<span id="chatUnreadBadge" style="display:none;position:absolute;top:4px;right:calc(50% - 18px);background:#ef4444;color:#fff;border-radius:50%;width:18px;height:18px;font-size:9px;font-weight:800;align-items:center;justify-content:center;line-height:18px;text-align:center;"></span></a>
         <a class="nav-item" data-target="profileTab" id="navProfileIcon"><i class="fas fa-user"></i>Account</a>
     </nav>
 
@@ -563,12 +611,14 @@
     border-radius: 22px;
     padding: 0;
     overflow: hidden;
-    max-height: 88vh;
-    max-height: 88dvh;
+    max-height: 92vh;
+    max-height: 92dvh;
     width: 100%;
     transform: scale(0.92) translateY(20px);
     transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease;
     opacity: 0;
+    display: flex;
+    flex-direction: column;
 }
 #walletFundModal.active .bottom-sheet {
     transform: scale(1) translateY(0);
@@ -632,6 +682,7 @@
 .af-body {
     padding: 14px 16px 20px;
     overflow-y: auto;
+    flex: 1;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -837,7 +888,7 @@
         </div>
 
         <!-- ── Step 1: Method + Amount ── -->
-        <div class="af-body" id="afStep1">
+        <div class="af-body" id="afStep1" style="flex:1; display:flex; flex-direction:column;">
 
             <!-- Payment Method Toggle -->
             <div class="af-methods">
@@ -923,37 +974,38 @@
         </div>
 
         <!-- ── Step 2: QR / Payment ── -->
-        <div class="af-body" id="wfStep2" style="display:none;">
-            <div class="payment-box">
-                <div class="secure-badge"><i class="fas fa-shield-check"></i> 100% Safe & Secure</div>
-                <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom: 4px;">
-                    Pay exactly <span id="wfPayAmt" style="background:linear-gradient(135deg,#6366f1,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:20px;font-weight:800;"></span>
-                </div>
-                <div class="qr-wrapper">
-                    <div class="qr-corner qr-tl"></div><div class="qr-corner qr-tr"></div>
-                    <div class="qr-corner qr-bl"></div><div class="qr-corner qr-br"></div>
-                    <img id="wf-dynamic-qr" src="" alt="Scan to Pay">
-                </div>
-                <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom: 15px; display:flex; justify-content:center; align-items:center; gap:8px;">
-                    <i class="fas fa-qrcode" style="font-size:16px;"></i><span>Scan to pay via Any UPI App</span>
-                </div>
-                <div class="upi-text" id="wfUpiId" title="Click to copy" style="font-size: 14px;">Paytmqr6i3w0w@ptys</div>
-                <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 12px;">Tap UPI ID to copy</div>
-                <div style="background: rgba(225, 29, 72, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed rgba(225, 29, 72, 0.3);">
-                    Ref ID: <b id="wfOrderIdDisplay" style="color:var(--accent-pink); font-family:monospace; font-size:15px; letter-spacing:1px;"></b>
-                    <div style="font-size:10px; margin-top:4px; color:var(--text-secondary);">* Do not change amount while paying</div>
+        <div id="wfStep2" style="display:none; flex-direction:column; flex:1; overflow:hidden; min-height:0;">
+            <div class="af-body" style="flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+                <div class="payment-box">
+                    <div class="secure-badge"><i class="fas fa-shield-check"></i> 100% Safe & Secure</div>
+                    <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom: 4px;">
+                        Pay exactly <span id="wfPayAmt" style="background:linear-gradient(135deg,#6366f1,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:20px;font-weight:800;"></span>
+                    </div>
+                    <div class="qr-wrapper">
+                        <div class="qr-corner qr-tl"></div><div class="qr-corner qr-tr"></div>
+                        <div class="qr-corner qr-bl"></div><div class="qr-corner qr-br"></div>
+                        <img id="wf-dynamic-qr" src="" alt="Scan to Pay">
+                    </div>
+                    <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom: 15px; display:flex; justify-content:center; align-items:center; gap:8px;">
+                        <i class="fas fa-qrcode" style="font-size:16px;"></i><span>Scan to pay via Any UPI App</span>
+                    </div>
+                    <div class="upi-text" id="wfUpiId" title="Click to copy" style="font-size: 14px;">Paytmqr6i3w0w@ptys</div>
+                    <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 12px;">Tap UPI ID to copy</div>
+                    <div style="background: rgba(225, 29, 72, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed rgba(225, 29, 72, 0.3);">
+                        Ref ID: <b id="wfOrderIdDisplay" style="color:var(--accent-pink); font-family:monospace; font-size:15px; letter-spacing:1px;"></b>
+                        <div style="font-size:10px; margin-top:4px; color:var(--text-secondary);">* Do not change amount while paying</div>
+                    </div>
                 </div>
             </div>
-            <div class="input-group" style="display:none; margin-top:12px;">
-                <label>Enter UTR / Order Ref ID from your bank</label>
-                <input type="text" id="wfUtrInput" placeholder="Enter UTR number from payment app">
+            <!-- Sticky bottom buttons — ALWAYS visible -->
+            <div style="padding:12px 16px 16px; border-top:1px solid var(--border-color); background:var(--card-solid); flex-shrink:0;">
+                <button class="af-pay-btn" onclick="confirmWalletPayment()" style="margin-bottom:10px;">
+                    <i class="fas fa-lock"></i> I Have Paid. Verify Now
+                </button>
+                <button class="btn" style="background:transparent; color:var(--text-secondary); box-shadow:none; border:1px solid var(--border-color); margin-top:0; height:45px;" onclick="goBackWfStep1()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
             </div>
-            <button class="af-pay-btn" onclick="confirmWalletPayment()" style="margin-bottom:10px;">
-                <i class="fas fa-lock"></i> I Have Paid. Verify Now
-            </button>
-            <button class="btn" style="background:transparent; color:var(--text-secondary); box-shadow:none; border:1px solid var(--border-color); margin-top:0; height: 45px;" onclick="goBackWfStep1()">
-                <i class="fas fa-arrow-left"></i> Back
-            </button>
         </div>
 
     </div>
@@ -1060,15 +1112,16 @@
     };
     const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getDatabase(app);
 
-    // Helper: fetch with timeout — 5s for snappy UX
-    const fetchWithTimeout = (url, opts = {}, ms = 5000) => {
+    // Helper: fetch with timeout — 1.5s for ultra fast UX
+    const fetchWithTimeout = (url, opts = {}, ms = 1500) => {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), ms);
         return fetch(url, { ...opts, signal: controller.signal, cache: 'no-store' })
             .finally(() => clearTimeout(timer));
     };
 
-    // Helper: race all URLs in PARALLEL, resolve on first valid JSON
+    // Helper: race all URLs in PARALLEL, resolve on FIRST valid JSON
+    // Also fires a DNS pre-warm so proxies respond faster
     const raceFetch = async (urls, validateFn) => {
         return new Promise((resolve) => {
             let settled = false;
@@ -1094,15 +1147,35 @@
         });
     };
 
-    // Build full proxy list for payment verify — more proxies = faster race
-    const buildVerifyURLs = (verifyUrl) => [
-        { url: verifyUrl, opts: {} },
-        { url: `https://corsproxy.io/?${encodeURIComponent(verifyUrl)}`, opts: {} },
-        { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(verifyUrl)}`, opts: {} },
-        { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(verifyUrl)}`, opts: {} },
-        { url: `https://thingproxy.freeboard.io/fetch/${verifyUrl}`, opts: {} },
-        { url: `https://corsproxy.org/?${encodeURIComponent(verifyUrl)}`, opts: {} },
-    ];
+    // Build full proxy list — ordered fastest first, all fired in parallel
+    const buildVerifyURLs = (verifyUrl) => {
+        const enc = encodeURIComponent(verifyUrl);
+        return [
+            { url: verifyUrl,                                                   opts: {} },
+            { url: `https://corsproxy.io/?${enc}`,                              opts: {} },
+            { url: `https://api.allorigins.win/raw?url=${enc}`,                 opts: {} },
+            { url: `https://corsproxy.org/?${enc}`,                             opts: {} },
+            { url: `https://api.codetabs.com/v1/proxy?quest=${enc}`,            opts: {} },
+            { url: `https://thingproxy.freeboard.io/fetch/${verifyUrl}`,        opts: {} },
+            { url: `https://proxy.cors.sh/${verifyUrl}`,                        opts: { headers: { 'x-cors-api-key': 'temp_' } } },
+            { url: `https://yacdn.org/proxy/${verifyUrl}`,                      opts: {} },
+        ];
+    };
+
+    // Pre-warm proxies the moment checkout modal opens — cuts ~300ms off verification
+    function prewarmProxies(verifyUrl) {
+        const enc = encodeURIComponent(verifyUrl);
+        [
+            'https://corsproxy.io/?',
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.org/?',
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://thingproxy.freeboard.io/fetch/',
+            'https://yacdn.org/proxy/',
+        ].forEach(proxy => {
+            fetch(proxy + enc, { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(2000) }).catch(()=>{});
+        });
+    }
 
     let currentUser = null; let productsData = {}; let subsData = {}; let activeSubscriptions = {}; 
     let couponsData = {}; let checkoutItem = null; let checkoutFinalAmt = 0; let appliedCouponKey = null; let notificationsBound = false;
@@ -1128,6 +1201,30 @@
         }
     };
 
+    // ── Order Success Sound ─────────────────────────────────────
+    function playOrderSuccessSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const notes = [
+                { freq: 523.25, start: 0,    dur: 0.15 },  // C5
+                { freq: 659.25, start: 0.15, dur: 0.15 },  // E5
+                { freq: 783.99, start: 0.30, dur: 0.15 },  // G5
+                { freq: 1046.5, start: 0.45, dur: 0.30 },  // C6
+            ];
+            notes.forEach(({ freq, start, dur }) => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+                gain.gain.setValueAtTime(0.35, ctx.currentTime + start);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+                osc.start(ctx.currentTime + start);
+                osc.stop(ctx.currentTime + start + dur + 0.05);
+            });
+        } catch(e) {}
+    }
+
     const showLoader = () => document.getElementById('loaderBox').classList.add('active');
     const hideLoader = () => document.getElementById('loaderBox').classList.remove('active');
 
@@ -1141,11 +1238,15 @@
         if (targetId !== 'homeTab') { document.getElementById('categoryPane').style.display = 'none'; currentCatView.level = 0; }
         navItems.forEach(nav => { nav.classList.toggle('active', nav.dataset.target === targetId); });
         document.querySelector('.content-area').scrollTo(0,0);
-        // Reset userUnread badge when chat tab opened
+        // Reset userUnread badge when chat tab opened + scroll to latest message
         if(targetId === 'chatTab' && currentUser) {
             update(ref(db, `chats/${currentUser.uid}/info`), { userUnread: 0 });
             const badge = document.getElementById('chatUnreadBadge');
             if(badge) badge.style.display = 'none';
+            setTimeout(() => {
+                const msgCont = document.getElementById('chatMessages');
+                if(msgCont) msgCont.scrollTop = msgCont.scrollHeight;
+            }, 60);
         }
     }
     navItems.forEach(nav => { nav.addEventListener('click', () => switchTab(nav.dataset.target)); });
@@ -1156,7 +1257,7 @@
         const catTitle = document.getElementById('catTitle');
         catTitle.innerHTML = `<i class="fas fa-layer-group" style="color:var(--accent-cyan);"></i> ${catName}`;
         const list = document.getElementById('catProductsList'); list.innerHTML = ''; let subCatsMap = {};
-        Object.entries(productsData).forEach(([id, p]) => { const pCat = p.category || 'Other'; if(pCat === catName) { const sub = p.subCategory || 'General'; if(!subCatsMap[sub]) subCatsMap[sub] = 0; subCatsMap[sub]++; } });
+        Object.entries(productsData).forEach(([id, p]) => { const pCat = p.category || 'Other'; if(pCat === catName && p.isActive !== false) { const sub = p.subCategory || 'General'; if(!subCatsMap[sub]) subCatsMap[sub] = 0; subCatsMap[sub]++; } });
         if(Object.keys(subCatsMap).length === 0) { list.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i><p>No services currently available here.</p></div>'; }
         else { Object.keys(subCatsMap).forEach(sub => { list.innerHTML += `<div class="subcategory-card" onclick="openSubCategory('${catName}', '${sub}')"><div class="subcategory-name">${sub}</div><div class="subcategory-count">${subCatsMap[sub]} <span style="font-weight:400;">Services</span> <i class="fas fa-chevron-right" style="font-size:10px;"></i></div></div>`; }); }
         const pane = document.getElementById('categoryPane'); pane.style.display = 'block';
@@ -1167,10 +1268,22 @@
         currentCatView = { level: 2, cat: catName, subCat: subCatName };
         const catTitle = document.getElementById('catTitle'); catTitle.innerHTML = `<button class="back-btn-cat" onclick="openCategory('${catName}')"><i class="fas fa-arrow-left"></i></button><div style="line-height:1.2;"><div style="font-size:12px; font-weight:600; color:var(--text-secondary);">${catName}</div><div style="font-size:18px;">${subCatName}</div></div>`;
         const list = document.getElementById('catProductsList'); list.innerHTML = ''; let hasItems = false;
-        Object.entries(productsData).forEach(([id, p]) => { const pCat = p.category || 'Other'; const pSub = p.subCategory || 'General'; if(pCat === catName && pSub === subCatName) { hasItems = true; 
-            const avgTimeHtml = p.avgTime ? `<div style="font-size:11px; color:var(--text-secondary); margin-top:3px;"><i class="fas fa-clock" style="font-size:10px;"></i> ~${p.avgTime}</div>` : '';
-            const linkLabel = p.linkLabel || '';
-            list.innerHTML += `<div class="product-list-card"><div class="plc-info"><div class="plc-name">${p.title}</div>${avgTimeHtml}${linkLabel ? `<div style="font-size:10px;color:var(--accent-cyan);margin-top:2px;"><i class="fas fa-link" style="font-size:9px;"></i> Requires: ${linkLabel}</div>` : ''}</div><div class="plc-right"><div class="plc-price">₹${p.discountedPrice}</div><div style="display:flex;gap:6px;"><button class="plc-buy" style="background:var(--input-bg);color:var(--accent-cyan);border:1px solid var(--accent-cyan);padding:8px 10px;" onclick="addToCart('${id}')" title="Add to Cart"><i class="fas fa-cart-plus"></i></button><button class="plc-buy" onclick="initCheckout('${id}', 'product')">Buy</button></div></div></div>`; } });
+        Object.entries(productsData).forEach(([id, p]) => { const pCat = p.category || 'Other'; const pSub = p.subCategory || 'General'; if(pCat === catName && pSub === subCatName && p.isActive !== false) { hasItems = true; 
+            list.innerHTML += `<div class="product-list-card">
+              <div class="plc-header">
+                <div class="plc-info"><div class="plc-name">${p.title}</div></div>
+                <div class="plc-price-badge">${p.subCategory || p.category}</div>
+              </div>
+              ${p.description ? `<p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.6;">${p.description}</p>` : ''}
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;${(p.features && p.features.length)?'border-top:1px solid var(--border-color);padding-top:12px;':''}margin-bottom:14px;">
+                ${(p.features && p.features.length) ? `<ul style="list-style:none;font-size:12px;margin:0;padding:0;flex:1;">${p.features.map(f=>`<li style="margin-bottom:6px;display:flex;align-items:center;gap:7px;color:var(--text-primary);"><i class="fas fa-check-circle" style="color:var(--accent-cyan);font-size:11px;flex-shrink:0;"></i>${f}</li>`).join('')}</ul>` : '<div></div>'}
+                <div class="plc-price" style="margin-bottom:0;margin-left:12px;flex-shrink:0;">₹${p.discountedPrice}</div>
+              </div>
+              <div class="plc-actions">
+                <button class="plc-cart-btn" onclick="addToCart('${id}')" title="Add to Cart"><i class="fas fa-cart-plus"></i></button>
+                <button class="plc-buy" onclick="initCheckout('${id}', 'product')">Buy Now</button>
+              </div>
+            </div>`; } });
         if(!hasItems) { list.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i><p>No services found.</p></div>'; }
         setTimeout(() => { const contentArea = document.querySelector('.content-area'); const pane = document.getElementById('categoryPane'); const targetPos = Math.max(0, pane.offsetTop - 40); contentArea.scrollTo({ top: targetPos, behavior: 'smooth' }); }, 50);
     };
@@ -1244,13 +1357,111 @@
             const unread = info.userUnread || 0;
             const badge = document.getElementById('chatUnreadBadge');
             if(badge) {
-                if(unread > 0) { badge.textContent = unread; badge.style.display = 'flex'; }
+                if(unread > 0) { 
+                    badge.textContent = unread > 9 ? '9+' : unread; 
+                    badge.style.display = 'flex'; 
+                    badge.style.alignItems = 'center'; 
+                    badge.style.justifyContent = 'center'; 
+                }
                 else { badge.style.display = 'none'; }
             }
         });
     }
 
     // ── WALLET ────────────────────────────────────────────────────────────
+    let _allWalletTxns = [];
+    let _walletFilter = 'all';
+
+    function _safeDate(val) {
+        if(!val) return null;
+        if(typeof val === 'object' && val !== null) {
+            if(val.seconds) return new Date(val.seconds * 1000);
+            return null;
+        }
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function _formatDate(val) {
+        const d = _safeDate(val);
+        if(!d) return 'Unknown Date';
+        return d.toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:true });
+    }
+
+    function _isCreditTx(tx) {
+        return ['credit','wallet_add','referral','admin_credit','wallet_topup'].includes(tx.type);
+    }
+    function _isOrderTx(tx) {
+        const note = (tx.note||'').toLowerCase();
+        return !_isCreditTx(tx) && (
+            note.includes('paid for') || note.includes('purchased') || note.includes('cart') || tx.type === 'order'
+        );
+    }
+
+    function _getTxLabel(tx) {
+        if(tx.note && tx.note.trim()) return tx.note.trim();
+        if(_isCreditTx(tx)) {
+            if(tx.type === 'referral') return 'Referral Reward';
+            if(tx.type === 'wallet_topup' || tx.type === 'wallet_add') return 'Wallet Top-Up';
+            return 'Wallet Credited';
+        }
+        return 'Order Payment';
+    }
+
+    function _getTxIcon(tx) {
+        if(tx.type === 'referral') return 'fa-gift';
+        if(_isCreditTx(tx)) return 'fa-plus-circle';
+        if(_isOrderTx(tx)) return 'fa-shopping-bag';
+        return 'fa-minus-circle';
+    }
+
+    function renderWalletHistory() {
+        const hist = document.getElementById('walletHistory');
+        if(!hist) return;
+        let txns = [..._allWalletTxns];
+        if(_walletFilter === 'credit')  txns = txns.filter(tx => _isCreditTx(tx));
+        else if(_walletFilter === 'debit') txns = txns.filter(tx => !_isCreditTx(tx));
+        else if(_walletFilter === 'orders') txns = txns.filter(tx => _isOrderTx(tx));
+
+        if(txns.length === 0) {
+            hist.innerHTML = '<div class="empty-state"><i class="fas fa-file-invoice"></i><p>No transactions found</p></div>';
+            return;
+        }
+        hist.innerHTML = txns.map(tx => {
+            const isCredit = _isCreditTx(tx);
+            const color  = isCredit ? '#10b981' : '#ef4444';
+            const sign   = isCredit ? '+' : '-';
+            const icon   = _getTxIcon(tx);
+            const label  = _getTxLabel(tx);
+            const dateStr= _formatDate(tx.createdAt);
+            const amt    = parseFloat(tx.amount||0).toFixed(2);
+            const utrHtml= tx.utrId ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Ref: <span style="font-family:monospace;">${tx.utrId}</span></div>` : '';
+            const badge  = `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${isCredit?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.1)'};color:${color};border:1px solid ${isCredit?'rgba(16,185,129,0.25)':'rgba(239,68,68,0.25)'};">${isCredit?'CREDIT':'DEBIT'}</span>`;
+            return `<div class="order-card" style="padding:14px 16px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:${isCredit?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.1)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas ${icon}" style="color:${color};font-size:14px;"></i>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
+                            <span style="font-weight:600;font-size:13px;color:var(--text-primary);">${label}</span>${badge}
+                        </div>
+                        <div style="font-size:11px;color:var(--text-secondary);">${dateStr}</div>
+                        ${utrHtml}
+                    </div>
+                    <div style="font-weight:800;font-size:16px;color:${color};white-space:nowrap;">${sign}&#8377;${amt}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    window.setWalletFilter = (filter, el) => {
+        _walletFilter = filter;
+        document.querySelectorAll('.wf-tab').forEach(t => t.classList.remove('wf-tab-active'));
+        if(el) el.classList.add('wf-tab-active');
+        renderWalletHistory();
+    };
+
     function loadWallet() {
         if(!currentUser) return;
         onValue(ref(db, `users/${currentUser.uid}/profile`), snap => {
@@ -1260,35 +1471,28 @@
             const refEarned = parseFloat(p.referralEarned || 0);
             document.getElementById('walletBalance').textContent = `₹${walletBalance.toFixed(2)}`;
             document.getElementById('walletRefAmount').textContent = `₹${refEarned.toFixed(2)}`;
-            
-            // Update Wallet Buttons Text if modals are open
             const chkBtn = document.getElementById('chkWalletBtn');
             if(chkBtn) chkBtn.innerHTML = `<i class="fas fa-wallet"></i> Pay via Wallet (Bal: ₹${walletBalance.toFixed(2)})`;
             const cartBtn = document.getElementById('cartWalletBtn');
             if(cartBtn) cartBtn.innerHTML = `<i class="fas fa-wallet"></i> Pay via Wallet (Bal: ₹${walletBalance.toFixed(2)})`;
-            // Sync AF header balance display
             const afBal = document.getElementById('afBalanceDisplay');
             if(afBal) afBal.textContent = `₹${walletBalance.toFixed(2)}`;
         });
         onValue(ref(db, `users/${currentUser.uid}/walletHistory`), snap => {
-            const hist = document.getElementById('walletHistory');
-            if(!snap.exists()) { hist.innerHTML = '<div class="empty-state"><i class="fas fa-file-invoice"></i><p>No transactions yet</p></div>'; return; }
-            hist.innerHTML = '';
-            const arr = []; snap.forEach(c => arr.push({id: c.key, ...c.val()}));
-            arr.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-            arr.forEach(tx => {
-                const isCredit = tx.type === 'credit' || tx.type === 'wallet_add' || tx.type === 'referral';
-                hist.innerHTML += `<div class="order-card" style="padding:14px 16px; margin-bottom:10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <div style="font-weight:600; font-size:13px;">${tx.note || (isCredit ? 'Wallet Credited' : 'Order Payment')}</div>
-                            <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${new Date(tx.createdAt).toLocaleString()}</div>
-                            ${tx.utrId ? `<div style="font-size:11px; color:var(--text-secondary);">Ref: <span style="font-family:monospace;">${tx.utrId}</span></div>` : ''}
-                        </div>
-                        <div style="font-weight:800; font-size:16px; color:${isCredit ? '#10b981' : '#ef4444'};">${isCredit ? '+' : '-'}₹${parseFloat(tx.amount).toFixed(2)}</div>
-                    </div>
-                </div>`;
-            });
+            _allWalletTxns = [];
+            if(snap.exists()) {
+                snap.forEach(c => {
+                    const data = c.val();
+                    if(!data.createdAt) data.createdAt = new Date().toISOString();
+                    _allWalletTxns.push({ id: c.key, ...data });
+                });
+                _allWalletTxns.sort((a, b) => {
+                    const da = _safeDate(a.createdAt), db2 = _safeDate(b.createdAt);
+                    if(!da && !db2) return 0; if(!da) return 1; if(!db2) return -1;
+                    return db2 - da;
+                });
+            }
+            renderWalletHistory();
         });
     }
 
@@ -1391,7 +1595,11 @@
         const upiStr = `upi://pay?pa=${upiId}&pn=${encodeURIComponent("SACHIN SAYSING RAUT")}&am=${wfAmount}&cu=INR&tr=${wfOrderId}`;
         document.getElementById('wf-dynamic-qr').src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(upiStr);
         document.getElementById('afStep1').style.display = 'none';
-        document.getElementById('wfStep2').style.display = 'block';
+        document.getElementById('wfStep2').style.display = 'flex';
+
+        // Pre-warm proxies for faster wallet payment verification
+        const MERCHANT_ID_WF = "MdXwlu49903940058924";
+        prewarmProxies(`https://verify.pikaapis.workers.dev/?trn=PREWARM&id=${MERCHANT_ID_WF}`);
     };
 
     window.goBackWfStep1 = () => {
@@ -1405,16 +1613,17 @@
         
         showLoader();
         try {
-            // ── Step 1: Duplicate UTR check in Firebase ──
-            const utrSnapshot = await get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr)));
-            if(utrSnapshot.exists()) { hideLoader(); return showToast('❌ This Order ID has already been used!'); }
-
-            // ── Step 2: Payment verification (ALL proxies in PARALLEL) ──
+            // ── Steps 1+2: Firebase duplicate check AND payment verify IN PARALLEL ──
             const MERCHANT_ID = "MdXwlu49903940058924";
             const verifyUrl = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
             const verifyURLs = buildVerifyURLs(verifyUrl);
-            const verifyResult = await raceFetch(verifyURLs, j => j && typeof j.STATUS !== 'undefined');
-            
+
+            const [utrSnapshot, verifyResult] = await Promise.all([
+                get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr))),
+                raceFetch(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
+            ]);
+
+            if(utrSnapshot.exists()) { hideLoader(); return showToast('❌ This Order ID has already been used!'); }
             if(!verifyResult) { hideLoader(); return showToast("❌ Network Error. Check internet."); }
             
             const result = verifyResult.json;
@@ -1478,6 +1687,23 @@
         onValue(ref(db, 'products'), s => { productsData = s.exists() ? s.val() : {}; if(document.getElementById('categoryPane').style.display === 'block') { if(currentCatView.level === 1) { openCategory(currentCatView.cat); } else if(currentCatView.level === 2) { openSubCategory(currentCatView.cat, currentCatView.subCat); } } });
         onValue(ref(db, 'subscriptions'), s => { subsData = s.exists() ? s.val() : {}; renderSubscriptions(); });
         onValue(ref(db, 'coupons'), s => { couponsData = s.exists() ? s.val() : {}; });
+
+        // ── ANNOUNCEMENT BANNER ──
+        onValue(ref(db, 'meta/announcement'), s => {
+            const banner = document.getElementById('annBanner');
+            const text = document.getElementById('annBannerText');
+            banner.classList.remove('visible', 'warn', 'danger', 'success');
+            if(s.exists()) {
+                const d = s.val();
+                if(d.active && d.message) {
+                    text.textContent = d.message;
+                    if(d.type === 'warn-banner') banner.classList.add('warn');
+                    else if(d.type === 'danger-banner') banner.classList.add('danger');
+                    else if(d.type === 'success-banner') banner.classList.add('success');
+                    banner.classList.add('visible');
+                }
+            }
+        });
     }
 
     function loadOrders() {
@@ -1524,37 +1750,10 @@
                         <span style="font-weight:700; color:#f59e0b; font-size:13px;">Pending Admin Validation</span>
                     </div>`;
                 } else if(o.status === 'progress') {
-                    let estTimeStr = (o.estTime && o.estTime.trim() !== '') ? o.estTime : (o.productSnapshot?.avgTime && o.productSnapshot.avgTime.trim() !== '' ? o.productSnapshot.avgTime : "16 Mins");
-                    let totalMins = 60; 
-                    let str = estTimeStr.toLowerCase();
-                    let hrsMatch = str.match(/(\d+)\s*(h|hr|hrs|hour|hours)/);
-                    let minsMatch = str.match(/(\d+)\s*(m|min|mins|minute|minutes)/);
-                    let h = hrsMatch ? parseInt(hrsMatch[1]) : 0;
-                    let m = minsMatch ? parseInt(minsMatch[1]) : 0;
-                    if(h > 0 || m > 0) totalMins = (h * 60) + m;
-
-                    let elapsedMins = (new Date() - new Date(o.createdAt)) / (1000 * 60);
-                    let percent = Math.min(99, Math.max(0, (elapsedMins / totalMins) * 100)); 
-                    
-                    let ringColor = '#ef4444'; 
-                    if(percent > 20 && percent <= 70) ringColor = '#f59e0b'; 
-                    if(percent > 70) ringColor = '#10b981'; 
-                    
-                    let offset = 113 - (113 * percent / 100);
-
                     estTimeHtml = `
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding: 16px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px;">
-                        <div>
-                            <div style="font-size:11px; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Estimated Time</div>
-                            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-top:4px;">${estTimeStr}</div>
-                        </div>
-                        <div class="progress-circle" style="position:relative; width:45px; height:45px;">
-                            <svg style="width:45px; height:45px; transform:rotate(-90deg);">
-                                <circle cx="22.5" cy="22.5" r="18" fill="none" stroke="var(--border-color)" stroke-width="4"></circle>
-                                <circle cx="22.5" cy="22.5" r="18" fill="none" stroke="${ringColor}" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="${offset}" style="transition: stroke-dashoffset 1s ease;"></circle>
-                            </svg>
-                            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:10px; font-weight:700; color:${ringColor};">${Math.floor(percent)}%</div>
-                        </div>
+                    <div style="display:flex; align-items:center; justify-content:center; margin-top:16px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px;">
+                        <svg class="progress-spin" style="width:24px; height:24px; margin-right:10px; animation:spin 1.5s linear infinite;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><circle cx="26" cy="26" r="25" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="60 100"/></svg>
+                        <span style="font-weight:700; color:#3b82f6; font-size:13px;">Order In Progress</span>
                     </div>`;
                 }
 
@@ -1645,6 +1844,7 @@
     window.initCheckout = (id, type) => { 
         if(!currentUser) { showToast('Please login to purchase!'); switchTab('profileTab'); return; }
         checkoutItem = type === 'product' ? productsData[id] : subsData[id]; if(!checkoutItem) return showToast('Item unavailable');
+        if(type === 'product' && checkoutItem.isActive === false) return showToast('⚠️ This service is currently unavailable');
         checkoutItem.id = id; checkoutItem.purchaseType = type; checkoutFinalAmt = type === 'product' ? parseFloat(checkoutItem.discountedPrice) : parseFloat(checkoutItem.price); appliedCouponKey = null;
 
         const imgEl = document.getElementById('chkImg'); if(checkoutItem.imageUrl) { imgEl.src = checkoutItem.imageUrl; imgEl.style.display = 'block'; } else { imgEl.style.display = 'none'; }
@@ -1660,6 +1860,10 @@
 
         currentOrderId = generateUTR(12);
         updateQRCode(checkoutFinalAmt, currentOrderId);
+
+        // Pre-warm proxy connections so verification is faster when user clicks verify
+        const MERCHANT_ID_PW = "MdXwlu49903940058924";
+        prewarmProxies(`https://verify.pikaapis.workers.dev/?trn=PREWARM&id=${MERCHANT_ID_PW}`);
         
         document.getElementById('chkLinkContainer').style.display = 'block';
         if (type === 'product') {
@@ -1721,8 +1925,9 @@
     };
 
     window.confirmPurchase = async () => { 
+        if (_guardOrder()) return;
         const utr = currentOrderId; 
-        if(!utr) return showToast('❌ Invalid Order ID');
+        if(!utr) { _unlockOrder(); return showToast('❌ Invalid Order ID'); }
         
         const targetLink  = document.getElementById('chkLinkInput').value.trim(); 
         const pollOption  = document.getElementById('chkPollInput').value.trim(); 
@@ -1733,22 +1938,23 @@
         
         showLoader();
         try {
-            // ── Step 1: Duplicate UTR check in Firebase ──
-            const utrSnapshot = await get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr))); 
+            // ── Steps 1+2: Firebase duplicate check AND payment verify IN PARALLEL ──
+            const MERCHANT_ID = "MdXwlu49903940058924"; 
+            const verifyUrl   = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
+            const verifyURLs  = buildVerifyURLs(verifyUrl);
+
+            const [utrSnapshot, verifyResult] = await Promise.all([
+                get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr))),
+                raceFetch(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
+            ]);
+
             if (utrSnapshot.exists()) { 
-                hideLoader(); 
+                _unlockOrder(); hideLoader(); 
                 return showToast('❌ This Order ID has already been used!'); 
             }
 
-            // ── Step 2: Payment verification (ALL proxies in PARALLEL) ──
-            const MERCHANT_ID = "MdXwlu49903940058924"; 
-            const verifyUrl   = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
-            
-            const verifyURLs = buildVerifyURLs(verifyUrl);
-            const verifyResult = await raceFetch(verifyURLs, j => j && typeof j.STATUS !== 'undefined');
-
             if (!verifyResult) { 
-                hideLoader(); 
+                _unlockOrder(); hideLoader(); 
                 return showToast("❌ Network Error. Check your internet connection."); 
             }
 
@@ -1756,14 +1962,14 @@
             
             // ── Step 3: Validate Payment Status ──
             if (result.STATUS !== "TXN_SUCCESS" || result.RESPMSG !== "Txn Success") {
-                hideLoader();
+                _unlockOrder(); hideLoader();
                 return showToast("❌ Payment not received yet. " + (result.RESPMSG || "Please wait 10 secs and retry."));
             }
 
             // ── Step 4: Validate Paid Amount ──
             const paidVal = parseFloat(result.TXNAMOUNT);
             if (paidVal < checkoutFinalAmt) { 
-                hideLoader();
+                _unlockOrder(); hideLoader();
                 return showToast(`❌ Amount mismatch! Required ₹${checkoutFinalAmt}, paid ₹${paidVal}`);
             }
 
@@ -1801,8 +2007,10 @@
                 await update(ref(db, `coupons/${appliedCouponKey}`), { usedCount: currentCount + 1 }); 
             }
 
+            _unlockOrder();
             closeCheckout(); 
             notifyLive('✅ Payment Verified & Order Placed Successfully!'); 
+            playOrderSuccessSound();
             switchTab('ordersTab');
             hideLoader();
 
@@ -1845,12 +2053,14 @@
             }
 
         } catch(e) { 
+            _unlockOrder();
             hideLoader();
             showToast('❌ System Error: ' + e.message); 
         } 
     };
 
     window.confirmWalletPurchase = async () => {
+        if (_guardOrder()) return;
         const targetLink  = document.getElementById('chkLinkInput').value.trim(); 
         const pollOption  = document.getElementById('chkPollInput').value.trim(); 
         const targetLink2 = document.getElementById('chkLinkInput2').value.trim();
@@ -1859,14 +2069,14 @@
         const targetLink5 = document.getElementById('chkLinkInput5').value.trim();
 
         if (checkoutItem.purchaseType === 'product') { 
-            if (!targetLink) return showToast('Please enter the required link/username');
+            if (!targetLink) { _unlockOrder(); return showToast('Please enter the required link/username'); }
             if (document.getElementById('chkPollContainer').style.display === 'block' && !pollOption) { 
-                return showToast('Please enter the poll vote option'); 
+                _unlockOrder(); return showToast('Please enter the poll vote option'); 
             } 
         }
 
         if (walletBalance < checkoutFinalAmt) {
-            return showToast(`❌ Insufficient Wallet Balance! Need ₹${checkoutFinalAmt.toFixed(2)}`);
+            _unlockOrder(); return showToast(`❌ Insufficient Wallet Balance! Need ₹${checkoutFinalAmt.toFixed(2)}`);
         }
 
         showLoader();
@@ -1913,8 +2123,10 @@
                 ...(appliedCouponKey ? [update(ref(db, `coupons/${appliedCouponKey}`), { usedCount: (couponsData[appliedCouponKey].usedCount || 0) + 1 })] : []),
             ]);
 
+            _unlockOrder();
             closeCheckout(); 
             notifyLive('✅ Wallet Payment Successful! Order Placed.'); 
+            playOrderSuccessSound();
             switchTab('ordersTab');
             hideLoader();
 
@@ -1956,6 +2168,7 @@
             }
 
         } catch (e) {
+            _unlockOrder();
             hideLoader();
             showToast('❌ System Error: ' + e.message);
         }
@@ -1977,10 +2190,17 @@
     let cartAppliedCoupon = null;
     let cartCouponDiscount = 0;
 
+    // ── Duplicate-order guard ──────────────────────────────────────────────
+    let _isProcessingOrder = false;
+    function _lockOrder()   { _isProcessingOrder = true; }
+    function _unlockOrder() { _isProcessingOrder = false; }
+    function _guardOrder()  { if (_isProcessingOrder) { showToast('⏳ Please wait, processing...'); return true; } _lockOrder(); return false; }
+
     window.addToCart = (id) => {
         if(!currentUser) { showToast('Please login first!'); switchTab('profileTab'); return; }
         const p = productsData[id];
         if(!p) return showToast('Service unavailable');
+        if(p.isActive === false) return showToast('⚠️ This service is currently unavailable');
         const cartItem = { id, product: {...p, id}, link: '', qty: 1 };
         cart.push(cartItem);
         updateCartBadge();
@@ -2029,7 +2249,6 @@
                     <div style="flex:1; padding-right:10px;">
                         <div class="cart-item-name">${item.product.title}</div>
                         <div class="cart-item-price">₹${parseFloat(item.product.discountedPrice).toFixed(2)}</div>
-                        ${item.product.avgTime ? `<div style="font-size:11px; color:var(--text-secondary); margin-top:3px;"><i class="fas fa-clock" style="font-size:10px;"></i> ~${item.product.avgTime}</div>` : ''}
                     </div>
                     <button class="cart-remove-btn" onclick="removeFromCart(${idx})"><i class="fas fa-trash"></i></button>
                 </div>
@@ -2106,6 +2325,10 @@
         document.getElementById('cart-dynamic-qr').src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(upiStr);
         document.getElementById('cartStep1').style.display = 'none';
         document.getElementById('cartStep2').style.display = 'block';
+
+        // Pre-warm proxies so verification is instant
+        const MERCHANT_ID_PW2 = "MdXwlu49903940058924";
+        prewarmProxies(`https://verify.pikaapis.workers.dev/?trn=PREWARM&id=${MERCHANT_ID_PW2}`);
     };
     document.getElementById('cartUpiId').addEventListener('click', () => {
         const t = document.getElementById('cartUpiId').textContent;
@@ -2113,35 +2336,32 @@
     });
 
     window.confirmCartPurchase = async () => {
+        if (_guardOrder()) return;
         const utr = cartOrderId;
-        if(!utr) return showToast('❌ Invalid Order ID');
+        if(!utr) { _unlockOrder(); return showToast('❌ Invalid Order ID'); }
         showLoader();
         try {
-            // ── Step 1: Duplicate UTR check in Firebase ──
-            const utrSnapshot = await get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr)));
-            if(utrSnapshot.exists()) { hideLoader(); return showToast('❌ This Order ID already used!'); }
-
-            // ── Step 2: Payment verification (ALL proxies in PARALLEL) ──
+            // ── Steps 1+2: Firebase duplicate check AND payment verify IN PARALLEL ──
             const MERCHANT_ID = "MdXwlu49903940058924";
             const verifyUrl = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
-            const verifyURLs = [
-                { url: verifyUrl, opts: {} },
-                { url: `https://corsproxy.io/?${encodeURIComponent(verifyUrl)}`, opts: {} },
-                { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(verifyUrl)}`, opts: {} },
-                { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(verifyUrl)}`, opts: {} },
-            ];
-            
-            const verifyResult = await raceFetch(verifyURLs, j => j && typeof j.STATUS !== 'undefined');
-            if(!verifyResult) { hideLoader(); return showToast("❌ Network Error."); }
+            const verifyURLs = buildVerifyURLs(verifyUrl);
+
+            const [utrSnapshot, verifyResult] = await Promise.all([
+                get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr))),
+                raceFetch(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
+            ]);
+
+            if(utrSnapshot.exists()) { _unlockOrder(); hideLoader(); return showToast('❌ This Order ID already used!'); }
+            if(!verifyResult) { _unlockOrder(); hideLoader(); return showToast("❌ Network Error."); }
             
             const result = verifyResult.json;
             if(result.STATUS !== "TXN_SUCCESS" || result.RESPMSG !== "Txn Success") { 
-                hideLoader(); 
+                _unlockOrder(); hideLoader(); 
                 return showToast("❌ Payment not verified yet. " + (result.RESPMSG || "Wait a moment and try again.")); 
             }
             
             const paidVal = parseFloat(result.TXNAMOUNT);
-            if(paidVal < cartFinalAmt) { hideLoader(); return showToast(`❌ Amount mismatch! Required ₹${cartFinalAmt.toFixed(2)}, paid ₹${paidVal}`); }
+            if(paidVal < cartFinalAmt) { _unlockOrder(); hideLoader(); return showToast(`❌ Amount mismatch! Required ₹${cartFinalAmt.toFixed(2)}, paid ₹${paidVal}`); }
 
             // Save one order per cart item and call external API if needed
             const promises = cart.map(async item => {
@@ -2202,22 +2422,24 @@
             sendTelegramOrderNotification(cart, paidVal, utr);
 
             cart = []; updateCartBadge();
-            closeCart(); notifyLive('✅ Payment Verified! All orders placed successfully!'); switchTab('ordersTab');
+            _unlockOrder();
+            closeCart(); notifyLive('✅ Payment Verified! All orders placed successfully!'); playOrderSuccessSound(); switchTab('ordersTab');
             hideLoader();
-        } catch(e) { hideLoader(); showToast('❌ Error: ' + e.message); }
+        } catch(e) { _unlockOrder(); hideLoader(); showToast('❌ Error: ' + e.message); }
     };
 
     window.confirmCartWalletPurchase = async () => {
-        if(cart.length === 0) return showToast('Cart is empty!');
+        if (_guardOrder()) return;
+        if(cart.length === 0) { _unlockOrder(); return showToast('Cart is empty!'); }
         
         for(let i=0; i<cart.length; i++) {
             if(!cart[i].link.trim()) { 
-                return showToast(`⚠️ Enter link for item: ${cart[i].product.title}`); 
+                _unlockOrder(); return showToast(`⚠️ Enter link for item: ${cart[i].product.title}`); 
             }
         }
 
         if (walletBalance < cartFinalAmt) {
-            return showToast(`❌ Insufficient Wallet Balance! Need ₹${cartFinalAmt.toFixed(2)}`);
+            _unlockOrder(); return showToast(`❌ Insufficient Wallet Balance! Need ₹${cartFinalAmt.toFixed(2)}`);
         }
 
         showLoader();
@@ -2290,9 +2512,11 @@
             sendTelegramOrderNotification(cart, cartFinalAmt, utr);
 
             cart = []; updateCartBadge();
-            closeCart(); notifyLive('✅ Wallet Payment Successful! Orders placed!'); switchTab('ordersTab');
+            _unlockOrder();
+            closeCart(); notifyLive('✅ Wallet Payment Successful! Orders placed!'); playOrderSuccessSound(); switchTab('ordersTab');
             hideLoader();
         } catch(e) { 
+            _unlockOrder();
             hideLoader(); showToast('❌ Error: ' + e.message); 
         }
     };
