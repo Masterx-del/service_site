@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,6 +42,7 @@ body.dark-mode {
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 body { font-family:'Inter',system-ui,-apple-system,sans-serif; background-color:var(--bg-color); color:var(--text-primary); min-height:100vh; overflow-x:hidden; transition:background-color 0.3s ease; }
+
 
 /* THEME TOGGLE */
 .theme-toggle { position:fixed; top:20px; right:20px; width:45px; height:45px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:1001; box-shadow:var(--shadow); color:var(--text-primary); transition:var(--transition); }
@@ -380,6 +383,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <div class="nav-section-label">Marketing</div>
   <div class="drawer-nav-item" data-tab="offers"><i class="fas fa-bullhorn" style="width:18px;text-align:center;"></i> Offers & Banners</div>
   <div class="drawer-nav-item" data-tab="announcement"><i class="fas fa-bell" style="width:18px;text-align:center;"></i> Announcement</div>
+  <div class="drawer-nav-item" data-tab="giftCodes"><i class="fas fa-gift" style="width:18px;text-align:center;color:#f59e0b;"></i> Gift Codes</div>
 
   <div class="nav-divider"></div>
   <!-- SETTINGS -->
@@ -548,7 +552,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <div class="input-group"><label>Sub Category</label><select id="productSubCategory"></select></div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-  <div class="input-group"><label>Price (₹)</label><input type="number" id="productDiscountPrice" placeholder="e.g., 99"></div>
+  <div class="input-group"><label>Price (₹) <span style="font-weight:400;text-transform:none;">(Put 0 for Free Daily)</span></label><input type="number" id="productDiscountPrice" placeholder="e.g., 99 or 0"></div>
   <div class="input-group"><label>Avg Delivery Time</label><input type="text" id="productAvgTime" placeholder="e.g., 16 Min, 1 Hr"></div>
 </div>
 
@@ -1000,6 +1004,29 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 </div>
 </div>
 
+
+<!-- GIFT CODES TAB -->
+<div id="giftCodesTab" class="tab-content">
+<div class="card">
+<h2 class="card-title"><i class="fas fa-gift" style="color:#f59e0b;"></i> Create Gift Code</h2>
+<input type="hidden" id="editGiftCodeId">
+<div class="input-group"><label>Gift Code</label><input type="text" id="gcCode" placeholder="e.g. DIWALI100" style="text-transform:uppercase;letter-spacing:1px;font-weight:700;"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div class="input-group"><label>Reward Amount (&#8377;)</label><input type="number" id="gcAmount" placeholder="e.g. 50"></div>
+  <div class="input-group"><label>Max Users (0 = unlimited)</label><input type="number" id="gcMaxUsers" placeholder="0"></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div class="input-group"><label>Expires At (leave blank = no expiry)</label><input type="datetime-local" id="gcExpiresAt"></div>
+  <div class="input-group" style="display:flex;flex-direction:column;justify-content:flex-end;"><label style="margin-bottom:12px;">Active</label><label class="toggle-switch"><input type="checkbox" id="gcActive" checked><span class="toggle-slider"></span></label></div>
+</div>
+<div style="display:flex;gap:12px;margin-top:4px;">
+  <button class="btn" id="saveGiftCodeBtn" style="flex:1;"><i class="fas fa-save"></i> Save Gift Code</button>
+  <button class="btn btn-ghost" id="clearGiftCodeBtn" style="flex:1;"><i class="fas fa-times"></i> Clear</button>
+</div>
+</div>
+<div class="card"><h2 class="card-title"><i class="fas fa-list"></i> Active Gift Codes</h2><div id="giftCodesGrid" class="products-grid"></div></div>
+</div>
+
 </div><!-- end adminDashboard -->
 
 <!-- CHAT MODAL -->
@@ -1179,7 +1206,7 @@ function initData(){
 }
 
 // ── SUB CATEGORIES ───────────────────────────────────────────────────
-const subCategoriesMap={"Instagram":["Followers","Likes","Reels Views","Post Views","Story Views","Story Poll Votes","Comments","Reposts","Saves","Shares"],"YouTube":["Subscribers","Views","Likes","Dislikes","Comments","Watch Time Hours","Shares"],"Facebook":["Page Likes","Page Followers","Post Likes","Post Shares","Post Comments","Views","Group Members","Profile Followers","Emoji Reactions"],"WhatsApp":["Channel Followers","Channel Reaction"],"Telegram":["Channel Members","Group Members","Post Views","Post Reactions","Poll Votes"],"TikTok":["Followers","Likes","Views","Comments","Shares"],"Other":["Other"]};
+const subCategoriesMap={"Instagram":["Followers","Likes","Reels Views","Comment Likes","Post Views","Story Views","Story Poll Votes","Comments","Reposts","Saves","Shares"],"YouTube":["Subscribers","Views","Likes","Dislikes","Comments","Watch Time Hours","Shares"],"Facebook":["Page Likes","Page Followers","Post Likes","Post Shares","Post Comments","Views","Group Members","Profile Followers","Emoji Reactions"],"WhatsApp":["Channel Followers","Channel Reaction"],"Telegram":["Channel Members","Group Members","Post Views","Post Reactions","Poll Votes"],"TikTok":["Followers","Likes","Views","Comments","Shares"],"Other":["Other"]};
 window.updateSubCategories=()=>{const main=$('productCategory').value;const subSel=$('productSubCategory');subSel.innerHTML='';const subs=subCategoriesMap[main]||["Other"];subs.forEach(s=>{const opt=document.createElement('option');opt.value=s;opt.textContent=s;subSel.appendChild(opt);});};
 $('productCategory').addEventListener('change',window.updateSubCategories);
 window.updateSubCategories();
@@ -1325,7 +1352,7 @@ $('saveProductBtn').addEventListener('click',async()=>{
   const description=$('productDescription').value.trim();
   const features=$('productFeatures').value.trim().split('\n').map(f=>f.trim()).filter(f=>f.length>0);
   const editId=$('editProductId').value;
-  if(!title||!price)return showToast('⚠️ Title and price are required');
+  if(!title || price === '') return showToast('⚠️ Title and price are required');
   showLoading();
   const pData={title,category:cat,subCategory:sub,discountedPrice:price,avgTime:avgTime||'',description:description||'',features,apiUrl:apiUrl||'',apiKey:apiKey||'',serviceId:serviceId||'',linkLabel:linkLabel||'',updatedAt:new Date().toISOString()};
   try{
@@ -1336,8 +1363,7 @@ $('saveProductBtn').addEventListener('click',async()=>{
 });
 
 $('clearProductBtn').addEventListener('click',()=>{
-  $('editProductId').value='';$('productFormTitle').textContent='Add Product';
-  ['productTitle','productDiscountPrice','productAvgTime','productApiUrl','productApiKey','productServiceId','productLinkLabel','productDescription','productFeatures'].forEach(id=>$(id).value='');
+  $('editProductId').value='';$('productFormTitle').textContent='Add Product';['productTitle','productDiscountPrice','productAvgTime','productApiUrl','productApiKey','productServiceId','productLinkLabel','productDescription','productFeatures'].forEach(id=>$(id).value='');
 });
 
 function renderProducts(data){
@@ -1353,6 +1379,7 @@ function renderProducts(data){
     if(filterText&&!(p.title||'').toLowerCase().includes(filterText)&&!(p.category||'').toLowerCase().includes(filterText)&&!(p.subCategory||'').toLowerCase().includes(filterText))return;
     if(catFilter&&p.category!==catFilter)return;
     const hasApi=(p.apiUrl||globalApiConfig.url)&&(p.apiKey||globalApiConfig.key)&&p.serviceId;
+    const isFree=parseFloat(p.discountedPrice)===0;
     const catOptions=cats.map(c=>`<option value="${c}" ${c===p.category?'selected':''}>${c}</option>`).join('');
     const subOptions=(subMap[p.category]||['Other']).map(s=>`<option value="${s}" ${s===p.subCategory?'selected':''}>${s}</option>`).join('');
     html+=`<div class="product-card" style="${p.isActive===false?'opacity:0.7;':''}">
@@ -1360,12 +1387,13 @@ function renderProducts(data){
       <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">${p.category} › ${p.subCategory}</div>
       ${p.description?`<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.4;font-style:italic;">${p.description.length>60?p.description.slice(0,60)+'…':p.description}</div>`:''}
       ${(p.features&&p.features.length)?`<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">${p.features.slice(0,3).map(f=>`✓ ${f}`).join(' · ')}</div>`:''}
-      <div style="font-size:22px;color:var(--accent-primary);font-weight:800;margin-bottom:8px;letter-spacing:-0.5px;">₹${p.discountedPrice}</div>
+      <div style="font-size:22px;color:${isFree?'#10b981':'var(--accent-primary)'};font-weight:800;margin-bottom:8px;letter-spacing:-0.5px;">${isFree?'FREE':'₹'+p.discountedPrice}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
         ${p.isActive===false?`<span class="badge badge-rejected">🔴 Inactive</span>`:`<span class="badge badge-completed">🟢 Active</span>`}
         ${p.avgTime?`<span class="badge badge-manual"><i class="fas fa-clock"></i> ${p.avgTime}</span>`:''}
         ${hasApi?`<span class="badge badge-api"><i class="fas fa-robot"></i> API Auto</span>`:`<span class="badge badge-manual"><i class="fas fa-hand-paper"></i> Manual</span>`}
         ${p.serviceId?`<span class="badge badge-manual">ID: ${p.serviceId}</span>`:''}
+        ${isFree?`<span class="badge badge-api" style="background:rgba(16,185,129,0.15);color:#059669;border:1px solid #10b981;"><i class="fas fa-gift"></i> Daily Free</span>`:''}
       </div>
       <div style="display:flex;gap:8px;margin-top:auto;align-items:center;">
         <button class="btn-inline-edit" onclick="toggleInlineEdit('pie_${id}',this)"><i class="fas fa-pencil-alt"></i> Quick Edit</button>
@@ -1380,7 +1408,7 @@ function renderProducts(data){
       <div class="inline-edit-panel" id="pie_${id}">
         <div class="inline-edit-grid">
           <div class="inline-edit-field"><label>Title</label><input id="pie_title_${id}" value="${(p.title||'').replace(/"/g,'&quot;')}"></div>
-          <div class="inline-edit-field"><label>Price (₹)</label><input type="number" id="pie_price_${id}" value="${p.discountedPrice||''}"></div>
+          <div class="inline-edit-field"><label>Price (₹)</label><input type="number" id="pie_price_${id}" value="${p.discountedPrice}"></div>
           <div class="inline-edit-field"><label>Category</label><select id="pie_cat_${id}" onchange="updatePieSubCat('${id}')">${catOptions}</select></div>
           <div class="inline-edit-field"><label>Sub Category</label><select id="pie_sub_${id}">${subOptions}</select></div>
           <div class="inline-edit-field"><label>Avg Delivery Time</label><input id="pie_time_${id}" value="${p.avgTime||''}" placeholder="e.g. 30 Min"></div>
@@ -1421,7 +1449,7 @@ window.applyInlineProductEdit=async(id)=>{
   const time=document.getElementById(`pie_time_${id}`)?.value.trim();
   const sid=document.getElementById(`pie_sid_${id}`)?.value.trim();
   const desc=document.getElementById(`pie_desc_${id}`)?.value.trim();
-  if(!title||!price)return showToast('⚠️ Title and price required');
+  if(!title || price === '') return showToast('⚠️ Title and price required');
   showLoading();
   try{
     await update(ref(db,`products/${id}`),{title,discountedPrice:price,category:cat,subCategory:sub,avgTime:time||'',serviceId:sid||'',description:desc||'',updatedAt:new Date().toISOString()});
@@ -1969,7 +1997,7 @@ window.saveQMUpdate=async(id)=>{
   const price=$(`qmPrice_${id}`).value.trim();
   const qty=$(`qmQty_${id}`).value.trim();
   const avgTime=$(`qmTime_${id}`).value.trim();
-  if(!price)return showToast('⚠️ Price required');
+  if(price === '') return showToast('⚠️ Price required');
   try{
     showLoading();
     await update(ref(db,`products/${id}`),{discountedPrice:price,quantity:qty||'',avgTime:avgTime||'',updatedAt:new Date().toISOString()});
@@ -1995,7 +2023,7 @@ $('lmNewCat').addEventListener('change', () => {
   const cat = $('lmNewCat').value;
   const sub = $('lmNewSub');
   sub.innerHTML = '<option value="">-- Select --</option>';
-  (subCategoriesMap[cat] || []).forEach(s => {
+  (subCategoriesMap[cat] ||[]).forEach(s => {
     const opt = document.createElement('option'); opt.value = s; opt.textContent = s; sub.appendChild(opt);
   });
 });
@@ -2352,7 +2380,7 @@ window.renderFMList=()=>{
       <div style="font-weight:700;font-size:14px;color:var(--text-primary);margin-bottom:2px;">${p.title}</div>
       <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">${p.category} › ${p.subCategory}</div>
       <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Features (one per line)</div>
-      <textarea id="fm_${id}" rows="3" placeholder="Gradual Delivery&#10;On 5 Reels&#10;10K/Day Reels Views" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;resize:vertical;margin-bottom:8px;">${(p.features&&p.features.length)?p.features.join('\n'):''}</textarea>
+      <textarea id="fm_${id}" rows="3" placeholder="Gradual Delivery&#10;High Quality&#10;Real & Safe" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;resize:vertical;margin-bottom:8px;">${(p.features&&p.features.length)?p.features.join('\n'):''}</textarea>
       <button class="btn btn-sm btn-success" style="width:auto;padding:0 16px;" onclick="saveFM('${id}')"><i class="fas fa-save"></i> Save Features</button>
     </div>
   `).join('');
@@ -2501,6 +2529,83 @@ window.applyBulkFM=async()=>{
     hideLoading(); showToast(`✅ Features applied to ${matches.length} products!`);
   }catch(e){hideLoading();showToast('❌ '+e.message);}
 };
+// ── GIFT CODES ────────────────────────────────────────────────────────
+let globalGiftCodes = {};
+
+$('saveGiftCodeBtn').addEventListener('click', async () => {
+  const code = ($('gcCode').value || '').trim().toUpperCase();
+  const amount = parseFloat($('gcAmount').value);
+  const maxUsers = parseInt($('gcMaxUsers').value) || 0;
+  const expiresAt = $('gcExpiresAt').value;
+  const isActive = $('gcActive').checked;
+  const editId = $('editGiftCodeId').value;
+  if(!code || isNaN(amount) || amount <= 0) return showToast('⚠️ Code and valid amount required');
+  showLoading();
+  const gcData = { code, amount, maxUsers, expiresAt: expiresAt || null, isActive, usedCount: 0, createdAt: new Date().toISOString() };
+  try {
+    if(editId) { await update(ref(db, `giftCodes/${editId}`), gcData); }
+    else { await push(ref(db, 'giftCodes'), gcData); }
+    $('clearGiftCodeBtn').click();
+    hideLoading(); showToast('✅ Gift Code saved!');
+  } catch(e) { hideLoading(); showToast('❌ ' + e.message); }
+});
+
+$('clearGiftCodeBtn').addEventListener('click', () => {
+  $('editGiftCodeId').value = '';['gcCode','gcAmount','gcMaxUsers','gcExpiresAt'].forEach(id => $(id).value = '');
+  $('gcActive').checked = true;
+});
+
+function renderGiftCodes(data) {
+  globalGiftCodes = data || {};
+  const cont = $('giftCodesGrid');
+  if(!cont) return;
+  const entries = Object.entries(globalGiftCodes);
+  if(!entries.length) { cont.innerHTML = '<p style="padding:20px;color:var(--text-secondary);">No gift codes yet.</p>'; return; }
+  cont.innerHTML = entries.map(([id, gc]) => {
+    const isExpired = gc.expiresAt && new Date() > new Date(gc.expiresAt);
+    const limitReached = gc.maxUsers && (gc.usedCount || 0) >= gc.maxUsers;
+    const statusColor = (!gc.isActive || isExpired || limitReached) ? 'var(--accent-danger)' : 'var(--accent-success)';
+    const statusText = !gc.isActive ? '🔴 Inactive' : isExpired ? '🔴 Expired' : limitReached ? '🔴 Limit Reached' : '🟢 Active';
+    const expStr = gc.expiresAt ? new Date(gc.expiresAt).toLocaleString('en-IN') : 'No Expiry';
+    return `<div class="product-card">
+      <div style="font-weight:800;font-size:18px;letter-spacing:2px;color:#f59e0b;">🎁 ${gc.code}</div>
+      <div style="font-size:22px;font-weight:800;color:var(--accent-primary);margin:8px 0;">₹${parseFloat(gc.amount).toFixed(2)}</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">👥 Used: ${gc.usedCount||0}/${gc.maxUsers||'∞'}</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">⏰ ${expStr}</div>
+      <div style="font-size:12px;font-weight:700;color:${statusColor};margin-bottom:10px;">${statusText}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--text-secondary);">Active</span>
+        <label class="toggle-switch"><input type="checkbox" ${gc.isActive?'checked':''} onchange="toggleGiftCodeActive('${id}',this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm" style="flex:1;" onclick="editGiftCode('${id}')"><i class="fas fa-edit"></i> Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteGiftCode('${id}')"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.editGiftCode = (id) => {
+  const gc = globalGiftCodes[id]; if(!gc) return;
+  $('editGiftCodeId').value = id;
+  $('gcCode').value = gc.code;
+  $('gcAmount').value = gc.amount;
+  $('gcMaxUsers').value = gc.maxUsers || 0;
+  $('gcExpiresAt').value = gc.expiresAt ? gc.expiresAt.slice(0,16) : '';
+  $('gcActive').checked = gc.isActive !== false;
+  switchTab('giftCodes', true); window.scrollTo(0,0);
+};
+window.deleteGiftCode = async (id) => {
+  const ok = await customConfirm({title:'Delete Gift Code?',msg:'This gift code will be permanently removed.',icon:'🎁',okLabel:'Delete',danger:true});
+  if(ok) remove(ref(db, `giftCodes/${id}`));
+};
+window.toggleGiftCodeActive = async (id, isActive) => {
+  try { await update(ref(db, `giftCodes/${id}`), {isActive}); showToast(isActive?'✅ Gift code activated':'🔴 Gift code deactivated'); } catch(e) { showToast('❌ '+e.message); }
+};
+
+onValue(ref(db, 'giftCodes'), s => renderGiftCodes(s.val()));
+
+
 </script>
 
 <!-- ── WALLET ADJUST MODAL ── -->
