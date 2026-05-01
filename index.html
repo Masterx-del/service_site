@@ -310,6 +310,12 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 .recent-order-row:hover { color:var(--accent-primary); }
 .recent-order-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 
+/* ── SORT MANAGER ── */
+.sort-row { user-select:none; }
+.sort-row:hover { border-color:var(--accent-primary)!important; box-shadow:0 2px 8px rgba(37,99,235,0.1); }
+.sort-row.dragging { opacity:0.4; border:2px dashed var(--accent-primary)!important; }
+.sort-row.drag-over { border-color:var(--accent-success)!important; background:rgba(16,185,129,0.05)!important; }
+
 /* ── TOP PRODUCTS ── */
 .top-product-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border-color); font-size:13px; }
 .top-product-row:last-child { border-bottom:none; }
@@ -376,6 +382,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <div class="drawer-nav-item" data-tab="serviceIdMgmt"><i class="fas fa-hashtag" style="width:18px;text-align:center;"></i> Service ID Management</div>
   <div class="drawer-nav-item" data-tab="descMgmt"><i class="fas fa-align-left" style="width:18px;text-align:center;"></i> Description Management</div>
   <div class="drawer-nav-item" data-tab="featureMgmt"><i class="fas fa-list-check" style="width:18px;text-align:center;"></i> Feature Management</div>
+  <div class="drawer-nav-item" data-tab="sortMgmt"><i class="fas fa-sort-numeric-down" style="width:18px;text-align:center;"></i> Display Order / Rank</div>
 
   <div class="nav-divider"></div>
   <!-- API & AUTOMATION -->
@@ -559,12 +566,13 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 <input type="hidden" id="editProductId">
 <div class="input-group"><label>Product Title</label><input type="text" id="productTitle" placeholder="e.g., 1000 Instagram Followers"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-  <div class="input-group"><label>Main Category</label><select id="productCategory"><option value="Instagram">Instagram</option><option value="YouTube">YouTube</option><option value="Facebook">Facebook</option><option value="WhatsApp">WhatsApp</option><option value="Telegram">Telegram</option><option value="TikTok">TikTok</option><option value="Other">Other</option></select></div>
+  <div class="input-group"><label>Main Category</label><select id="productCategory"></select></div>
   <div class="input-group"><label>Sub Category</label><select id="productSubCategory"></select></div>
 </div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
   <div class="input-group"><label>Price (₹) <span style="font-weight:400;text-transform:none;">(Put 0 for Free Daily)</span></label><input type="number" id="productDiscountPrice" placeholder="e.g., 99 or 0"></div>
   <div class="input-group"><label>Avg Delivery Time</label><input type="text" id="productAvgTime" placeholder="e.g., 16 Min, 1 Hr"></div>
+  <div class="input-group"><label>Display Order <span style="font-weight:400;text-transform:none;">(rank in app)</span></label><input type="number" id="productDisplayOrder" placeholder="e.g., 1, 2, 3..." min="1"></div>
 </div>
 
 <!-- API SECTION -->
@@ -600,7 +608,6 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <input type="text" id="productFilterInput" placeholder="🔍 Search products..." onkeyup="filterProducts()" style="flex:1;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit;">
   <select id="productCatFilter" onchange="filterProducts()" style="padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;">
     <option value="">All Categories</option>
-    <option>Instagram</option><option>YouTube</option><option>Facebook</option><option>WhatsApp</option><option>Telegram</option><option>TikTok</option><option>Other</option>
   </select>
 </div>
 <div id="productsGrid" class="products-grid"></div>
@@ -769,7 +776,6 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <input type="text" id="qmFilterInput" placeholder="🔍 Search products..." oninput="renderQMList()" style="flex:1;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit;">
   <select id="qmCatFilter" onchange="renderQMList()" style="padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;">
     <option value="">All Categories</option>
-    <option>Instagram</option><option>YouTube</option><option>Facebook</option><option>WhatsApp</option><option>Telegram</option><option>TikTok</option><option>Other</option>
   </select>
 </div>
 <div id="qmProductList" class="orders-list"></div>
@@ -839,7 +845,6 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
       <label>Category</label>
       <select id="lmNewCat" style="width:100%;padding:11px 14px;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;">
         <option value="">-- Select --</option>
-        <option>Instagram</option><option>YouTube</option><option>Facebook</option><option>WhatsApp</option><option>Telegram</option><option>TikTok</option><option>Other</option>
       </select>
     </div>
     <div class="input-group" style="margin-bottom:0;">
@@ -898,6 +903,32 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 <!-- SETTINGS TAB -->
 <div id="settingsTab" class="tab-content">
 <div class="card"><h2 class="card-title">Administrator Details</h2><div style="background:var(--input-bg);padding:18px;border-radius:8px;font-size:14px;border:1px solid var(--border-color);"><p style="margin-bottom:10px;"><strong>Email:</strong> <span id="adminEmailDisplay" style="color:var(--text-secondary);"></span></p></div></div>
+
+<!-- MANAGE CATEGORIES CARD -->
+<div class="card" style="border-color:var(--accent-primary);">
+  <h2 class="card-title"><i class="fas fa-layer-group" style="color:var(--accent-primary);"></i> Manage Categories & Sub-Categories</h2>
+  <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">Add or remove categories and sub-categories here. Changes automatically apply everywhere — Product form, filters, bulk tools, and Link Management.</p>
+
+  <div id="catMgmtList" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;"></div>
+
+  <div style="background:var(--input-bg);border:1px solid var(--border-color);border-radius:10px;padding:16px;">
+    <div style="font-size:12px;font-weight:700;color:var(--accent-primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;"><i class="fas fa-plus-circle"></i> Add New Category</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;">
+      <div class="input-group" style="margin-bottom:0;flex:1;">
+        <label>Category Name</label>
+        <input type="text" id="newCatName" placeholder="e.g. Snapchat, Pinterest..." style="font-family:inherit;">
+      </div>
+      <button class="btn btn-sm btn-success" onclick="addNewCategory()" style="height:44px;white-space:nowrap;"><i class="fas fa-plus"></i> Add Category</button>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;display:flex;gap:10px;">
+    <button class="btn btn-success" onclick="saveCategoryMap()" style="flex:1;"><i class="fas fa-save"></i> Save All Changes</button>
+    <button class="btn btn-ghost" onclick="resetCategoryMap()" style="flex:1;"><i class="fas fa-undo"></i> Reset to Default</button>
+  </div>
+  <p style="font-size:12px;color:var(--text-secondary);margin-top:10px;text-align:center;"><i class="fas fa-info-circle"></i> Changes apply instantly everywhere after saving.</p>
+</div>
+
 <div class="card" style="border-color:var(--accent-danger);"><h2 class="card-title" style="color:var(--accent-danger);"><i class="fas fa-exclamation-triangle"></i> Danger Zone</h2>
 <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Irreversible actions.</p>
 <button class="btn btn-warn" id="clearAllOrdersBtn" style="margin-bottom:12px;">Clear All Orders</button>
@@ -917,7 +948,6 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
         <label>Filter by Category</label>
         <select id="sim_bulkCat" onchange="simUpdateBulkSub()">
           <option value="">— All Categories —</option>
-          <option>Instagram</option><option>YouTube</option><option>Facebook</option><option>WhatsApp</option><option>Telegram</option><option>TikTok</option><option>Other</option>
         </select>
       </div>
       <div class="bulk-apply-field">
@@ -956,7 +986,6 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
         <label>Filter by Category</label>
         <select id="dm_bulkCat" onchange="dmUpdateBulkSub()">
           <option value="">— All Categories —</option>
-          <option>Instagram</option><option>YouTube</option><option>Facebook</option><option>WhatsApp</option><option>Telegram</option><option>TikTok</option><option>Other</option>
         </select>
       </div>
       <div class="bulk-apply-field">
@@ -992,7 +1021,6 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
         <label>Filter by Category</label>
         <select id="fm_bulkCat" onchange="fmUpdateBulkSub()">
           <option value="">— All Categories —</option>
-          <option>Instagram</option><option>YouTube</option><option>Facebook</option><option>WhatsApp</option><option>Telegram</option><option>TikTok</option><option>Other</option>
         </select>
       </div>
       <div class="bulk-apply-field">
@@ -1015,6 +1043,33 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 </div>
 </div>
 
+
+<!-- SORT MANAGER TAB -->
+<div id="sortMgmtTab" class="tab-content">
+<div class="card">
+  <h2 class="card-title"><i class="fas fa-sort-numeric-down" style="color:var(--accent-primary);"></i> Display Order / Rank Manager</h2>
+  <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">Drag products up/down to set the order they appear in the app. Lower number = shown first. Filter by category to manage one section at a time.</p>
+
+  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <input type="text" id="sortFilterInput" placeholder="🔍 Search products..." oninput="renderSortList()" style="flex:1;min-width:160px;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit;">
+    <select id="sortCatFilter" onchange="renderSortList()" style="padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;">
+      <option value="">All Categories</option>
+    </select>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="btn btn-sm btn-ghost" onclick="autoRankProducts()" style="flex:1;min-width:140px;"><i class="fas fa-magic"></i> Auto-Number (1,2,3…)</button>
+    <button class="btn btn-sm btn-success" onclick="saveAllRanks()" style="flex:1;min-width:140px;"><i class="fas fa-save"></i> Save All Ranks</button>
+  </div>
+
+  <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;padding:10px 12px;background:var(--input-bg);border-radius:8px;border:1px solid var(--border-color);">
+    <i class="fas fa-info-circle" style="color:var(--accent-primary);margin-right:4px;"></i>
+    <b>Tip:</b> Use the ↑ ↓ buttons or drag the <i class="fas fa-grip-vertical"></i> handle to reorder. Click <b>Save All Ranks</b> after reordering.
+  </div>
+
+  <div id="sortProductList" style="display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+</div>
 
 <!-- GIFT CODES TAB -->
 <div id="giftCodesTab" class="tab-content">
@@ -1225,6 +1280,14 @@ $('drawerLogoutBtn').addEventListener('click',()=>signOut(auth));
 
 // ── INIT DATA ────────────────────────────────────────────────────────
 function initData(){
+  // Load category map first so all selects are correct
+  get(ref(db,'meta/categoryMap')).then(s=>{
+    if(s.exists()&&s.val()&&typeof s.val()==='object'){
+      window.CATEGORY_MAP = s.val();
+    }
+    window.populateCategorySelects();
+    renderCatMgmtUI();
+  }).catch(()=>{ window.populateCategorySelects(); renderCatMgmtUI(); });
   onValue(ref(db,'products'),s=>{renderProducts(s.val());setTimeout(()=>buildCategoryChart(globalProducts),400);});
   onValue(ref(db,'orders'),s=>{globalOrdersData=s.val();renderOrders(globalOrdersData);setTimeout(()=>{buildOrdersRevenueChart(globalOrdersData);},400);});
   onValue(ref(db,'coupons'),s=>renderCoupons(s.val()));
@@ -1239,9 +1302,64 @@ function initData(){
   onValue(ref(db,'meta/announcement'),s=>{if(s.exists())applyAnnouncementDisplay(s.val());});
 }
 
-// ── SUB CATEGORIES ───────────────────────────────────────────────────
-const subCategoriesMap={"Instagram":["Followers","Likes","Reels Views","Comment Likes","Post Views","Story Views","Story Poll Votes","Comments","Reposts","Saves","Shares"],"YouTube":["Subscribers","Views","Likes","Dislikes","Comments","Watch Time Hours","Shares"],"Facebook":["Page Likes","Page Followers","Post Likes","Post Shares","Post Comments","Views","Group Members","Profile Followers","Emoji Reactions"],"WhatsApp":["Channel Followers","Channel Reaction"],"Telegram":["Channel Members","Group Members","Post Views","Post Reactions","Poll Votes"],"TikTok":["Followers","Likes","Views","Comments","Shares"],"Other":["Other"]};
-window.updateSubCategories=()=>{const main=$('productCategory').value;const subSel=$('productSubCategory');subSel.innerHTML='';const subs=subCategoriesMap[main]||["Other"];subs.forEach(s=>{const opt=document.createElement('option');opt.value=s;opt.textContent=s;subSel.appendChild(opt);});};
+// ── CATEGORY MAP — SINGLE SOURCE OF TRUTH ───────────────────────────────
+const DEFAULT_CATEGORY_MAP = {
+  "Instagram":["Followers","Likes","Reels Views","Comment Likes","Channel Members","Post Views","Story Views","Story Poll Votes","Comments","Reposts","Saves","Shares"],
+  "YouTube":["Subscribers","Views","Likes","Dislikes","Comments","Watch Time Hours","Shares"],
+  "Facebook":["Page Likes","Page Followers","Post Likes","Post Shares","Post Comments","Views","Group Members","Profile Followers","Emoji Reactions"],
+  "WhatsApp":["Channel Followers","Channel Reaction"],
+  "Telegram":["Channel Members","Group Members","Post Views","Post Reactions","Poll Votes"],
+  "TikTok":["Followers","Likes","Views","Comments","Shares"],
+  "Other":["Other"]
+};
+window.CATEGORY_MAP = JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP));
+
+// Populate all category <select> elements from CATEGORY_MAP
+window.populateCategorySelects = function() {
+  const cats = Object.keys(window.CATEGORY_MAP);
+  // IDs that need category options (with "All Categories" prefix)
+  const filterSelects = ['productCatFilter','qmCatFilter','sortCatFilter'];
+  filterSelects.forEach(id => {
+    const el = $(id); if(!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">All Categories</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(cats.includes(cur)) el.value = cur;
+  });
+  // Bulk filter selects (with "— All Categories —" prefix)
+  const bulkSelects = ['sim_bulkCat','dm_bulkCat','fm_bulkCat'];
+  bulkSelects.forEach(id => {
+    const el = $(id); if(!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">— All Categories —</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(cats.includes(cur)) el.value = cur;
+  });
+  // Link management category
+  const lmCat = $('lmNewCat');
+  if(lmCat) {
+    const cur = lmCat.value;
+    lmCat.innerHTML = '<option value="">-- Select --</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(cats.includes(cur)) lmCat.value = cur;
+  }
+  // Product form main category
+  const pCat = $('productCategory');
+  if(pCat) {
+    const cur = pCat.value;
+    pCat.innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(cats.includes(cur)) pCat.value = cur; else if(cats.length) pCat.value = cats[0];
+    window.updateSubCategories();
+  }
+};
+
+// subCategoriesMap alias for backward compat (link mgmt uses it)
+const subCategoriesMap = window.CATEGORY_MAP;
+
+window.updateSubCategories=()=>{
+  const main=$('productCategory').value;
+  const subSel=$('productSubCategory');
+  subSel.innerHTML='';
+  const subs=window.CATEGORY_MAP[main]||["Other"];
+  subs.forEach(s=>{const opt=document.createElement('option');opt.value=s;opt.textContent=s;subSel.appendChild(opt);});
+};
 $('productCategory').addEventListener('change',window.updateSubCategories);
 window.updateSubCategories();
 
@@ -1385,10 +1503,11 @@ $('saveProductBtn').addEventListener('click',async()=>{
   const linkLabel=$('productLinkLabel').value.trim();
   const description=$('productDescription').value.trim();
   const features=$('productFeatures').value.trim().split('\n').map(f=>f.trim()).filter(f=>f.length>0);
+  const displayOrder=parseInt($('productDisplayOrder').value)||0;
   const editId=$('editProductId').value;
   if(!title || price === '') return showToast('⚠️ Title and price are required');
   showLoading();
-  const pData={title,category:cat,subCategory:sub,discountedPrice:price,avgTime:avgTime||'',description:description||'',features,apiUrl:apiUrl||'',apiKey:apiKey||'',serviceId:serviceId||'',linkLabel:linkLabel||'',updatedAt:new Date().toISOString()};
+  const pData={title,category:cat,subCategory:sub,discountedPrice:price,avgTime:avgTime||'',description:description||'',features,apiUrl:apiUrl||'',apiKey:apiKey||'',serviceId:serviceId||'',linkLabel:linkLabel||'',displayOrder,updatedAt:new Date().toISOString()};
   try{
     if(editId){await update(ref(db,`products/${editId}`),pData);}
     else{pData.createdAt=new Date().toISOString();await push(ref(db,'products'),pData);}
@@ -1397,7 +1516,7 @@ $('saveProductBtn').addEventListener('click',async()=>{
 });
 
 $('clearProductBtn').addEventListener('click',()=>{
-  $('editProductId').value='';$('productFormTitle').textContent='Add Product';['productTitle','productDiscountPrice','productAvgTime','productApiUrl','productApiKey','productServiceId','productLinkLabel','productDescription','productFeatures'].forEach(id=>$(id).value='');
+  $('editProductId').value='';$('productFormTitle').textContent='Add Product';['productTitle','productDiscountPrice','productAvgTime','productApiUrl','productApiKey','productServiceId','productLinkLabel','productDescription','productFeatures','productDisplayOrder'].forEach(id=>$(id).value='');
 });
 
 function renderProducts(data){
@@ -1407,9 +1526,15 @@ function renderProducts(data){
   let html='';
   const filterText=$('productFilterInput')?.value.toLowerCase()||'';
   const catFilter=$('productCatFilter')?.value||'';
-  const cats=["Instagram","YouTube","Facebook","WhatsApp","Telegram","TikTok","Other"];
-  const subMap={"Instagram":["Followers","Likes","Reels Views","Post Views","Story Views","Story Poll Votes","Comments","Reposts","Saves","Shares"],"YouTube":["Subscribers","Views","Likes","Dislikes","Comments","Watch Time Hours","Shares"],"Facebook":["Page Likes","Page Followers","Post Likes","Post Shares","Post Comments","Views","Group Members","Profile Followers","Emoji Reactions"],"WhatsApp":["Channel Followers","Channel Reaction"],"Telegram":["Channel Members","Group Members","Post Views","Post Reactions","Poll Votes"],"TikTok":["Followers","Likes","Views","Comments","Shares"],"Other":["Other"]};
-  Object.entries(globalProducts).forEach(([id,p])=>{
+  const cats=Object.keys(window.CATEGORY_MAP);
+  const subMap=window.CATEGORY_MAP;
+  // Sort by displayOrder (0/undefined = last)
+  const sorted=Object.entries(globalProducts).sort((a,b)=>{
+    const oa=parseInt(a[1].displayOrder)||9999;
+    const ob=parseInt(b[1].displayOrder)||9999;
+    return oa-ob;
+  });
+  sorted.forEach(([id,p])=>{
     if(filterText&&!(p.title||'').toLowerCase().includes(filterText)&&!(p.category||'').toLowerCase().includes(filterText)&&!(p.subCategory||'').toLowerCase().includes(filterText))return;
     if(catFilter&&p.category!==catFilter)return;
     const hasApi=(p.apiUrl||globalApiConfig.url)&&(p.apiKey||globalApiConfig.key)&&p.serviceId;
@@ -1417,7 +1542,10 @@ function renderProducts(data){
     const catOptions=cats.map(c=>`<option value="${c}" ${c===p.category?'selected':''}>${c}</option>`).join('');
     const subOptions=(subMap[p.category]||['Other']).map(s=>`<option value="${s}" ${s===p.subCategory?'selected':''}>${s}</option>`).join('');
     html+=`<div class="product-card" style="${p.isActive===false?'opacity:0.7;':''}">
-      <div style="font-weight:700;font-size:15px;margin-bottom:4px;">${p.title}</div>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;">
+        ${p.displayOrder?`<span style="background:var(--accent-primary);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;min-width:28px;text-align:center;flex-shrink:0;">#${p.displayOrder}</span>`:'<span style="background:var(--input-bg);color:var(--text-secondary);border:1px solid var(--border-color);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;flex-shrink:0;">—</span>'}
+        <div style="font-weight:700;font-size:15px;">${p.title}</div>
+      </div>
       <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">${p.category} › ${p.subCategory}</div>
       ${p.description?`<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.4;font-style:italic;">${p.description.length>60?p.description.slice(0,60)+'…':p.description}</div>`:''}
       ${(p.features&&p.features.length)?`<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">${p.features.slice(0,3).map(f=>`✓ ${f}`).join(' · ')}</div>`:''}
@@ -1469,10 +1597,9 @@ window.toggleInlineEdit=(panelId,btn,forceClose=false)=>{
 };
 
 window.updatePieSubCat=(id)=>{
-  const subMap={"Instagram":["Followers","Likes","Reels Views","Post Views","Story Views","Story Poll Votes","Comments","Reposts","Saves","Shares"],"YouTube":["Subscribers","Views","Likes","Dislikes","Comments","Watch Time Hours","Shares"],"Facebook":["Page Likes","Page Followers","Post Likes","Post Shares","Post Comments","Views","Group Members","Profile Followers","Emoji Reactions"],"WhatsApp":["Channel Followers","Channel Reaction"],"Telegram":["Channel Members","Group Members","Post Views","Post Reactions","Poll Votes"],"TikTok":["Followers","Likes","Views","Comments","Shares"],"Other":["Other"]};
   const cat=document.getElementById(`pie_cat_${id}`)?.value;
   const subSel=document.getElementById(`pie_sub_${id}`);if(!subSel)return;
-  subSel.innerHTML=(subMap[cat]||['Other']).map(s=>`<option value="${s}">${s}</option>`).join('');
+  subSel.innerHTML=(window.CATEGORY_MAP[cat]||['Other']).map(s=>`<option value="${s}">${s}</option>`).join('');
 };
 
 window.applyInlineProductEdit=async(id)=>{
@@ -1498,6 +1625,7 @@ window.editProduct=(id)=>{
   window.updateSubCategories();
   setTimeout(()=>$('productSubCategory').value=p.subCategory,50);
   $('productDiscountPrice').value=p.discountedPrice;$('productAvgTime').value=p.avgTime||'';
+  $('productDisplayOrder').value=p.displayOrder||'';
   $('productDescription').value=p.description||'';
   $('productFeatures').value=(p.features&&p.features.length)?p.features.join('\n'):'';
   $('productApiUrl').value=p.apiUrl||'';$('productApiKey').value=p.apiKey||'';
@@ -1630,8 +1758,8 @@ function renderOrders(data){
 <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;">
   ${status==='pending'?`<button class="btn btn-sm btn-success" onclick="updateStatus('${id}','progress')" style="flex:1;"><i class="fas fa-play"></i> Accept</button>`:''}
   ${status==='progress'?`<button class="btn btn-sm btn-success" onclick="updateStatus('${id}','completed')" style="flex:1;"><i class="fas fa-check"></i> Complete</button>`:''}
-  ${(status==='pending'||status==='progress')?`<button class="btn btn-sm btn-danger" onclick="updateStatus('${id}','rejected')" style="flex:1;"><i class="fas fa-times"></i> Reject</button>`:''}
-  <select style="padding:10px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--input-bg);color:var(--text-primary);font-size:13px;flex:1;min-width:120px;font-family:inherit;" onchange="updateStatus('${id}',this.value);this.value='${status}'">
+  ${(status==='pending'||status==='progress')?`<button class="btn btn-sm btn-danger" onclick="confirmReject('${id}')" style="flex:1;"><i class="fas fa-times"></i> Reject</button>`:''}
+  <select style="padding:10px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--input-bg);color:var(--text-primary);font-size:13px;flex:1;min-width:120px;font-family:inherit;" onchange="confirmStatusChange('${id}',this.value,'${status}',this)">
     <option value="" disabled selected style="display:none;">⚡ Change Status</option>
     <option value="pending">⏳ Pending</option>
     <option value="progress">⚙️ In Progress</option>
@@ -1660,11 +1788,98 @@ function renderOrders(data){
   updateDashTopProducts(productSales);
 }
 
+// ── UNDO TOAST ────────────────────────────────────────────────────────
+let _undoTimer=null;
+function showUndoToast(msg, undoFn){
+  const t=$('notificationToast');
+  t.innerHTML=`${msg} <button onclick="(${undoFn.toString()})();this.closest('#notificationToast').classList.remove('show')" style="margin-left:12px;padding:4px 10px;background:#fff;color:#ef4444;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">↩ Undo</button>`;
+  t.classList.add('show');
+  clearTimeout(_undoTimer);
+  _undoTimer=setTimeout(()=>t.classList.remove('show'),8000);
+}
+
+// ── CONFIRM REJECT (button click) ─────────────────────────────────────
+window.confirmReject=async(id)=>{
+  const order=globalOrdersData&&globalOrdersData[id];
+  const amt=parseFloat(order?.finalAmount||0);
+  const amtStr=amt>0?` ₹${amt.toFixed(2)} wallet mein refund ho jayega.`:'';
+  const ok=await customConfirm({
+    title:'Order Reject Karna Hai?',
+    msg:`Kya aap sure hain? Order reject ho jayega.${amtStr}`,
+    icon:'❌',okLabel:'Haan, Reject Karo',danger:true
+  });
+  if(ok) updateStatus(id,'rejected');
+};
+
+// ── CONFIRM STATUS CHANGE (dropdown) ──────────────────────────────────
+window.confirmStatusChange=async(id,newVal,oldVal,sel)=>{
+  sel.value=oldVal; // reset dropdown immediately
+  if(!newVal)return;
+  if(newVal===oldVal)return;
+  if(newVal==='rejected'){
+    await window.confirmReject(id);
+  } else {
+    updateStatus(id,newVal);
+  }
+};
+
 window.updateStatus=async(id,s)=>{
   try{
     await update(ref(db,`orders/${id}`),{status:s});
     if(globalOrdersData&&globalOrdersData[id]){
       const order=globalOrdersData[id];
+
+      // ── AUTO WALLET REFUND on Reject/Cancel ──────────────────────────
+      if(s==='rejected'&&order.userId&&!order.walletRefunded){
+        const refundAmt=parseFloat(order.finalAmount||0);
+        if(refundAmt>0){
+          try{
+            const uSnap=await get(ref(db,`users/${order.userId}/profile`));
+            const curBal=uSnap.exists()?parseFloat(uSnap.val().walletBalance||0):0;
+            const newBal=curBal+refundAmt;
+            await update(ref(db,`users/${order.userId}/profile`),{walletBalance:newBal});
+            const histRef=await push(ref(db,`users/${order.userId}/walletHistory`),{
+              type:'credit',
+              amount:refundAmt,
+              note:`Refund for cancelled order #${id.slice(-6).toUpperCase()}`,
+              utrId:'REFUND_'+Date.now(),
+              createdAt:new Date().toISOString()
+            });
+            await update(ref(db,`orders/${id}`),{walletRefunded:true,refundAmount:refundAmt,_refundHistKey:histRef.key});
+            // Show undo toast for 8 seconds
+            const _uid=order.userId, _amt=refundAmt, _histKey=histRef.key, _prevBal=curBal;
+            showUndoToast(`❌ Rejected · 💰 ₹${refundAmt.toFixed(2)} refund diya`, async function(){
+              try{
+                // Reverse: set order back to pending, deduct refund from wallet, remove history entry
+                await update(ref(db,`orders/${id}`),{status:'pending',walletRefunded:false,refundAmount:null,_refundHistKey:null});
+                const uSnap2=await get(ref(db,`users/${_uid}/profile`));
+                const latBal=uSnap2.exists()?parseFloat(uSnap2.val().walletBalance||0):_prevBal+_amt;
+                await update(ref(db,`users/${_uid}/profile`),{walletBalance:Math.max(0,latBal-_amt)});
+                if(_histKey) await remove(ref(db,`users/${_uid}/walletHistory/${_histKey}`));
+                showToast('↩ Undo ho gaya! Order wapas Pending hai.');
+              }catch(e){showToast('❌ Undo failed: '+e.message);}
+            });
+          }catch(refundErr){showToast('⚠️ Refund failed: '+refundErr.message);}
+        } else {
+          // No refund amount — still show undo for status only
+          showUndoToast(`❌ Order Rejected`, async function(){
+            try{
+              await update(ref(db,`orders/${id}`),{status:'pending'});
+              showToast('↩ Undo ho gaya! Order wapas Pending hai.');
+            }catch(e){showToast('❌ Undo failed: '+e.message);}
+          });
+        }
+      } else if(s==='rejected'){
+        // Already refunded or no userId — just show undo for status
+        showUndoToast(`❌ Order Rejected`, async function(){
+          try{
+            await update(ref(db,`orders/${id}`),{status:'pending'});
+            showToast('↩ Undo ho gaya! Order wapas Pending hai.');
+          }catch(e){showToast('❌ Undo failed: '+e.message);}
+        });
+      }
+      // ─────────────────────────────────────────────────────────────────
+
       if(order.isSubscription){
         const subDbRef=ref(db,`users/${order.userId}/subscriptions/${order.productId}`);
         if(s==='completed'){const dur=parseInt(order.productSnapshot?.duration)||0;const st=new Date();const exp=new Date(st.getTime()+dur*86400000);await update(subDbRef,{planName:order.productSnapshot?.planName||'Premium Plan',duration:dur,startDate:st.toISOString(),expiryDate:exp.toISOString(),status:'active',orderId:id});}
@@ -1690,7 +1905,7 @@ window.updateStatus=async(id,s)=>{
         }
       }
     }
-    showToast('✅ Status updated');
+    if(s!=='rejected') showToast('✅ Status updated');
   }catch(e){showToast('❌ '+e.message);}
 };
 window.deleteOrder=async(id)=>{const ok=await customConfirm({title:'Delete Order?',msg:'This order will be permanently deleted and cannot be recovered.',icon:'🗑️',okLabel:'Delete Order',danger:true});if(ok)remove(ref(db,`orders/${id}`));};
@@ -2047,7 +2262,170 @@ window.switchTab=(tab,isUser=false)=>{
   if(tab==='serviceIdMgmt'&&window.renderSIMList)window.renderSIMList();
   if(tab==='descMgmt'&&window.renderDMList)window.renderDMList();
   if(tab==='featureMgmt'&&window.renderFMList)window.renderFMList();
+  if(tab==='sortMgmt'){setTimeout(()=>{renderSortList();populateSortCatFilter();},100);}
   if(tab==='dashboard')setTimeout(refreshDashboardCharts,200);
+};
+
+// ── SORT / RANK MANAGER ──────────────────────────────────────────────
+let sortDragSrcId = null;
+
+function populateSortCatFilter(){
+  const el=$('sortCatFilter'); if(!el) return;
+  const cats=Object.keys(window.CATEGORY_MAP);
+  const cur=el.value;
+  el.innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(cats.includes(cur)) el.value=cur;
+}
+
+window.renderSortList=()=>{
+  const q=($('sortFilterInput')?.value||'').toLowerCase();
+  const cat=$('sortCatFilter')?.value||'';
+  const cont=$('sortProductList'); if(!cont) return;
+
+  let entries=Object.entries(globalProducts).filter(([,p])=>{
+    if(cat&&p.category!==cat)return false;
+    if(q&&!(p.title||'').toLowerCase().includes(q))return false;
+    return true;
+  });
+  // Sort by current displayOrder
+  entries.sort((a,b)=>{
+    const oa=parseInt(a[1].displayOrder)||9999;
+    const ob=parseInt(b[1].displayOrder)||9999;
+    return oa-ob;
+  });
+
+  if(!entries.length){
+    cont.innerHTML='<p style="color:var(--text-secondary);text-align:center;padding:20px;">No products found.</p>';
+    return;
+  }
+
+  cont.innerHTML=entries.map(([id,p],idx)=>{
+    const rank=parseInt(p.displayOrder)||'—';
+    return `<div class="sort-row" id="srow_${id}" draggable="true"
+      ondragstart="sortDragStart(event,'${id}')"
+      ondragover="sortDragOver(event)"
+      ondrop="sortDrop(event,'${id}')"
+      ondragend="sortDragEnd(event)"
+      style="display:flex;align-items:center;gap:10px;background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:12px 14px;cursor:grab;transition:var(--transition);">
+      <i class="fas fa-grip-vertical" style="color:var(--text-secondary);font-size:14px;cursor:grab;flex-shrink:0;"></i>
+      <span style="background:var(--accent-primary);color:#fff;border-radius:6px;padding:3px 9px;font-size:12px;font-weight:800;min-width:32px;text-align:center;flex-shrink:0;" id="srankbadge_${id}">#${rank}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.title}</div>
+        <div style="font-size:11px;color:var(--text-secondary);">${p.category} › ${p.subCategory}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+        <button onclick="moveRankUp('${id}')" style="background:var(--input-bg);border:1px solid var(--border-color);border-radius:5px;width:28px;height:24px;cursor:pointer;color:var(--text-primary);font-size:12px;" title="Move up">↑</button>
+        <button onclick="moveRankDown('${id}')" style="background:var(--input-bg);border:1px solid var(--border-color);border-radius:5px;width:28px;height:24px;cursor:pointer;color:var(--text-primary);font-size:12px;" title="Move down">↓</button>
+      </div>
+      <input type="number" id="srank_${id}" value="${p.displayOrder||''}" placeholder="—"
+        style="width:58px;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--input-bg);color:var(--text-primary);font-size:13px;font-weight:700;text-align:center;"
+        oninput="updateSortBadge('${id}',this.value)">
+    </div>`;
+  }).join('');
+
+  // Attach drag events
+  cont.querySelectorAll('.sort-row').forEach(row=>{
+    row.addEventListener('dragstart',e=>sortDragStart(e,row.id.replace('srow_','')));
+    row.addEventListener('dragover',sortDragOver);
+    row.addEventListener('drop',e=>sortDrop(e,row.id.replace('srow_','')));
+    row.addEventListener('dragend',sortDragEnd);
+  });
+};
+
+window.updateSortBadge=(id,val)=>{
+  const badge=document.getElementById(`srankbadge_${id}`);
+  if(badge) badge.textContent=val?`#${val}`:'#—';
+};
+
+window.moveRankUp=(id)=>{
+  const rows=[...document.querySelectorAll('.sort-row')];
+  const idx=rows.findIndex(r=>r.id===`srow_${id}`);
+  if(idx<=0)return;
+  const prevId=rows[idx-1].id.replace('srow_','');
+  // Swap rank values
+  const curVal=document.getElementById(`srank_${id}`)?.value||'';
+  const prevVal=document.getElementById(`srank_${prevId}`)?.value||'';
+  document.getElementById(`srank_${id}`).value=prevVal;
+  document.getElementById(`srank_${prevId}`).value=curVal;
+  updateSortBadge(id,prevVal);
+  updateSortBadge(prevId,curVal);
+  // Move DOM
+  rows[idx-1].parentNode.insertBefore(rows[idx],rows[idx-1]);
+  rows[idx].scrollIntoView({block:'nearest'});
+};
+
+window.moveRankDown=(id)=>{
+  const rows=[...document.querySelectorAll('.sort-row')];
+  const idx=rows.findIndex(r=>r.id===`srow_${id}`);
+  if(idx<0||idx>=rows.length-1)return;
+  const nextId=rows[idx+1].id.replace('srow_','');
+  const curVal=document.getElementById(`srank_${id}`)?.value||'';
+  const nextVal=document.getElementById(`srank_${nextId}`)?.value||'';
+  document.getElementById(`srank_${id}`).value=nextVal;
+  document.getElementById(`srank_${nextId}`).value=curVal;
+  updateSortBadge(id,nextVal);
+  updateSortBadge(nextId,curVal);
+  rows[idx].parentNode.insertBefore(rows[idx+1],rows[idx]);
+};
+
+// Drag & Drop
+window.sortDragStart=(e,id)=>{
+  sortDragSrcId=id;
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>document.getElementById(`srow_${id}`)?.classList.add('dragging'),0);
+};
+window.sortDragOver=(e)=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; };
+window.sortDragEnd=(e)=>{ document.querySelectorAll('.sort-row').forEach(r=>r.classList.remove('dragging','drag-over')); sortDragSrcId=null; };
+window.sortDrop=(e,targetId)=>{
+  e.preventDefault();
+  if(!sortDragSrcId||sortDragSrcId===targetId)return;
+  const src=document.getElementById(`srow_${sortDragSrcId}`);
+  const tgt=document.getElementById(`srow_${targetId}`);
+  if(!src||!tgt)return;
+  // Swap rank input values
+  const srcVal=document.getElementById(`srank_${sortDragSrcId}`)?.value||'';
+  const tgtVal=document.getElementById(`srank_${targetId}`)?.value||'';
+  document.getElementById(`srank_${sortDragSrcId}`).value=tgtVal;
+  document.getElementById(`srank_${targetId}`).value=srcVal;
+  updateSortBadge(sortDragSrcId,tgtVal);
+  updateSortBadge(targetId,srcVal);
+  // Swap DOM positions
+  const parent=src.parentNode;
+  const srcNext=src.nextSibling;
+  parent.insertBefore(src,tgt);
+  parent.insertBefore(tgt,srcNext);
+  sortDragSrcId=null;
+};
+
+window.autoRankProducts=()=>{
+  const rows=[...document.querySelectorAll('.sort-row')];
+  rows.forEach((row,idx)=>{
+    const id=row.id.replace('srow_','');
+    const inp=document.getElementById(`srank_${id}`);
+    if(inp){ inp.value=idx+1; updateSortBadge(id,idx+1); }
+  });
+  showToast('✅ Auto-numbered! Click "Save All Ranks" to apply.');
+};
+
+window.saveAllRanks=async()=>{
+  const rows=[...document.querySelectorAll('.sort-row')];
+  if(!rows.length)return showToast('⚠️ No products visible');
+  showLoading('Saving ranks...');
+  try{
+    const updates={};
+    rows.forEach(row=>{
+      const id=row.id.replace('srow_','');
+      const val=parseInt(document.getElementById(`srank_${id}`)?.value)||0;
+      updates[`products/${id}/displayOrder`]=val;
+      updates[`products/${id}/updatedAt`]=new Date().toISOString();
+      // Update local cache
+      if(globalProducts[id]) globalProducts[id].displayOrder=val;
+    });
+    await update(ref(db),updates);
+    hideLoading();
+    showToast(`✅ Ranks saved for ${rows.length} products!`);
+    renderProducts(globalProducts); // Refresh product grid too
+  }catch(e){hideLoading();showToast('❌ '+e.message);}
 };
 
 // ── LINK MANAGEMENT ──────────────────────────────────────────────────
@@ -2057,7 +2435,7 @@ $('lmNewCat').addEventListener('change', () => {
   const cat = $('lmNewCat').value;
   const sub = $('lmNewSub');
   sub.innerHTML = '<option value="">-- Select --</option>';
-  (subCategoriesMap[cat] ||[]).forEach(s => {
+  (window.CATEGORY_MAP[cat] ||[]).forEach(s => {
     const opt = document.createElement('option'); opt.value = s; opt.textContent = s; sub.appendChild(opt);
   });
 });
@@ -2443,16 +2821,7 @@ onValue(ref(db,'products'),s=>{
 
 // ── BULK APPLY HELPERS ─────────────────────────────────────────────────
 function getSubCategories(cat){
-  const map={
-    Instagram:['Followers','Likes','Reels Views','Post Views','Story Views','Story Poll Votes','Comments','Reposts','Saves','Shares'],
-    YouTube:['Subscribers','Views','Likes','Dislikes','Comments','Watch Time Hours','Shares'],
-    Facebook:['Page Likes','Page Followers','Post Likes','Post Shares','Post Comments','Views','Group Members','Profile Followers','Emoji Reactions'],
-    WhatsApp:['Channel Followers','Channel Reaction'],
-    Telegram:['Channel Members','Group Members','Post Views','Post Reactions','Poll Votes'],
-    TikTok:['Followers','Likes','Views','Comments','Shares'],
-    Other:['Other']
-  };
-  return map[cat]||[];
+  return window.CATEGORY_MAP[cat]||[];
 }
 
 function buildSubSelect(selectEl, cat, allLabel='— All Sub-Categories —'){
@@ -2563,6 +2932,87 @@ window.applyBulkFM=async()=>{
     hideLoading(); showToast(`✅ Features applied to ${matches.length} products!`);
   }catch(e){hideLoading();showToast('❌ '+e.message);}
 };
+// ── CATEGORY MANAGEMENT UI ────────────────────────────────────────────
+function renderCatMgmtUI(){
+  const cont=$('catMgmtList'); if(!cont) return;
+  const cats = Object.keys(window.CATEGORY_MAP);
+  if(!cats.length){ cont.innerHTML='<p style="color:var(--text-secondary);font-size:13px;">No categories.</p>'; return; }
+  cont.innerHTML = cats.map(cat => {
+    const subs = window.CATEGORY_MAP[cat];
+    return `<div style="background:var(--input-bg);border:1px solid var(--border-color);border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-weight:700;font-size:14px;color:var(--accent-primary);"><i class="fas fa-folder" style="margin-right:6px;"></i>${cat}</div>
+        <button onclick="deleteCategory('${cat}')" style="background:none;border:none;color:var(--accent-danger);cursor:pointer;font-size:12px;font-weight:600;"><i class="fas fa-trash"></i> Remove</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+        ${subs.map(sub=>`<span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;">${sub}<button onclick="deleteSubCategory('${cat}','${sub.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--accent-danger);cursor:pointer;font-size:11px;line-height:1;">✕</button></span>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="newSub_${cat.replace(/\s/g,'_')}" placeholder="Add sub-category..." style="flex:1;padding:9px 12px;border:1px solid var(--border-color);border-radius:6px;background:var(--card-bg);color:var(--text-primary);font-size:13px;font-family:inherit;">
+        <button class="btn btn-sm btn-success" onclick="addSubCategory('${cat}')" style="white-space:nowrap;"><i class="fas fa-plus"></i> Add</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.addNewCategory = () => {
+  const name = ($('newCatName').value||'').trim();
+  if(!name) return showToast('⚠️ Enter a category name');
+  if(window.CATEGORY_MAP[name]) return showToast('⚠️ Category already exists');
+  window.CATEGORY_MAP[name] = ['Other'];
+  $('newCatName').value = '';
+  renderCatMgmtUI();
+  window.populateCategorySelects();
+  showToast('✅ Category added — click Save to persist');
+};
+
+window.deleteCategory = async (cat) => {
+  const ok = await customConfirm({title:`Remove "${cat}"?`,msg:'All sub-categories will also be removed. Existing products will NOT be deleted.',icon:'🗂️',okLabel:'Remove',danger:true});
+  if(!ok) return;
+  delete window.CATEGORY_MAP[cat];
+  renderCatMgmtUI();
+  window.populateCategorySelects();
+  showToast('✅ Category removed — click Save to persist');
+};
+
+window.addSubCategory = (cat) => {
+  const inputId = 'newSub_'+cat.replace(/\s/g,'_');
+  const val = (document.getElementById(inputId)?.value||'').trim();
+  if(!val) return showToast('⚠️ Enter a sub-category name');
+  if(!window.CATEGORY_MAP[cat]) window.CATEGORY_MAP[cat] = [];
+  if(window.CATEGORY_MAP[cat].includes(val)) return showToast('⚠️ Sub-category already exists');
+  window.CATEGORY_MAP[cat].push(val);
+  renderCatMgmtUI();
+  window.populateCategorySelects();
+  showToast(`✅ "${val}" added to ${cat} — click Save to persist`);
+};
+
+window.deleteSubCategory = (cat, sub) => {
+  if(!window.CATEGORY_MAP[cat]) return;
+  window.CATEGORY_MAP[cat] = window.CATEGORY_MAP[cat].filter(s=>s!==sub);
+  renderCatMgmtUI();
+  window.populateCategorySelects();
+  showToast(`✅ Removed "${sub}" — click Save to persist`);
+};
+
+window.saveCategoryMap = async () => {
+  showLoading('Saving categories...');
+  try{
+    await set(ref(db,'meta/categoryMap'), window.CATEGORY_MAP);
+    hideLoading(); showToast('✅ Category map saved! All sections updated.');
+    window.populateCategorySelects();
+  }catch(e){hideLoading();showToast('❌ '+e.message);}
+};
+
+window.resetCategoryMap = async () => {
+  const ok = await customConfirm({title:'Reset to Default?',msg:'All custom categories will be removed and defaults will be restored.',icon:'🔄',okLabel:'Reset',danger:true});
+  if(!ok) return;
+  window.CATEGORY_MAP = JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP));
+  renderCatMgmtUI();
+  window.populateCategorySelects();
+  showToast('✅ Reset to defaults — click Save to persist');
+};
+
 // ── GIFT CODES ────────────────────────────────────────────────────────
 let globalGiftCodes = {};
 
