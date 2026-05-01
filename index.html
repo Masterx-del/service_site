@@ -6,6 +6,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Admin Panel v6.0</title>
+<script>
+window.__APP_CONFIG__ = {
+    apiKey:            "AIzaSyDrjP8o8adBYGih_28XrDrCwVpL3WRu9rE",
+    authDomain:        "selll-d5149.firebaseapp.com",
+    databaseURL:       "https://selll-d5149-default-rtdb.firebaseio.com",
+    projectId:         "selll-d5149",
+    storageBucket:     "selll-d5149.firebasestorage.app",
+    messagingSenderId: "633734276998",
+    appId:             "1:633734276998:web:b486015bd345028a406e07"
+};
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1049,15 +1060,11 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebas
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
 import { getDatabase, ref, set, get, push, remove, onValue, update, onChildAdded, onChildChanged } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDrjP8o8adBYGih_28XrDrCwVpL3WRu9rE",
-  authDomain: "selll-d5149.firebaseapp.com",
-  databaseURL: "https://selll-d5149-default-rtdb.firebaseio.com",
-  projectId: "selll-d5149",
-  storageBucket: "selll-d5149.firebasestorage.app",
-  messagingSenderId: "633734276998",
-  appId: "1:633734276998:web:b486015bd345028a406e07"
-};
+const firebaseConfig = window.__APP_CONFIG__;
+if (!firebaseConfig || !firebaseConfig.apiKey) {
+  console.error('[Firebase Admin] Config missing! Check deployment setup.');
+  alert('⚠️ App configuration error — contact your system administrator.');
+}
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
@@ -1155,15 +1162,35 @@ let currentAdminUid = null;
 
 onAuthStateChanged(auth,async(user)=>{
   if(user){
-    currentAdminUid = user.uid;
-    // Save admin UID to meta/admins so Firebase rules can allow admin writes
-    set(ref(db,`meta/admins/${user.uid}`), true).catch(()=>{});
-    $('loginScreen').style.display='none';$('setupScreen').style.display='none';
-    $('adminDashboard').style.display='block';menuToggle.classList.remove('hidden');
-    $('drawerUserName').textContent=user.displayName||'Admin';
-    $('drawerUserEmail').textContent=user.email;
-    $('adminEmailDisplay').textContent=user.email;
-    initData();
+    try {
+      // ✅ SECURITY FIX: Verify admin status from Firebase before granting access
+      // DO NOT use set(meta/admins/uid) here — that was a critical security hole
+      // allowing ANY logged-in user to promote themselves to admin.
+      const adminSnap = await get(ref(db,`meta/admins/${user.uid}`));
+      if(!adminSnap.exists()){
+        // Not an admin — force logout immediately
+        await signOut(auth);
+        $('loginScreen').style.display='flex';
+        $('adminDashboard').style.display='none';
+        menuToggle.classList.add('hidden');
+        alert('❌ Access Denied. You are not an authorized administrator.\n\nIf you are the owner, add your UID to meta/admins in Firebase Console.');
+        return;
+      }
+      currentAdminUid = user.uid;
+      $('loginScreen').style.display='none';$('setupScreen').style.display='none';
+      $('adminDashboard').style.display='block';menuToggle.classList.remove('hidden');
+      $('drawerUserName').textContent=user.displayName||'Admin';
+      $('drawerUserEmail').textContent=user.email;
+      $('adminEmailDisplay').textContent=user.email;
+      initData();
+    } catch(e) {
+      console.error('[Auth] Admin verification failed:',e);
+      await signOut(auth);
+      $('loginScreen').style.display='flex';
+      $('adminDashboard').style.display='none';
+      menuToggle.classList.add('hidden');
+      alert('⚠️ Authentication error. Please try again.\n\n'+e.message);
+    }
   } else {
     const snap=await get(ref(db,'meta/adminSetup'));
     if(snap.exists()&&snap.val().completed){$('loginScreen').style.display='flex';}
@@ -1178,7 +1205,14 @@ $('setupBtn').addEventListener('click',async()=>{
   if(pass!==confirm)return alert('Passwords do not match');
   if(pass.length<8)return alert('Password minimum 8 characters');
   showLoading('Creating Administrator...');
-  try{const cred=await createUserWithEmailAndPassword(auth,email,pass);await updateProfile(cred.user,{displayName:name});await set(ref(db,'meta/adminSetup'),{completed:true,email,name});hideLoading();showToast('✅ System Initialized!');}
+  try{
+    const cred=await createUserWithEmailAndPassword(auth,email,pass);
+    await updateProfile(cred.user,{displayName:name});
+    await set(ref(db,'meta/adminSetup'),{completed:true,email,name});
+    // ✅ First-time setup: register this UID as the master admin
+    await set(ref(db,`meta/admins/${cred.user.uid}`),true);
+    hideLoading();showToast('✅ System Initialized!');
+  }
   catch(e){hideLoading();alert(e.message);}
 });
 $('loginBtn').addEventListener('click',async()=>{
@@ -2541,10 +2575,14 @@ $('saveGiftCodeBtn').addEventListener('click', async () => {
   const editId = $('editGiftCodeId').value;
   if(!code || isNaN(amount) || amount <= 0) return showToast('⚠️ Code and valid amount required');
   showLoading();
-  const gcData = { code, amount, maxUsers, expiresAt: expiresAt || null, isActive, usedCount: 0, createdAt: new Date().toISOString() };
   try {
-    if(editId) { await update(ref(db, `giftCodes/${editId}`), gcData); }
-    else { await push(ref(db, 'giftCodes'), gcData); }
+    if(editId) {
+      // ✅ FIX: On edit — preserve usedCount and createdAt, do NOT reset to 0
+      await update(ref(db, `giftCodes/${editId}`), { code, amount, maxUsers, expiresAt: expiresAt || null, isActive });
+    } else {
+      const gcData = { code, amount, maxUsers, expiresAt: expiresAt || null, isActive, usedCount: 0, createdAt: new Date().toISOString() };
+      await push(ref(db, 'giftCodes'), gcData);
+    }
     $('clearGiftCodeBtn').click();
     hideLoading(); showToast('✅ Gift Code saved!');
   } catch(e) { hideLoading(); showToast('❌ ' + e.message); }
