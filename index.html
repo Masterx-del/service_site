@@ -394,6 +394,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <!-- USERS & SUPPORT -->
   <div class="nav-section-label">Users & Support</div>
   <div class="drawer-nav-item" data-tab="users"><i class="fas fa-users" style="width:18px;text-align:center;"></i> Users</div>
+  <div class="drawer-nav-item" data-tab="referrals"><i class="fas fa-user-plus" style="width:18px;text-align:center;color:#f59e0b;"></i> Referrals</div>
   <div class="drawer-nav-item" data-tab="support"><i class="fas fa-headset" style="width:18px;text-align:center;"></i> Support <span class="drawer-nav-badge" id="navChatBadge" style="display:none;">0</span></div>
 
   <div class="nav-divider"></div>
@@ -528,6 +529,17 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <div class="stat-card"><div class="stat-value" id="dashTotalUsers">0</div><div class="stat-label">Total Users</div></div>
   <div class="stat-card"><div class="stat-value" id="dashTotalCoupons">0</div><div class="stat-label">Coupons</div></div>
   <div class="stat-card danger clickable" onclick="viewSupport()"><div class="stat-value" id="dashSupportTickets">0</div><div class="stat-label">Unread Chats</div></div>
+</div>
+</div>
+
+<!-- STATS ROW 4 - Referrals -->
+<div class="card" style="padding:20px 20px 16px;">
+<h2 class="card-title" style="margin-bottom:14px;font-size:0.95rem;"><i class="fas fa-user-plus" style="color:#f59e0b;"></i> Referral Program <span onclick="switchTab('referrals',true)" style="font-size:11px;font-weight:500;color:var(--accent-primary);cursor:pointer;margin-left:auto;">Manage →</span></h2>
+<div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin:0;">
+  <div class="stat-card warn clickable" onclick="switchTab('referrals',true)"><div class="stat-value" id="dashTotalReferrals">0</div><div class="stat-label">Total Referrals</div></div>
+  <div class="stat-card warn clickable" onclick="switchTab('referrals',true)"><div class="stat-value" id="dashTotalRefEarned">₹0</div><div class="stat-label">Total Ref. Paid Out</div></div>
+  <div class="stat-card clickable" onclick="switchTab('referrals',true)"><div class="stat-value" id="dashActiveReferrers">0</div><div class="stat-label">Active Referrers</div></div>
+  <div class="stat-card"><div class="stat-value" id="dashRefRewardRate">—</div><div class="stat-label">Reward per Ref.</div></div>
 </div>
 </div>
 
@@ -812,6 +824,73 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 </div>
 <div id="usersGrid" class="products-grid"></div>
 </div>
+</div>
+
+<!-- REFERRALS TAB -->
+<div id="referralsTab" class="tab-content">
+
+<!-- Referral Settings -->
+<div class="card">
+  <h2 class="card-title"><i class="fas fa-cog" style="color:#f59e0b;"></i> Referral Program Settings</h2>
+  <p style="font-size:13px;color:var(--text-secondary);margin-bottom:18px;line-height:1.6;">Configure the referral reward system. When a new user signs up using a referral link, the referrer gets credited.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    <div class="input-group">
+      <label>Reward Amount (₹) per Referral</label>
+      <input type="number" id="refRewardAmount" placeholder="e.g. 10" min="0" step="0.01">
+    </div>
+    <div class="input-group">
+      <label>Minimum Order to Trigger Reward (₹)</label>
+      <input type="number" id="refMinOrder" placeholder="e.g. 50 (0 = on signup)" min="0" step="0.01">
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    <div class="input-group">
+      <label>Max Reward Per User (0 = unlimited)</label>
+      <input type="number" id="refMaxRewardPerUser" placeholder="e.g. 100" min="0" step="0.01">
+    </div>
+    <div class="input-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+      <label style="margin-bottom:12px;">Program Active</label>
+      <label class="toggle-switch"><input type="checkbox" id="refProgramActive" checked><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+  <div class="input-group">
+    <label>Program Description (shown to users)</label>
+    <input type="text" id="refDescription" placeholder="e.g. Invite friends and earn ₹10 for each signup!">
+  </div>
+  <button class="btn" id="saveRefSettingsBtn" style="margin-top:4px;"><i class="fas fa-save"></i> Save Referral Settings</button>
+  <div id="refSettingsSavedNote" style="display:none;margin-top:10px;font-size:12px;color:var(--accent-success);font-weight:600;"><i class="fas fa-check-circle"></i> Settings saved and synced to user app.</div>
+</div>
+
+<!-- Referral Stats Summary -->
+<div class="card" style="padding:20px 20px 16px;">
+  <h2 class="card-title" style="margin-bottom:14px;font-size:0.95rem;"><i class="fas fa-chart-bar" style="color:var(--accent-primary);"></i> Program Overview</h2>
+  <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin:0;">
+    <div class="stat-card"><div class="stat-value" id="refStatTotal">0</div><div class="stat-label">Total Referrals</div></div>
+    <div class="stat-card warn"><div class="stat-value" id="refStatPaidOut">₹0</div><div class="stat-label">Total Paid Out</div></div>
+    <div class="stat-card"><div class="stat-value" id="refStatReferrers">0</div><div class="stat-label">Active Referrers</div></div>
+    <div class="stat-card"><div class="stat-value" id="refStatAvgPerRef">₹0</div><div class="stat-label">Avg per Referrer</div></div>
+  </div>
+</div>
+
+<!-- Referral Leaderboard -->
+<div class="card">
+  <h2 class="card-title" style="justify-content:space-between;">
+    <span><i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Referrers</span>
+    <input type="text" id="refSearchInput" placeholder="🔍 Search..." oninput="renderReferralLeaderboard()" style="padding:7px 12px;border:1px solid var(--border-color);border-radius:6px;background:var(--input-bg);color:var(--text-primary);font-size:13px;font-family:inherit;width:160px;">
+  </h2>
+  <div id="refLeaderboard" class="orders-list">
+    <p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading referral data...</p>
+  </div>
+</div>
+
+<!-- All Referral Transactions -->
+<div class="card">
+  <h2 class="card-title"><i class="fas fa-list" style="color:var(--accent-primary);"></i> All Referral Transactions</h2>
+  <div id="refTransactions" class="orders-list">
+    <p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading...</p>
+  </div>
+</div>
+
 </div>
 
 <!-- SUPPORT TAB -->
@@ -2025,21 +2104,40 @@ window.renderUsers = function renderUsers(data){
   globalUsersData = data || {};
   const searchQ = ($('userSearchInput')?.value||'').toLowerCase();
   const users = globalUsersData; let html=''; let count=Object.keys(users).length; $('dashTotalUsers').textContent=count;
+
+  // Build referral counts map
+  const refCounts = {};
+  Object.values(users).forEach(u => {
+    const refBy = u.profile?.referredBy;
+    if(refBy) refCounts[refBy] = (refCounts[refBy]||0)+1;
+  });
+
   Object.entries(users).forEach(([id,u])=>{
     const p=u.profile||{};
     const name = p.name||'Unknown'; const email = p.email||'No email';
     if(searchQ && !name.toLowerCase().includes(searchQ) && !email.toLowerCase().includes(searchQ)) return;
     const wallet = parseFloat(p.walletBalance||0).toFixed(2);
     const spent = parseFloat(p.totalSpent||0).toFixed(2);
+    const refEarned = parseFloat(p.referralEarned||0).toFixed(2);
+    const refCount = refCounts[id]||0;
     const safeName=name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const memberSince = p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const refBadge = refCount>0 ? `<span style="background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.3);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;"><i class="fas fa-user-plus"></i> ${refCount} Referral${refCount>1?'s':''}</span>` : '';
+    const refEarnedBadge = parseFloat(refEarned)>0 ? `<span style="background:rgba(16,185,129,0.08);color:#10b981;padding:3px 8px;border-radius:6px;font-weight:600;font-size:11px;">🎁 ₹${refEarned} Earned</span>` : '';
+    const referredByBadge = p.referredBy ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;"><i class="fas fa-link" style="margin-right:3px;color:#f59e0b;"></i>Referred by: <code style="font-size:10px;background:var(--input-bg);padding:2px 5px;border-radius:3px;border:1px solid var(--border-color);">${p.referredBy.substring(0,10)}...</code></div>` : '';
     html+=`<div class="product-card">
-      <div style="font-weight:700;font-size:15px;">${name}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div style="font-weight:700;font-size:15px;">${name}</div>
+        <div style="font-size:10px;color:var(--text-secondary);text-align:right;">Since ${memberSince}</div>
+      </div>
       <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">${email}</div>
-      <div style="font-size:12px;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="font-size:12px;display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
         <span style="background:rgba(37,99,235,0.08);color:var(--accent-primary);padding:3px 8px;border-radius:6px;font-weight:600;">💰 ₹${wallet}</span>
         <span style="background:rgba(16,185,129,0.08);color:#10b981;padding:3px 8px;border-radius:6px;font-weight:600;">🛒 ₹${spent}</span>
+        ${refBadge}${refEarnedBadge}
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;">
+      ${referredByBadge}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
         <button class="btn-inline-edit" style="flex:1;" onclick="toggleInlineEdit('uie_${id}',this)"><i class="fas fa-wallet"></i> Adjust Wallet</button>
         <button class="btn btn-sm" style="flex:1;" onclick="adminContactUser('${id}','${safeName}')"><i class="fas fa-comment"></i> Chat</button>
         <button class="btn btn-sm btn-danger" onclick="deleteUser('${id}')"><i class="fas fa-trash"></i></button>
@@ -2264,6 +2362,7 @@ window.switchTab=(tab,isUser=false)=>{
   if(tab==='featureMgmt'&&window.renderFMList)window.renderFMList();
   if(tab==='sortMgmt'){setTimeout(()=>{renderSortList();populateSortCatFilter();},100);}
   if(tab==='dashboard')setTimeout(refreshDashboardCharts,200);
+  if(tab==='referrals'){setTimeout(()=>{renderReferralLeaderboard();renderRefTransactions();},100);}
 };
 
 // ── SORT / RANK MANAGER ──────────────────────────────────────────────
@@ -3092,6 +3191,204 @@ window.toggleGiftCodeActive = async (id, isActive) => {
 };
 
 onValue(ref(db, 'giftCodes'), s => renderGiftCodes(s.val()));
+
+// ══════════════════════════════════════════════════════════════
+// ── REFERRAL SYSTEM ───────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+let globalRefSettings = { rewardAmount: 0, minOrder: 0, maxRewardPerUser: 0, active: true, description: '' };
+
+// ── Load referral settings from Firebase ──
+onValue(ref(db, 'meta/referralSettings'), s => {
+  if(s.exists()) {
+    globalRefSettings = { ...globalRefSettings, ...s.val() };
+    $('refRewardAmount').value = globalRefSettings.rewardAmount || '';
+    $('refMinOrder').value = globalRefSettings.minOrder || '';
+    $('refMaxRewardPerUser').value = globalRefSettings.maxRewardPerUser || '';
+    $('refProgramActive').checked = globalRefSettings.active !== false;
+    $('refDescription').value = globalRefSettings.description || '';
+    // Update dashboard reward rate badge
+    const el = $('dashRefRewardRate');
+    if(el) el.textContent = globalRefSettings.rewardAmount > 0 ? '₹'+parseFloat(globalRefSettings.rewardAmount).toFixed(0) : '—';
+  }
+});
+
+// ── Save referral settings ──
+$('saveRefSettingsBtn').addEventListener('click', async () => {
+  const rewardAmount = parseFloat($('refRewardAmount').value) || 0;
+  const minOrder = parseFloat($('refMinOrder').value) || 0;
+  const maxRewardPerUser = parseFloat($('refMaxRewardPerUser').value) || 0;
+  const active = $('refProgramActive').checked;
+  const description = $('refDescription').value.trim();
+  showLoading();
+  try {
+    await set(ref(db, 'meta/referralSettings'), { rewardAmount, minOrder, maxRewardPerUser, active, description, updatedAt: new Date().toISOString() });
+    hideLoading();
+    showToast('✅ Referral settings saved!');
+    const note = $('refSettingsSavedNote');
+    if(note) { note.style.display = 'block'; setTimeout(() => note.style.display = 'none', 3000); }
+  } catch(e) { hideLoading(); showToast('❌ ' + e.message); }
+});
+
+// ── Render Referral Leaderboard + Stats ──
+window.renderReferralLeaderboard = function() {
+  const searchQ = ($('refSearchInput')?.value||'').toLowerCase();
+  const users = globalUsersData;
+  if(!Object.keys(users).length) {
+    if($('refLeaderboard')) $('refLeaderboard').innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">No users found.</p>';
+    return;
+  }
+
+  // Build referrer map: referrerId → { name, email, referredUsers[], totalEarned }
+  const refMap = {};
+  Object.entries(users).forEach(([id, u]) => {
+    const p = u.profile || {};
+    // Count this user as a referral for their referrer
+    if(p.referredBy) {
+      if(!refMap[p.referredBy]) refMap[p.referredBy] = { referredUsers: [], totalEarned: 0, name: '', email: '' };
+      refMap[p.referredBy].referredUsers.push({ id, name: p.name||'Unknown', email: p.email||'', joinedAt: p.createdAt||'' });
+    }
+    // Populate referrer's own info and earned
+    if(!refMap[id]) refMap[id] = { referredUsers: [], totalEarned: 0, name: '', email: '' };
+    refMap[id].name = p.name || 'Unknown';
+    refMap[id].email = p.email || '';
+    refMap[id].totalEarned = parseFloat(p.referralEarned || 0);
+  });
+
+  // Filter to only users who have referred someone
+  let entries = Object.entries(refMap).filter(([,v]) => v.referredUsers.length > 0);
+
+  // Update dashboard + tab stats
+  const totalReferrals = entries.reduce((s,[,v]) => s + v.referredUsers.length, 0);
+  const totalPaidOut = Object.values(users).reduce((s, u) => s + parseFloat(u.profile?.referralEarned||0), 0);
+  const activeReferrers = entries.length;
+  const avgPerRef = activeReferrers > 0 ? (totalPaidOut / activeReferrers) : 0;
+
+  ['dashTotalReferrals','refStatTotal'].forEach(id => { const el=$(id); if(el) el.textContent=totalReferrals; });
+  ['dashTotalRefEarned','refStatPaidOut'].forEach(id => { const el=$(id); if(el) el.textContent='₹'+totalPaidOut.toFixed(0); });
+  ['dashActiveReferrers','refStatReferrers'].forEach(id => { const el=$(id); if(el) el.textContent=activeReferrers; });
+  if($('refStatAvgPerRef')) $('refStatAvgPerRef').textContent = '₹'+avgPerRef.toFixed(0);
+
+  // Sort by referral count desc
+  entries.sort((a,b) => b[1].referredUsers.length - a[1].referredUsers.length);
+
+  // Apply search filter
+  if(searchQ) entries = entries.filter(([,v]) => v.name.toLowerCase().includes(searchQ) || v.email.toLowerCase().includes(searchQ));
+
+  const cont = $('refLeaderboard');
+  if(!cont) return;
+  if(!entries.length) { cont.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">No referrals found.</p>'; return; }
+
+  cont.innerHTML = entries.map(([uid, v], idx) => {
+    const medal = idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':'';
+    const referredList = v.referredUsers.slice(0,3).map(u =>
+      `<span style="font-size:11px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:4px;padding:2px 7px;color:var(--text-secondary);">${u.name}</span>`
+    ).join(' ') + (v.referredUsers.length > 3 ? ` <span style="font-size:11px;color:var(--text-secondary);">+${v.referredUsers.length - 3} more</span>` : '');
+    return `<div class="order-card" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:15px;">${medal} ${v.name}</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${v.email}</div>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">${referredList}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:22px;font-weight:800;color:#f59e0b;">${v.referredUsers.length}</div>
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">Referrals</div>
+          <div style="font-size:13px;font-weight:700;color:var(--accent-success);margin-top:4px;">₹${v.totalEarned.toFixed(2)} Earned</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-sm btn-warn" style="flex:1;" onclick="manualRefReward('${uid}','${v.name.replace(/'/g,"\\'")}')"><i class="fas fa-gift"></i> Manual Reward</button>
+        <button class="btn btn-sm btn-ghost" style="flex:1;" onclick="viewUserReferrals('${uid}','${v.name.replace(/'/g,"\\'")}')"><i class="fas fa-eye"></i> View Details</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+// ── Render all referral wallet transactions ──
+window.renderRefTransactions = function() {
+  const users = globalUsersData;
+  const transactions = [];
+  Object.entries(users).forEach(([uid, u]) => {
+    const p = u.profile || {};
+    const hist = u.walletHistory ? Object.values(u.walletHistory) : [];
+    hist.filter(tx => tx.type === 'referral').forEach(tx => {
+      transactions.push({ ...tx, userName: p.name||'Unknown', userEmail: p.email||'', uid });
+    });
+  });
+  transactions.sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+
+  const cont = $('refTransactions');
+  if(!cont) return;
+  if(!transactions.length) { cont.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">No referral transactions yet.</p>'; return; }
+
+  cont.innerHTML = transactions.slice(0,50).map(tx => {
+    const dateStr = tx.createdAt ? new Date(tx.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}) : '—';
+    return `<div class="order-card" style="padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:13px;">${tx.userName}</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${tx.userEmail}</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${tx.note||'Referral Reward'}</div>
+        <div style="font-size:10px;color:var(--text-secondary);margin-top:3px;">${dateStr}</div>
+      </div>
+      <div style="font-size:18px;font-weight:800;color:var(--accent-success);flex-shrink:0;">+₹${parseFloat(tx.amount||0).toFixed(2)}</div>
+    </div>`;
+  }).join('') + (transactions.length > 50 ? `<div style="text-align:center;font-size:12px;color:var(--text-secondary);padding:10px;">Showing top 50 of ${transactions.length} transactions.</div>` : '');
+};
+
+// ── Manual reward to a referrer ──
+window.manualRefReward = async (uid, name) => {
+  const amt = parseFloat(prompt(`Enter manual referral reward amount (₹) for ${name}:`)||'0');
+  if(!amt || amt <= 0) return;
+  const note = prompt('Note / reason:') || 'Manual Referral Reward';
+  showLoading();
+  try {
+    const snap = await get(ref(db, `users/${uid}/profile`));
+    const p = snap.exists() ? snap.val() : {};
+    const newBal = parseFloat(p.walletBalance||0) + amt;
+    const newRefEarned = parseFloat(p.referralEarned||0) + amt;
+    await update(ref(db, `users/${uid}/profile`), { walletBalance: newBal, referralEarned: newRefEarned });
+    await push(ref(db, `users/${uid}/walletHistory`), { type: 'referral', amount: amt, note, utrId: 'REFMANUAL_'+Date.now(), createdAt: new Date().toISOString() });
+    hideLoading(); showToast(`✅ ₹${amt.toFixed(2)} referral reward added for ${name}`);
+  } catch(e) { hideLoading(); showToast('❌ '+e.message); }
+};
+
+// ── View referred users list for a referrer ──
+window.viewUserReferrals = (uid, name) => {
+  const users = globalUsersData;
+  const referred = Object.entries(users).filter(([,u]) => u.profile?.referredBy === uid);
+  if(!referred.length) { showToast(`${name} has no referrals yet`); return; }
+  const lines = referred.map(([,u]) => {
+    const p = u.profile||{};
+    const d = p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : '—';
+    return `• ${p.name||'Unknown'} (${p.email||''}) — Joined: ${d}`;
+  }).join('\n');
+  alert(`Referrals by ${name}:\n\n${lines}`);
+};
+
+// ── Auto-render referral tab when switched to ──
+// (merged into existing switchTab override below)
+
+// ── Update referral dashboard stats whenever users data loads ──
+onValue(ref(db, 'users'), s => {
+  const data = s.val() || {};
+  // Patch globalUsersData if it's stale (for dashboard stats)
+  if(Object.keys(data).length) {
+    globalUsersData = data;
+    // Re-compute referral dashboard stats
+    let totalReferrals = 0, totalPaidOut = 0, activeReferrers = 0;
+    const refCounted = {};
+    Object.entries(data).forEach(([id, u]) => {
+      const p = u.profile||{};
+      if(p.referredBy) { totalReferrals++; refCounted[p.referredBy] = true; }
+      totalPaidOut += parseFloat(p.referralEarned||0);
+    });
+    activeReferrers = Object.keys(refCounted).length;
+    const el1=$('dashTotalReferrals'), el2=$('dashTotalRefEarned'), el3=$('dashActiveReferrers');
+    if(el1) el1.textContent = totalReferrals;
+    if(el2) el2.textContent = '₹'+totalPaidOut.toFixed(0);
+    if(el3) el3.textContent = activeReferrers;
+  }
+});
 
 
 </script>
