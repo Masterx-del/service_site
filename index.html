@@ -1358,6 +1358,56 @@ $('loginBtn').addEventListener('click',async()=>{
 $('drawerLogoutBtn').addEventListener('click',()=>signOut(auth));
 
 // ── INIT DATA ────────────────────────────────────────────────────────
+// ── AUTO COMPLETE: progress orders ke avgTime + 10 min baad complete ho jaate hain ──
+const _autoCompleteTimers = {};
+
+function parseAvgTimeToMs(avgTime) {
+  if (!avgTime) return null;
+  const str = avgTime.toLowerCase().trim();
+  const num = parseFloat(str);
+  if (isNaN(num) || num <= 0) return null;
+  if (str.includes('hr') || str.includes('hour')) return num * 60 * 60 * 1000;
+  if (str.includes('day'))                         return num * 24 * 60 * 60 * 1000;
+  return num * 60 * 1000;
+}
+
+function scheduleAutoComplete(ordersData) {
+  Object.values(_autoCompleteTimers).forEach(t => clearTimeout(t));
+  Object.keys(_autoCompleteTimers).forEach(k => delete _autoCompleteTimers[k]);
+  if (!ordersData) return;
+  const now = Date.now();
+  Object.entries(ordersData).forEach(([id, o]) => {
+    if (o.status !== 'progress') return;
+    if (o.autoCompleted) return;
+    const avgTime = o.productSnapshot?.avgTime || '';
+    const avgMs   = parseAvgTimeToMs(avgTime);
+    if (!avgMs) return;
+    const extraMs  = 10 * 60 * 1000;
+    const totalMs  = avgMs + extraMs;
+    const progressAt = o.progressAt ? new Date(o.progressAt).getTime()
+                      : o.createdAt  ? new Date(o.createdAt).getTime()
+                      : now;
+    const fireAt  = progressAt + totalMs;
+    const delay   = Math.max(0, fireAt - now);
+    _autoCompleteTimers[id] = setTimeout(async () => {
+      try {
+        const snap = await get(ref(db, 'orders/' + id));
+        if (!snap.exists()) return;
+        const cur  = snap.val();
+        if (cur.status !== 'progress') return;
+        await update(ref(db, 'orders/' + id), {
+          status: 'completed',
+          autoCompleted: true,
+          autoCompletedAt: new Date().toISOString()
+        });
+        showToast('\u2705 Order #' + id.slice(-6).toUpperCase() + ' auto-completed');
+      } catch (e) {
+        console.warn('Auto-complete failed for order', id, e.message);
+      }
+    }, delay);
+  });
+}
+
 function initData(){
   // Load category map first so all selects are correct
   get(ref(db,'meta/categoryMap')).then(s=>{
@@ -1368,7 +1418,7 @@ function initData(){
     renderCatMgmtUI();
   }).catch(()=>{ window.populateCategorySelects(); renderCatMgmtUI(); });
   onValue(ref(db,'products'),s=>{renderProducts(s.val());setTimeout(()=>buildCategoryChart(globalProducts),400);});
-  onValue(ref(db,'orders'),s=>{globalOrdersData=s.val();renderOrders(globalOrdersData);setTimeout(()=>{buildOrdersRevenueChart(globalOrdersData);},400);});
+  onValue(ref(db,'orders'),s=>{globalOrdersData=s.val();renderOrders(globalOrdersData);setTimeout(()=>{buildOrdersRevenueChart(globalOrdersData);},400);scheduleAutoComplete(globalOrdersData);});
   onValue(ref(db,'coupons'),s=>renderCoupons(s.val()));
   onValue(ref(db,'subscriptions'),s=>renderSubscriptions(s.val()));
   onValue(ref(db,'users'),s=>renderUsers(s.val()));
@@ -1904,7 +1954,7 @@ window.confirmStatusChange=async(id,newVal,oldVal,sel)=>{
 
 window.updateStatus=async(id,s)=>{
   try{
-    await update(ref(db,`orders/${id}`),{status:s});
+    await update(ref(db,`orders/${id}`),{status:s,...(s==='progress'&&!globalOrdersData?.[id]?.progressAt?{progressAt:new Date().toISOString()}:{})});
     if(globalOrdersData&&globalOrdersData[id]){
       const order=globalOrdersData[id];
 
