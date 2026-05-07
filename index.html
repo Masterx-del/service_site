@@ -634,6 +634,8 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <input type="text" id="orderSearchInput" placeholder="🔍 Search by email, UTR, product, order ID..." oninput="window.reRenderOrders()">
   <select id="orderFilterSelect" onchange="window.reRenderOrders()">
     <option value="all">All Orders</option>
+    <option value="paid">💰 Paid Orders</option>
+    <option value="free">🆓 Free Orders</option>
     <option value="pending">⏳ Pending</option>
     <option value="progress">⚙️ In Progress</option>
     <option value="completed">✅ Completed</option>
@@ -833,21 +835,33 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 <div class="card">
   <h2 class="card-title"><i class="fas fa-cog" style="color:#f59e0b;"></i> Referral Program Settings</h2>
   <p style="font-size:13px;color:var(--text-secondary);margin-bottom:18px;line-height:1.6;">Configure the referral reward system. When a new user signs up using a referral link, the referrer gets credited.</p>
+  <!-- Reward Type Info Box -->
+  <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text-secondary);line-height:1.7;">
+    <b style="color:#d97706;"><i class="fas fa-info-circle"></i> Dual Reward System:</b><br>
+    <b style="color:var(--text-primary);">1. New Signup Reward:</b> Jab koi naya user referral link se join kare — referrer ko flat ₹ milte hain.<br>
+    <b style="color:var(--text-primary);">2. Spend % Reward:</b> Jab referred user koi order kare — referrer ko us order ke % mein reward milta hai.
+  </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
     <div class="input-group">
-      <label>Reward Amount (₹) per Referral</label>
-      <input type="number" id="refRewardAmount" placeholder="e.g. 10" min="0" step="0.01">
+      <label>🎁 New Signup Reward (₹) per Referral</label>
+      <input type="number" id="refRewardAmount" placeholder="e.g. 2" min="0" step="0.01">
     </div>
     <div class="input-group">
-      <label>Minimum Order to Trigger Reward (₹)</label>
-      <input type="number" id="refMinOrder" placeholder="e.g. 50 (0 = on signup)" min="0" step="0.01">
+      <label>📊 Spend % Reward (% of each order)</label>
+      <input type="number" id="refSpendPercent" placeholder="e.g. 5 (means 5%)" min="0" max="100" step="0.1">
     </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
     <div class="input-group">
+      <label>Minimum Order to Trigger % Reward (₹)</label>
+      <input type="number" id="refMinOrder" placeholder="e.g. 50 (0 = no minimum)" min="0" step="0.01">
+    </div>
+    <div class="input-group">
       <label>Max Reward Per User (0 = unlimited)</label>
       <input type="number" id="refMaxRewardPerUser" placeholder="e.g. 100" min="0" step="0.01">
     </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
     <div class="input-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
       <label style="margin-bottom:12px;">Program Active</label>
       <label class="toggle-switch"><input type="checkbox" id="refProgramActive" checked><span class="toggle-slider"></span></label>
@@ -855,7 +869,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   </div>
   <div class="input-group">
     <label>Program Description (shown to users)</label>
-    <input type="text" id="refDescription" placeholder="e.g. Invite friends and earn ₹10 for each signup!">
+    <input type="text" id="refDescription" placeholder="e.g. Invite friends and earn ₹2 on signup + 5% on every order!">
   </div>
   <button class="btn" id="saveRefSettingsBtn" style="margin-top:4px;"><i class="fas fa-save"></i> Save Referral Settings</button>
   <div id="refSettingsSavedNote" style="display:none;margin-top:10px;font-size:12px;color:var(--accent-success);font-weight:600;"><i class="fas fa-check-circle"></i> Settings saved and synced to user app.</div>
@@ -894,7 +908,19 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 </div>
 
 <!-- SUPPORT TAB -->
-<div id="supportTab" class="tab-content"><div class="card"><h2 class="card-title">Support Tickets</h2><div id="chatUsersList" class="orders-list"></div></div></div>
+<div id="supportTab" class="tab-content">
+<div class="card">
+  <h2 class="card-title"><i class="fas fa-headset" style="color:var(--accent-primary);"></i> Support Tickets</h2>
+  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+    <input type="text" id="supportSearchInput" placeholder="🔍 Search by name..." oninput="window.filterSupportList()" style="flex:1;min-width:140px;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit;">
+    <select id="supportFilterSelect" onchange="window.filterSupportList()" style="padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;">
+      <option value="all">All Chats</option>
+      <option value="unread">🔴 Unread Only</option>
+    </select>
+  </div>
+  <div id="chatUsersList" class="orders-list"></div>
+</div>
+</div>
 
 <!-- BRAND TAB -->
 <div id="brandTab" class="tab-content"><div class="card"><h2 class="card-title">Branding</h2><div class="input-group"><label>Brand Name</label><input type="text" id="brandName"></div><div class="input-group"><label>Logo URL</label><input type="text" id="brandLogoUrl"></div><button class="btn" id="saveBrandBtn" style="margin-top:4px;">Save Branding</button></div></div>
@@ -1847,12 +1873,19 @@ function renderOrders(data){
       if(mode==='yesterday'&&(oDate<yesterdayStart||oDate>=todayStart))return;
       if(mode==='week'&&oDate<weekStart)return;
       if(showOnlyPending&&status!=='pending')return;
-      if(!showOnlyPending&&filter!=='all'){if(filter==='subscription'&&!o.isSubscription)return;if(filter!=='subscription'&&status!==filter)return;}
+      if(!showOnlyPending&&filter!=='all'){
+        if(filter==='subscription'&&!o.isSubscription)return;
+        else if(filter==='free'&&price>0)return;
+        else if(filter==='paid'&&price<=0)return;
+        else if(filter!=='subscription'&&filter!=='free'&&filter!=='paid'&&status!==filter)return;
+      }
       if(search){
         const hay=(o.userEmail||'')+'|'+id+'|'+id.slice(-6).toUpperCase()+'|'+(o.utrId||'')+'|'+(o.productSnapshot?.title||'')+'|'+(o.productSnapshot?.planName||'')+'|'+(o.targetLink||'');
         if(!hay.toLowerCase().includes(search))return;
       }
       const productName=o.productSnapshot?.title||o.productSnapshot?.planName||'N/A';
+      const isFreeOrder = price <= 0;
+      const freeBadge = isFreeOrder ? `<span class="badge" style="background:rgba(16,185,129,0.12);color:#059669;border:1px solid rgba(16,185,129,0.3);margin-left:4px;">🆓 FREE</span>` : '';
       const statusBadge={pending:`<span class="badge badge-pending">⏳ Pending</span>`,progress:`<span class="badge badge-progress">⚙️ In Progress</span>`,completed:`<span class="badge badge-completed">✅ Completed</span>`,rejected:`<span class="badge badge-rejected">❌ Rejected</span>`}[status]||'';
       const card=document.createElement('div');
       card.className=`order-card border-${status}`;
@@ -1864,6 +1897,7 @@ function renderOrders(data){
     <button onclick="copyToClip('${id.slice(-6).toUpperCase()}')" title="Copy Order ID" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:11px;padding:2px 4px;border-radius:4px;transition:var(--transition);" onmouseover="this.style.color='var(--accent-primary)'" onmouseout="this.style.color='var(--text-secondary)'"><i class="fas fa-copy"></i></button>
     ${o.isSubscription?'<span class="badge badge-manual" style="margin-left:2px;font-size:10px;">SUB</span>':''}
     ${o.apiOrderId?`<span class="badge badge-api" style="margin-left:2px;font-size:10px;"><i class="fas fa-robot"></i> API#${o.apiOrderId}</span>`:''}
+    ${freeBadge}
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     ${statusBadge}
@@ -2320,11 +2354,33 @@ window.renderChatUsers=async(data)=>{
     }
     
     const badge=unread>0?`<div class="unread-badge">${unread}</div>`:'';
-    const card=document.createElement('div');card.className='order-card';card.style.cursor='pointer';
-    card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;"><div style="flex:1;overflow:hidden;padding-right:10px;"><div style="font-weight:700;margin-bottom:6px;">${userName}</div><div style="font-size:13px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lastMsg}</div></div>${badge}</div>`;
+    const card=document.createElement('div');
+    card.className='order-card';
+    card.style.cursor='pointer';
+    if(unread>0) card.style.borderLeft='4px solid var(--accent-danger)';
+    card.dataset.userName=userName.toLowerCase();
+    card.dataset.unread=unread;
+    card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="flex:1;overflow:hidden;padding-right:10px;">
+        <div style="font-weight:700;margin-bottom:4px;">${userName}${unread>0?` <span style="font-size:11px;color:var(--accent-danger);font-weight:600;">(${unread} new)</span>`:''}</div>
+        <div style="font-size:13px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lastMsg}</div>
+      </div>${badge}</div>`;
     card.onclick=()=>window.openChatModal(uid,userName);l.appendChild(card);
   }
   $('dashSupportTickets').textContent=totalUnread;const cb=$('navChatBadge');cb.textContent=totalUnread;cb.style.display=totalUnread>0?'flex':'none';
+};
+
+// ── SUPPORT FILTER ────────────────────────────────────────────────────
+window.filterSupportList = () => {
+  const q = ($('supportSearchInput')?.value||'').toLowerCase();
+  const mode = $('supportFilterSelect')?.value||'all';
+  document.querySelectorAll('#chatUsersList .order-card').forEach(card => {
+    const name = card.dataset.userName||'';
+    const unread = parseInt(card.dataset.unread||0);
+    const matchSearch = !q || name.includes(q);
+    const matchFilter = mode==='all' || (mode==='unread' && unread>0);
+    card.style.display = (matchSearch && matchFilter) ? '' : 'none';
+  });
 };
 
 let currentChatUid=null;
@@ -3245,13 +3301,14 @@ onValue(ref(db, 'giftCodes'), s => renderGiftCodes(s.val()));
 // ══════════════════════════════════════════════════════════════
 // ── REFERRAL SYSTEM ───────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════
-let globalRefSettings = { rewardAmount: 0, minOrder: 0, maxRewardPerUser: 0, active: true, description: '' };
+let globalRefSettings = { rewardAmount: 2, spendPercent: 0, minOrder: 0, maxRewardPerUser: 0, active: true, description: '' };
 
 // ── Load referral settings from Firebase ──
 onValue(ref(db, 'meta/referralSettings'), s => {
   if(s.exists()) {
     globalRefSettings = { ...globalRefSettings, ...s.val() };
-    $('refRewardAmount').value = globalRefSettings.rewardAmount || '';
+    $('refRewardAmount').value = globalRefSettings.rewardAmount !== undefined ? globalRefSettings.rewardAmount : '2';
+    if($('refSpendPercent')) $('refSpendPercent').value = globalRefSettings.spendPercent || '';
     $('refMinOrder').value = globalRefSettings.minOrder || '';
     $('refMaxRewardPerUser').value = globalRefSettings.maxRewardPerUser || '';
     $('refProgramActive').checked = globalRefSettings.active !== false;
@@ -3265,13 +3322,14 @@ onValue(ref(db, 'meta/referralSettings'), s => {
 // ── Save referral settings ──
 $('saveRefSettingsBtn').addEventListener('click', async () => {
   const rewardAmount = parseFloat($('refRewardAmount').value) || 0;
+  const spendPercent = parseFloat($('refSpendPercent')?.value) || 0;
   const minOrder = parseFloat($('refMinOrder').value) || 0;
   const maxRewardPerUser = parseFloat($('refMaxRewardPerUser').value) || 0;
   const active = $('refProgramActive').checked;
   const description = $('refDescription').value.trim();
   showLoading();
   try {
-    await set(ref(db, 'meta/referralSettings'), { rewardAmount, minOrder, maxRewardPerUser, active, description, updatedAt: new Date().toISOString() });
+    await set(ref(db, 'meta/referralSettings'), { rewardAmount, spendPercent, minOrder, maxRewardPerUser, active, description, updatedAt: new Date().toISOString() });
     hideLoading();
     showToast('✅ Referral settings saved!');
     const note = $('refSettingsSavedNote');
@@ -3373,9 +3431,11 @@ window.renderRefTransactions = function() {
 
   cont.innerHTML = transactions.slice(0,50).map(tx => {
     const dateStr = tx.createdAt ? new Date(tx.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}) : '—';
+    const subtype = tx.subtype || '';
+    const subtypeBadge = subtype === 'signup' ? '<span style="font-size:10px;background:rgba(16,185,129,0.12);color:#059669;border:1px solid rgba(16,185,129,0.3);border-radius:4px;padding:1px 6px;font-weight:700;">🎉 Signup</span>' : subtype === 'spend' ? '<span style="font-size:10px;background:rgba(37,99,235,0.1);color:#2563eb;border:1px solid rgba(37,99,235,0.25);border-radius:4px;padding:1px 6px;font-weight:700;">💰 Spend %</span>' : subtype === 'manual' ? '<span style="font-size:10px;background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.3);border-radius:4px;padding:1px 6px;font-weight:700;">🎁 Manual</span>' : '';
     return `<div class="order-card" style="padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
       <div style="flex:1;min-width:0;">
-        <div style="font-weight:700;font-size:13px;">${tx.userName}</div>
+        <div style="font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;">${tx.userName} ${subtypeBadge}</div>
         <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${tx.userEmail}</div>
         <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${tx.note||'Referral Reward'}</div>
         <div style="font-size:10px;color:var(--text-secondary);margin-top:3px;">${dateStr}</div>
@@ -3397,7 +3457,7 @@ window.manualRefReward = async (uid, name) => {
     const newBal = parseFloat(p.walletBalance||0) + amt;
     const newRefEarned = parseFloat(p.referralEarned||0) + amt;
     await update(ref(db, `users/${uid}/profile`), { walletBalance: newBal, referralEarned: newRefEarned });
-    await push(ref(db, `users/${uid}/walletHistory`), { type: 'referral', amount: amt, note, utrId: 'REFMANUAL_'+Date.now(), createdAt: new Date().toISOString() });
+    await push(ref(db, `users/${uid}/walletHistory`), { type: 'referral', subtype: 'manual', amount: amt, note, utrId: 'REFMANUAL_'+Date.now(), createdAt: new Date().toISOString() });
     hideLoading(); showToast(`✅ ₹${amt.toFixed(2)} referral reward added for ${name}`);
   } catch(e) { hideLoading(); showToast('❌ '+e.message); }
 };
@@ -3417,6 +3477,16 @@ window.viewUserReferrals = (uid, name) => {
 
 // ── Auto-render referral tab when switched to ──
 // (merged into existing switchTab override below)
+const _origSwitchTab = window.switchTab;
+window.switchTab = function(tabId, skipScroll) {
+  if(_origSwitchTab) _origSwitchTab(tabId, skipScroll);
+  if(tabId === 'referralTab' || tabId === 'referral') {
+    if(Object.keys(globalUsersData).length) {
+      window.renderReferralLeaderboard();
+      window.renderRefTransactions();
+    }
+  }
+};
 
 // ── Update referral dashboard stats whenever users data loads ──
 onValue(ref(db, 'users'), s => {
@@ -3437,6 +3507,12 @@ onValue(ref(db, 'users'), s => {
     if(el1) el1.textContent = totalReferrals;
     if(el2) el2.textContent = '₹'+totalPaidOut.toFixed(0);
     if(el3) el3.textContent = activeReferrers;
+    // Auto re-render referral tab if it's currently active
+    const refTab = $('referralTab') || $('referral');
+    if(refTab && refTab.classList.contains('active')) {
+      window.renderReferralLeaderboard();
+      window.renderRefTransactions();
+    }
   }
 });
 
