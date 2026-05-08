@@ -624,7 +624,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 </div>
 <!-- CSV Import / Export -->
 <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-  <button class="btn btn-sm btn-ghost" onclick="downloadProductCSVTemplate()" style="flex:1;min-width:140px;border-color:var(--accent-primary);color:var(--accent-primary);"><i class="fas fa-download"></i> Download CSV Template</button>
+  <button class="btn btn-sm btn-ghost" onclick="downloadProductCSVTemplate()" style="flex:1;min-width:140px;border-color:var(--accent-primary);color:var(--accent-primary);"><i class="fas fa-download"></i> Export All Products (CSV)</button>
   <label class="btn btn-sm btn-success" style="flex:1;min-width:140px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" title="Upload CSV to bulk import products">
     <i class="fas fa-upload"></i> Load CSV & Import
     <input type="file" id="csvImportInput" accept=".csv" style="display:none;" onchange="handleProductCSVImport(this)">
@@ -1682,18 +1682,54 @@ $('clearProductBtn').addEventListener('click',()=>{
   $('editProductId').value='';$('productFormTitle').textContent='Add Product';['productTitle','productDiscountPrice','productAvgTime','productApiUrl','productApiKey','productServiceId','productLinkLabel','productDescription','productFeatures','productDisplayOrder'].forEach(id=>$(id).value='');
 });
 
-// ── CSV TEMPLATE DOWNLOAD ─────────────────────────────────────────────
-window.downloadProductCSVTemplate = () => {
-  const headers = ['title','category','subCategory','discountedPrice','avgTime','displayOrder','serviceId','apiUrl','apiKey','linkLabel','description','features'];
-  const example = [
-    '1000 Instagram Followers','Instagram','Followers','99','16 Min','1','12345','https://panel.com/api/v2','YOUR_API_KEY','Profile Link','High quality gradual delivery','Gradual Delivery|Real & Safe|Fast Start'
-  ];
-  const csvContent = [headers.join(','), example.map(v=>`"${v}"`).join(',')].join('\n');
-  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='products_template.csv'; a.click();
-  URL.revokeObjectURL(url);
-  showToast('📥 CSV template downloaded! Fill data aur Load CSV se import karo.');
+// ── CSV EXPORT — ALL EXISTING PRODUCTS FROM FIREBASE ─────────────────
+window.downloadProductCSVTemplate = async () => {
+  showLoading('Exporting products...');
+  try {
+    const snap = await get(ref(db, 'products'));
+    const data = snap.exists() ? snap.val() : {};
+    const headers = ['title','category','subCategory','discountedPrice','avgTime','displayOrder','serviceId','apiUrl','apiKey','linkLabel','description','features'];
+
+    const escapeCell = (val) => {
+      const s = String(val ?? '').replace(/"/g, '""');
+      return `"${s}"`;
+    };
+
+    const rows = Object.entries(data).map(([id, p]) => {
+      const features = Array.isArray(p.features) ? p.features.join('|') : (p.features||'');
+      return [
+        p.title||'',
+        p.category||'',
+        p.subCategory||'',
+        p.discountedPrice||'0',
+        p.avgTime||'',
+        p.displayOrder||'',
+        p.serviceId||'',
+        p.apiUrl||'',
+        p.apiKey||'',
+        p.linkLabel||'',
+        p.description||'',
+        features
+      ].map(escapeCell).join(',');
+    });
+
+    if(!rows.length){
+      hideLoading();
+      showToast('⚠️ Koi product nahi mila Firebase mein');
+      return;
+    }
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['\uFEFF'+csvContent], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='products_export.csv'; a.click();
+    URL.revokeObjectURL(url);
+    hideLoading();
+    showToast(`✅ ${rows.length} products export hogaye CSV mein!`);
+  } catch(e) {
+    hideLoading();
+    showToast('❌ Export error: '+e.message);
+  }
 };
 
 // ── CSV IMPORT ────────────────────────────────────────────────────────
