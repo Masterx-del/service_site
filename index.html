@@ -616,11 +616,19 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 </div>
 <div class="card">
 <h2 class="card-title">Product Inventory</h2>
-<div style="display:flex;gap:10px;margin-bottom:20px;">
+<div style="display:flex;gap:10px;margin-bottom:12px;">
   <input type="text" id="productFilterInput" placeholder="🔍 Search products..." onkeyup="filterProducts()" style="flex:1;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit;">
   <select id="productCatFilter" onchange="filterProducts()" style="padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;">
     <option value="">All Categories</option>
   </select>
+</div>
+<!-- CSV Import / Export -->
+<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+  <button class="btn btn-sm btn-ghost" onclick="downloadProductCSVTemplate()" style="flex:1;min-width:140px;border-color:var(--accent-primary);color:var(--accent-primary);"><i class="fas fa-download"></i> Download CSV Template</button>
+  <label class="btn btn-sm btn-success" style="flex:1;min-width:140px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" title="Upload CSV to bulk import products">
+    <i class="fas fa-upload"></i> Load CSV & Import
+    <input type="file" id="csvImportInput" accept=".csv" style="display:none;" onchange="handleProductCSVImport(this)">
+  </label>
 </div>
 <div id="productsGrid" class="products-grid"></div>
 </div>
@@ -1673,6 +1681,84 @@ $('saveProductBtn').addEventListener('click',async()=>{
 $('clearProductBtn').addEventListener('click',()=>{
   $('editProductId').value='';$('productFormTitle').textContent='Add Product';['productTitle','productDiscountPrice','productAvgTime','productApiUrl','productApiKey','productServiceId','productLinkLabel','productDescription','productFeatures','productDisplayOrder'].forEach(id=>$(id).value='');
 });
+
+// ── CSV TEMPLATE DOWNLOAD ─────────────────────────────────────────────
+window.downloadProductCSVTemplate = () => {
+  const headers = ['title','category','subCategory','discountedPrice','avgTime','displayOrder','serviceId','apiUrl','apiKey','linkLabel','description','features'];
+  const example = [
+    '1000 Instagram Followers','Instagram','Followers','99','16 Min','1','12345','https://panel.com/api/v2','YOUR_API_KEY','Profile Link','High quality gradual delivery','Gradual Delivery|Real & Safe|Fast Start'
+  ];
+  const csvContent = [headers.join(','), example.map(v=>`"${v}"`).join(',')].join('\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='products_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('📥 CSV template downloaded! Fill data aur Load CSV se import karo.');
+};
+
+// ── CSV IMPORT ────────────────────────────────────────────────────────
+window.handleProductCSVImport = async (input) => {
+  const file = input.files[0];
+  if(!file) return;
+  input.value = ''; // reset for re-upload
+  const text = await file.text();
+  const lines = text.trim().split('\n').filter(l=>l.trim());
+  if(lines.length < 2){ showToast('⚠️ CSV mein data nahi mila (header + at least 1 row chahiye)'); return; }
+
+  // Parse CSV respecting quoted fields
+  const parseCSVRow = (row) => {
+    const result = []; let cur = ''; let inQ = false;
+    for(let i=0;i<row.length;i++){
+      const c=row[i];
+      if(c==='"'){ inQ=!inQ; continue; }
+      if(c===','&&!inQ){ result.push(cur.trim()); cur=''; continue; }
+      cur+=c;
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
+  const headers = parseCSVRow(lines[0]).map(h=>h.toLowerCase().trim());
+  const idx = (name) => headers.indexOf(name);
+
+  const rows = lines.slice(1).map(l=>parseCSVRow(l));
+  const valid = rows.filter(r=>r[idx('title')]&&r[idx('title')].length>0);
+  if(!valid.length){ showToast('⚠️ Koi valid row nahi mili — title column check karo'); return; }
+
+  const confirmMsg = `${valid.length} product(s) import honge Firebase mein.\n\nKya proceed karein?`;
+  if(!confirm(confirmMsg)) return;
+
+  showLoading(`Importing ${valid.length} products...`);
+  let success=0; let fail=0;
+  try{
+    await Promise.all(valid.map(async r=>{
+      try{
+        const featuresRaw = r[idx('features')]||'';
+        const features = featuresRaw.split('|').map(f=>f.trim()).filter(f=>f.length>0);
+        const pData = {
+          title:           r[idx('title')]||'',
+          category:        r[idx('category')]||'Other',
+          subCategory:     r[idx('subcategory')]||r[idx('subCategory')]||'Other',
+          discountedPrice: r[idx('discountedprice')]||r[idx('discountedPrice')]||'0',
+          avgTime:         r[idx('avgtime')]||r[idx('avgTime')]||'',
+          displayOrder:    parseInt(r[idx('displayorder')]||r[idx('displayOrder')])||0,
+          serviceId:       r[idx('serviceid')]||r[idx('serviceId')]||'',
+          apiUrl:          r[idx('apiurl')]||r[idx('apiUrl')]||'',
+          apiKey:          r[idx('apikey')]||r[idx('apiKey')]||'',
+          linkLabel:       r[idx('linklabel')]||r[idx('linkLabel')]||'',
+          description:     r[idx('description')]||'',
+          features,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await push(ref(db,'products'),pData);
+        success++;
+      }catch(e){ fail++; console.warn('Row import failed:',e.message); }
+    }));
+    hideLoading();
+    showToast(`✅ ${success} product(s) import hogaye!${fail>0?' ⚠️ '+fail+' fail hue.':''}`);
+  }catch(e){ hideLoading(); showToast('❌ Import error: '+e.message); }
+};
 
 function renderProducts(data){
   globalProducts=data||{};
