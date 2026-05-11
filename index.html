@@ -1956,15 +1956,78 @@ function updateDashTopProducts(productSales){
   `).join('');
 }
 
+// ── Parse estTime string into milliseconds ────────────────────────────
+function parseEstTimeMs(str){
+  if(!str)return null;
+  const s=str.toLowerCase().replace(/\s+/g,' ').trim();
+  let ms=0;
+  const hrMatch=s.match(/(\d+(?:\.\d+)?)\s*h(?:r|our|ours)?/);
+  const minMatch=s.match(/(\d+(?:\.\d+)?)\s*m(?:in|ins|inute|inutes)?/);
+  const dayMatch=s.match(/(\d+(?:\.\d+)?)\s*d(?:ay|ays)?/);
+  if(hrMatch)ms+=parseFloat(hrMatch[1])*3600000;
+  if(minMatch)ms+=parseFloat(minMatch[1])*60000;
+  if(dayMatch)ms+=parseFloat(dayMatch[1])*86400000;
+  // If just a plain number, treat as minutes
+  if(!hrMatch&&!minMatch&&!dayMatch){const n=parseFloat(s);if(!isNaN(n))ms=n*60000;}
+  return ms>0?ms:null;
+}
+
 window.saveEstTime=async(id)=>{
   const v=$(`estTimeInput_${id}`).value.trim();
   if(!v)return showToast('⚠️ Enter estimated time');
   try{
-    await update(ref(db,`orders/${id}`),{estTime:v,status:'progress'});
+    const ms=parseEstTimeMs(v);
+    const autoCompleteAt=ms?new Date(Date.now()+ms+5*60000).toISOString():null;
+    const updateData={estTime:v,status:'progress'};
+    if(autoCompleteAt)updateData.autoCompleteAt=autoCompleteAt;
+    await update(ref(db,`orders/${id}`),updateData);
     if(globalOrdersData&&globalOrdersData[id]&&globalOrdersData[id].isSubscription){await remove(ref(db,`users/${globalOrdersData[id].userId}/subscriptions/${globalOrdersData[id].productId}`));}
     showToast('⏱️ Time set & order moved to In Progress');
   }catch(e){showToast('❌ '+e.message);}
 };
+
+// ── Background Auto-Complete Poller (runs even when admin panel is closed) ──
+// Works via user.html too — whoever's browser is open will trigger it
+(function startAutoCompletePoller(){
+  async function runAutoComplete(){
+    try{
+      const snap=await get(ref(db,'orders'));
+      if(!snap.exists())return;
+      const now=Date.now();
+      const updates={};
+      snap.forEach(child=>{
+        const o=child.val();
+        const id=child.key;
+        if(o.status==='progress'&&o.autoCompleteAt&&!o._autoCompleted){
+          if(new Date(o.autoCompleteAt).getTime()<=now){
+            updates[`orders/${id}/status`]='completed';
+            updates[`orders/${id}/_autoCompleted`]=true;
+            updates[`orders/${id}/completedAt`]=new Date().toISOString();
+            // Handle subscription activation
+            if(o.isSubscription&&o.userId&&o.productId&&o.productSnapshot){
+              const dur=parseInt(o.productSnapshot.duration)||0;
+              const st=new Date();
+              const exp=new Date(st.getTime()+dur*86400000);
+              updates[`users/${o.userId}/subscriptions/${o.productId}/planName`]=o.productSnapshot.planName||'Premium Plan';
+              updates[`users/${o.userId}/subscriptions/${o.productId}/duration`]=dur;
+              updates[`users/${o.userId}/subscriptions/${o.productId}/startDate`]=st.toISOString();
+              updates[`users/${o.userId}/subscriptions/${o.productId}/expiryDate`]=exp.toISOString();
+              updates[`users/${o.userId}/subscriptions/${o.productId}/status`]='active';
+              updates[`users/${o.userId}/subscriptions/${o.productId}/orderId`]=id;
+            }
+          }
+        }
+      });
+      if(Object.keys(updates).length>0){
+        await update(ref(db),updates);
+        const count=Object.keys(updates).filter(k=>k.includes('/status')).length;
+        if(count>0)showToast(`✅ ${count} order(s) auto-completed`);
+      }
+    }catch(e){}
+  }
+  runAutoComplete();
+  setInterval(runAutoComplete,60000);
+})();
 
 function renderOrders(data){
   const l=$('ordersList');l.innerHTML='';
