@@ -395,6 +395,8 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <div class="nav-section-label">Users & Support</div>
   <div class="drawer-nav-item" data-tab="users"><i class="fas fa-users" style="width:18px;text-align:center;"></i> Users</div>
   <div class="drawer-nav-item" data-tab="referrals"><i class="fas fa-user-plus" style="width:18px;text-align:center;color:#f59e0b;"></i> Referrals</div>
+  <div class="drawer-nav-item" data-tab="walletManageTab"><i class="fas fa-wallet" style="width:18px;text-align:center;color:#10b981;"></i> Wallet Manage</div>
+  <div class="drawer-nav-item" data-tab="walletHistoryTab"><i class="fas fa-history" style="width:18px;text-align:center;color:#8b5cf6;"></i> Wallet History</div>
   <div class="drawer-nav-item" data-tab="support"><i class="fas fa-headset" style="width:18px;text-align:center;"></i> Support <span class="drawer-nav-badge" id="navChatBadge" style="display:none;">0</span></div>
 
   <div class="nav-divider"></div>
@@ -482,6 +484,8 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <div class="quick-action-btn" data-action="viewOrders"><div class="quick-action-icon"><i class="fas fa-shopping-bag"></i></div><div style="font-size:13px;font-weight:600;">Orders</div></div>
   <div class="quick-action-btn" data-action="apiConfig"><div class="quick-action-icon"><i class="fas fa-robot"></i></div><div style="font-size:13px;font-weight:600;">API Config</div></div>
   <div class="quick-action-btn" data-action="viewUsers"><div class="quick-action-icon"><i class="fas fa-user-friends"></i></div><div style="font-size:13px;font-weight:600;">User Base</div></div>
+  <div class="quick-action-btn" data-action="walletManage"><div class="quick-action-icon"><i class="fas fa-wallet" style="color:#10b981;"></i></div><div style="font-size:13px;font-weight:600;">Wallet Manage</div></div>
+  <div class="quick-action-btn" data-action="walletHistory"><div class="quick-action-icon"><i class="fas fa-history" style="color:#8b5cf6;"></i></div><div style="font-size:13px;font-weight:600;">Wallet History</div></div>
 </div>
 
 <!-- JUMP TO SHORTCUTS -->
@@ -807,21 +811,48 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 <!-- TELEGRAM BOT TAB -->
 <div id="telegramBotTab" class="tab-content">
 <div class="card">
-<h2 class="card-title"><i class="fab fa-telegram"></i> Telegram Order Notifications</h2>
-<p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6;">Configure a Telegram bot to receive order notifications instantly. Create a bot via @BotFather, add it to a group/channel, and get the Chat ID.</p>
-<div class="input-group"><label>Bot Token</label><input type="text" id="tgBotToken" placeholder="1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ"></div>
-<div class="input-group"><label>Chat ID (Group or Channel)</label><input type="text" id="tgChatId" placeholder="-1001234567890"></div>
-<div style="display:flex;gap:12px;margin-top:4px;">
-<button class="btn" id="saveTgBotBtn" style="flex:1;"><i class="fas fa-save"></i> Save Bot Config</button>
-<button class="btn btn-ghost" style="flex:1;" onclick="testTgBot()"><i class="fas fa-paper-plane"></i> Send Test Message</button>
-</div>
-<div style="margin-top:16px;padding:14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;font-size:13px;color:var(--text-secondary);line-height:1.7;">
+<h2 class="card-title"><i class="fab fa-telegram"></i> Telegram Bot — Global Token</h2>
+<p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6;">Ek hi bot token sabhi channels ke liye use hoga. @BotFather se token banao aur sabhi groups mein bot ko add karo.</p>
+<div class="input-group"><label>Bot Token <span style="font-weight:400;text-transform:none;">(Sabhi channels ke liye ek hi token)</span></label><input type="text" id="tgBotToken" placeholder="1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ"></div>
+<div style="margin-bottom:20px;padding:14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;font-size:13px;color:var(--text-secondary);line-height:1.7;">
   <b style="color:var(--text-primary);">Setup Steps:</b><br>
-  1. Message @BotFather → /newbot → get your Token<br>
-  2. Add your bot to a Telegram group<br>
-  3. Message @userinfobot in the group to get Chat ID<br>
-  4. Paste both above and Save
+  1. @BotFather → /newbot → Token copy karo<br>
+  2. Bot ko har group/channel mein add karo<br>
+  3. @userinfobot se us group ka Chat ID lo<br>
+  4. Niche har notification type ka alag Chat ID daalo
 </div>
+</div>
+
+<div class="card">
+<h2 class="card-title"><i class="fas fa-shopping-cart" style="color:var(--accent-primary);"></i> Orders Channel</h2>
+<p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Naye customer orders yahan notify honge.</p>
+<div class="input-group"><label>Chat ID — Orders Channel</label><input type="text" id="tgChatId" placeholder="-1001234567890"></div>
+<button class="btn btn-sm btn-ghost" style="width:auto;" onclick="testTgBotChannel('orders')"><i class="fas fa-paper-plane"></i> Test Orders Channel</button>
+</div>
+
+<div class="card">
+<h2 class="card-title"><i class="fas fa-gift" style="color:#f59e0b;"></i> Gift Code Redeem Channel</h2>
+<p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Jab koi user gift code redeem kare tab yahan notification aayegi.</p>
+<div class="input-group"><label>Chat ID — Gift Code Redeem Channel</label><input type="text" id="tgGiftCodeChatId" placeholder="-1001234567890"></div>
+<button class="btn btn-sm btn-ghost" style="width:auto;" onclick="testTgBotChannel('giftcode')"><i class="fas fa-paper-plane"></i> Test Gift Code Channel</button>
+</div>
+
+<div class="card">
+<h2 class="card-title"><i class="fas fa-wallet" style="color:#10b981;"></i> Wallet Top-Up Channel</h2>
+<p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Jab koi user wallet top-up kare tab yahan notification aayegi (orders section mein top-up alag dikhta tha — ab yeh alag channel mein aayega).</p>
+<div class="input-group"><label>Chat ID — Wallet Top-Up Channel</label><input type="text" id="tgTopUpChatId" placeholder="-1001234567890"></div>
+<button class="btn btn-sm btn-ghost" style="width:auto;" onclick="testTgBotChannel('topup')"><i class="fas fa-paper-plane"></i> Test Top-Up Channel</button>
+</div>
+
+<div class="card">
+<h2 class="card-title"><i class="fas fa-headset" style="color:#8b5cf6;"></i> Support Message Channel</h2>
+<p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Jab user support mein message bheje tab yahan notification aayegi.</p>
+<div class="input-group"><label>Chat ID — Support Notifications Channel</label><input type="text" id="tgSupportChatId" placeholder="-1001234567890"></div>
+<button class="btn btn-sm btn-ghost" style="width:auto;" onclick="testTgBotChannel('support')"><i class="fas fa-paper-plane"></i> Test Support Channel</button>
+</div>
+
+<div class="card" style="background:linear-gradient(135deg,rgba(37,99,235,0.04),rgba(79,70,229,0.04));border-color:rgba(37,99,235,0.2);">
+<button class="btn" id="saveTgBotBtn" style="width:100%;"><i class="fas fa-save"></i> Save All Telegram Config</button>
 </div>
 </div>
 
@@ -833,6 +864,43 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   <input type="text" id="userSearchInput" placeholder="🔍 Search users..." oninput="filterUsers()" style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit;">
 </div>
 <div id="usersGrid" class="products-grid"></div>
+</div>
+</div>
+
+<!-- WALLET MANAGE TAB -->
+<div id="walletManageTabTab" class="tab-content">
+<div class="card">
+<h2 class="card-title"><i class="fas fa-wallet" style="color:#10b981;"></i> Wallet Management — All Users</h2>
+<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">Kisi bhi user ka wallet balance credit ya debit karo. Search karke user dhundo, amount daalo aur apply karo.</p>
+<div style="margin-bottom:14px;">
+  <input type="text" id="wmSearchInput" placeholder="🔍 Search users by name or email..." oninput="renderWalletManageList()" style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit;">
+</div>
+<div id="walletManageList" class="orders-list"></div>
+</div>
+</div>
+
+<!-- WALLET HISTORY TAB -->
+<div id="walletHistoryTabTab" class="tab-content">
+<div class="card">
+<h2 class="card-title"><i class="fas fa-history" style="color:#8b5cf6;"></i> Wallet History — All Transactions</h2>
+<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">Sabhi users ki wallet transactions — top-up, purchases, refunds, referrals — sab ek jagah.</p>
+<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+  <input type="text" id="whSearchInput" placeholder="🔍 Search by name, email, UTR..." oninput="renderWalletHistory()" style="flex:1;min-width:180px;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit;">
+  <select id="whTypeFilter" onchange="renderWalletHistory()" style="padding:11px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;">
+    <option value="all">All Types</option>
+    <option value="wallet_topup">💰 Top-Up</option>
+    <option value="credit">➕ Credit</option>
+    <option value="debit">➖ Debit</option>
+    <option value="referral">🎁 Referral</option>
+    <option value="order">🛒 Order</option>
+  </select>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+  <div class="stat-card green"><div class="stat-value" id="whTotalTopup">₹0</div><div class="stat-label">Total Top-Ups</div></div>
+  <div class="stat-card"><div class="stat-value" id="whTotalOrders">₹0</div><div class="stat-label">Total Spent</div></div>
+  <div class="stat-card warn"><div class="stat-value" id="whTotalRefund">₹0</div><div class="stat-label">Total Refunds</div></div>
+</div>
+<div id="walletHistoryList" class="orders-list"></div>
 </div>
 </div>
 
@@ -1314,6 +1382,8 @@ document.querySelectorAll('.quick-action-btn').forEach(btn=>btn.addEventListener
   else if(a==='viewOrders')switchTab('orders');
   else if(a==='apiConfig')switchTab('apiconfig');
   else if(a==='viewUsers')switchTab('users');
+  else if(a==='walletManage')switchTab('walletManageTab');
+  else if(a==='walletHistory')switchTab('walletHistoryTab');
 }));
 
 window.switchTab=(tab,isUser=false)=>{
@@ -1461,7 +1531,8 @@ function initData(){
   onValue(ref(db,'meta/contact'),s=>{if(s.exists()){const d=s.val();$('contactEmail').value=d.email||'';$('contactTelegram').value=d.socialTelegram||'';}});
   onValue(ref(db,'meta/offers'),s=>{if(s.exists()){const d=s.val();$('offerName').value=d.name||'';$('offerImageUrl').value=d.imageUrl||'';$('offerNewRate').value=d.newRate||'';$('offerOldRate').value=d.oldRate||'';$('offerDescription').value=d.description||'';$('offerContactUsername').value=d.contactUsername||'';$('offerChannelLink').value=d.channelLink||'';}});
   onValue(ref(db,'meta/globalApi'),s=>{if(s.exists()){const d=s.val();globalApiConfig={url:d.url||'',key:d.key||''};$('globalApiUrl').value=d.url||'';$('globalApiKey').value=d.key||'';}});
-  onValue(ref(db,'meta/telegramBot'),s=>{if(s.exists()){const d=s.val();$('tgBotToken').value=d.token||'';$('tgChatId').value=d.chatId||'';}});
+  onValue(ref(db,'meta/telegramBot'),s=>{if(s.exists()){const d=s.val();$('tgBotToken').value=d.token||'';$('tgChatId').value=d.chatId||'';$('tgGiftCodeChatId').
+alue=d.giftCodeChatId||'';$('tgTopUpChatId').value=d.topUpChatId||'';$('tgSupportChatId').value=d.supportChatId||'';}});
   onValue(ref(db,'meta/announcement'),s=>{if(s.exists())applyAnnouncementDisplay(s.val());});
 }
 
@@ -2446,6 +2517,146 @@ window.applyInlineWallet=async(uid,currentBal)=>{
 window.filterUsers = () => { renderUsers(globalUsersData); };
 window.deleteUser=async(id)=>{const ok=await customConfirm({title:'Remove User?',msg:'All data for this user will be permanently deleted.',icon:'👤',okLabel:'Remove User',danger:true});if(ok)remove(ref(db,`users/${id}`));};
 
+// ── WALLET MANAGE TAB ─────────────────────────────────────────────────
+window.renderWalletManageList = function() {
+  const q = ($('wmSearchInput')?.value||'').toLowerCase().trim();
+  const cont = $('walletManageList'); if(!cont) return;
+  const users = globalUsersData;
+  const entries = Object.entries(users).filter(([,u]) => {
+    const p = u.profile||{};
+    if(!q) return true;
+    return (p.name||'').toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q);
+  });
+  if(!entries.length){cont.innerHTML='<p style="color:var(--text-secondary);text-align:center;padding:20px;">No users found.</p>';return;}
+  cont.innerHTML = entries.map(([uid,u]) => {
+    const p = u.profile||{};
+    const bal = parseFloat(p.walletBalance||0).toFixed(2);
+    const spent = parseFloat(p.totalSpent||0).toFixed(2);
+    const safeName = (p.name||'User').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `<div class="order-card" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">${p.name||'Unknown'}</div>
+          <div style="font-size:12px;color:var(--text-secondary);">${p.email||'No email'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:20px;font-weight:800;color:#10b981;">₹${bal}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">Spent: ₹${spent}</div>
+        </div>
+      </div>
+      <div class="inline-edit-panel open" style="display:block;margin-top:0;">
+        <div class="inline-edit-grid">
+          <div class="inline-edit-field"><label>Type</label><select id="wm_type_${uid}"><option value="credit">➕ Credit (Add)</option><option value="debit">➖ Debit (Deduct)</option></select></div>
+          <div class="inline-edit-field"><label>Amount (₹)</label><input type="number" id="wm_amt_${uid}" placeholder="e.g. 500" min="1"></div>
+          <div class="inline-edit-field full"><label>Note / Reason</label><input id="wm_note_${uid}" placeholder="e.g. Payment via UPI, Manual Credit"></div>
+        </div>
+        <button class="btn btn-sm btn-success" style="width:100%;" onclick="applyWalletManage('${uid}',${parseFloat(p.walletBalance||0)})"><i class="fas fa-check"></i> Apply Wallet Change</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.applyWalletManage = async(uid, currentBal) => {
+  const type = document.getElementById(`wm_type_${uid}`)?.value;
+  const amt = parseFloat(document.getElementById(`wm_amt_${uid}`)?.value);
+  const note = document.getElementById(`wm_note_${uid}`)?.value.trim() || 'Admin Adjustment';
+  if(isNaN(amt)||amt<=0) return showToast('⚠️ Valid amount daalo');
+  const delta = type==='credit' ? amt : -amt;
+  showLoading();
+  try{
+    const snap = await get(ref(db,`users/${uid}/profile`));
+    const latestBal = snap.exists() ? parseFloat(snap.val().walletBalance||0) : currentBal;
+    const finalBal = Math.max(0, latestBal+delta);
+    await update(ref(db,`users/${uid}/profile`),{walletBalance:finalBal});
+    await push(ref(db,`users/${uid}/walletHistory`),{type,amount:amt,note,utrId:'ADMIN_'+Date.now(),createdAt:new Date().toISOString()});
+    hideLoading(); showToast(`✅ ${type==='credit'?'Added':'Deducted'} ₹${amt.toFixed(2)} → Balance: ₹${finalBal.toFixed(2)}`);
+    // Clear inputs
+    const amtEl = document.getElementById(`wm_amt_${uid}`); if(amtEl) amtEl.value='';
+    const noteEl = document.getElementById(`wm_note_${uid}`); if(noteEl) noteEl.value='';
+  }catch(e){hideLoading();showToast('❌ '+e.message);}
+};
+
+// ── WALLET HISTORY TAB ─────────────────────────────────────────────────
+window.renderWalletHistory = function() {
+  const q = ($('whSearchInput')?.value||'').toLowerCase().trim();
+  const typeFilter = $('whTypeFilter')?.value || 'all';
+  const cont = $('walletHistoryList'); if(!cont) return;
+
+  // Collect all transactions from all users
+  const allTxns = [];
+  let totalTopup=0, totalOrders=0, totalRefund=0;
+
+  Object.entries(globalUsersData).forEach(([uid,u]) => {
+    const p = u.profile||{};
+    const hist = u.walletHistory ? Object.values(u.walletHistory) : [];
+    hist.forEach(tx => {
+      allTxns.push({...tx, userName:p.name||'Unknown', userEmail:p.email||'', uid});
+      const amt = parseFloat(tx.amount||0);
+      if(tx.type==='wallet_topup'||tx.type==='wallet_add'||(tx.type==='credit'&&(tx.note||'').toLowerCase().includes('top'))) totalTopup+=amt;
+      else if(tx.type==='debit') totalOrders+=amt;
+      else if((tx.note||'').toLowerCase().includes('refund')) totalRefund+=amt;
+    });
+  });
+
+  // Update stats
+  if($('whTotalTopup')) $('whTotalTopup').textContent='₹'+totalTopup.toFixed(0);
+  if($('whTotalOrders')) $('whTotalOrders').textContent='₹'+totalOrders.toFixed(0);
+  if($('whTotalRefund')) $('whTotalRefund').textContent='₹'+totalRefund.toFixed(0);
+
+  // Sort newest first
+  allTxns.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+
+  // Filter
+  let filtered = allTxns.filter(tx => {
+    const matchQ = !q || (tx.userName||'').toLowerCase().includes(q) || (tx.userEmail||'').toLowerCase().includes(q) || (tx.utrId||'').toLowerCase().includes(q) || (tx.note||'').toLowerCase().includes(q);
+    let matchType = true;
+    if(typeFilter==='wallet_topup') matchType = tx.type==='wallet_topup'||tx.type==='wallet_add'||(tx.type==='credit'&&(tx.note||'').toLowerCase().includes('top'));
+    else if(typeFilter==='credit') matchType = tx.type==='credit'||tx.type==='referral';
+    else if(typeFilter==='debit') matchType = tx.type==='debit';
+    else if(typeFilter==='referral') matchType = tx.type==='referral';
+    else if(typeFilter==='order') matchType = tx.type==='debit'&&(tx.note||'').toLowerCase().includes('purchase');
+    return matchQ && matchType;
+  });
+
+  if(!filtered.length){cont.innerHTML='<p style="color:var(--text-secondary);text-align:center;padding:24px;">No transactions found.</p>';return;}
+
+  const typeLabel = {
+    'wallet_topup':'💰 Top-Up','wallet_add':'💰 Top-Up','credit':'➕ Credit',
+    'debit':'➖ Debit','referral':'🎁 Referral','admin_credit':'🛡️ Admin Credit'
+  };
+  const typeColor = {
+    'wallet_topup':'#10b981','wallet_add':'#10b981','credit':'#2563eb',
+    'debit':'#ef4444','referral':'#f59e0b','admin_credit':'#8b5cf6'
+  };
+
+  cont.innerHTML = filtered.slice(0,100).map(tx => {
+    const dateStr = tx.createdAt ? new Date(tx.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}) : '—';
+    const isCredit = tx.type!=='debit';
+    const tLabel = typeLabel[tx.type]||tx.type;
+    const tColor = typeColor[tx.type]||(isCredit?'#10b981':'#ef4444');
+    const isTopup = tx.type==='wallet_topup'||tx.type==='wallet_add'||(tx.type==='credit'&&(tx.note||'').toLowerCase().includes('top'));
+    return `<div class="order-card" style="padding:14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-weight:700;font-size:13px;color:var(--text-primary);">${tx.userName}</span>
+            <span style="font-size:10px;background:${isTopup?'rgba(16,185,129,0.12)':'rgba(37,99,235,0.08)'};color:${tColor};border:1px solid ${tColor}33;border-radius:4px;padding:1px 7px;font-weight:700;">${isTopup?'💰 Top-Up':tLabel}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-secondary);">${tx.userEmail}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:3px;">${tx.note||'—'}</div>
+          ${tx.utrId?`<div style="font-size:10px;color:var(--accent-primary);margin-top:3px;font-family:monospace;">UTR: ${tx.utrId}</div>`:''}
+          <div style="font-size:10px;color:var(--text-secondary);margin-top:3px;">${dateStr}</div>
+        </div>
+        <div style="font-size:18px;font-weight:800;color:${isCredit?'#10b981':'#ef4444'};flex-shrink:0;">
+          ${isCredit?'+':'-'}₹${parseFloat(tx.amount||0).toFixed(2)}
+        </div>
+      </div>
+    </div>`;
+  }).join('') + (filtered.length>100?`<div style="text-align:center;font-size:12px;color:var(--text-secondary);padding:10px;">Top 100 of ${filtered.length} transactions shown</div>`:'');
+};
+
+// Auto-render wallet tabs when switched
+
 window.adminContactUser=(uid,userName)=>{
   window.openChatModal(uid, userName);
 };
@@ -2654,6 +2865,8 @@ window.switchTab=(tab,isUser=false)=>{
   if(tab==='sortMgmt'){setTimeout(()=>{renderSortList();populateSortCatFilter();},100);}
   if(tab==='dashboard')setTimeout(refreshDashboardCharts,200);
   if(tab==='referrals'){setTimeout(()=>{renderReferralLeaderboard();renderRefTransactions();},100);}
+  if(tab==='walletManageTab')setTimeout(()=>window.renderWalletManageList&&window.renderWalletManageList(),100);
+  if(tab==='walletHistoryTab')setTimeout(()=>window.renderWalletHistory&&window.renderWalletHistory(),100);
 };
 
 // ── SORT / RANK MANAGER ──────────────────────────────────────────────
@@ -2993,25 +3206,47 @@ onValue(ref(db,'meta/announcement'),s=>{
 });
 
 $('saveTgBotBtn').addEventListener('click',async()=>{
-  const token=$('tgBotToken').value.trim(),chatId=$('tgChatId').value.trim();
-  if(!token||!chatId)return showToast('⚠️ Enter both Token and Chat ID');
+  const token=$('tgBotToken').value.trim();
+  const chatId=$('tgChatId').value.trim();
+  const giftCodeChatId=$('tgGiftCodeChatId').value.trim();
+  const topUpChatId=$('tgTopUpChatId').value.trim();
+  const supportChatId=$('tgSupportChatId').value.trim();
+  if(!token) return showToast('⚠️ Bot Token daalo');
   showLoading();
-  await set(ref(db,'meta/telegramBot'),{token,chatId});
+  await set(ref(db,'meta/telegramBot'),{token,chatId,giftCodeChatId,topUpChatId,supportChatId});
   hideLoading();showToast('✅ Telegram Bot config saved!');
 });
 
-window.testTgBot=async()=>{
-  const token=$('tgBotToken').value.trim(),chatId=$('tgChatId').value.trim();
-  if(!token||!chatId)return showToast('⚠️ Save config first');
-  showLoading('Sending test message...');
+// Helper: send to a specific channel
+window._tgSend = async(chatId, text) => {
+  const token = $('tgBotToken').value.trim();
+  if(!token||!chatId) return;
   try{
-    const res=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text:'✅ Test message from your Admin Panel! Telegram notifications are working.'})});
-    const j=await res.json();
-    hideLoading();
-    if(j.ok)showToast('✅ Test message sent successfully!');
-    else showToast('❌ Failed: '+(j.description||'Check token/chatId'));
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text,parse_mode:'HTML'})});
+  }catch(e){}
+};
+
+// Test individual channel
+window.testTgBotChannel = async(type) => {
+  const token=$('tgBotToken').value.trim();
+  if(!token) return showToast('⚠️ Bot Token daalo pehle');
+  const map={orders:$('tgChatId'),giftcode:$('tgGiftCodeChatId'),topup:$('tgTopUpChatId'),support:$('tgSupportChatId')};
+  const labels={orders:'📦 Orders',giftcode:'🎁 Gift Code Redeem',topup:'💰 Wallet Top-Up',support:'🎧 Support Message'};
+  const el=map[type]; if(!el) return;
+  const chatId=el.value.trim(); if(!chatId) return showToast('⚠️ Pehle Chat ID daalo');
+  showLoading('Sending test...');
+  try{
+    const res=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text:`✅ Test — <b>${labels[type]} Channel</b>\n\nYour Admin Panel Telegram notifications are working! 🎉`,parse_mode:'HTML'})});
+    const j=await res.json(); hideLoading();
+    if(j.ok) showToast(`✅ ${labels[type]} channel working!`);
+    else showToast('❌ Failed: '+(j.description||'Token/ChatID check karo'));
   }catch(e){hideLoading();showToast('❌ Error: '+e.message);}
 };
+
+// Keep old testTgBot for backward compat
+window.testTgBot = () => window.testTgBotChannel('orders');
+
+
 
 // ── CHARTS ───────────────────────────────────────────────────────────
 let _chartOrdersRevenue=null, _chartCategory=null, _chartRevenue=null;
