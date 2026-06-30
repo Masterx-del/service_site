@@ -708,6 +708,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 
 <div class="input-group" style="margin-top:4px;"><label>Description <span style="font-weight:400;text-transform:none;">(shown on product card)</span></label><textarea id="productDescription" rows="2" placeholder="e.g., Gradual Delivery · High Quality · Real & Safe" style="width:100%;padding:12px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:12px;font-family:'Inter',sans-serif;resize:vertical;"></textarea></div>
 <div class="input-group"><label>Features <span style="font-weight:400;text-transform:none;">(one per line — shown as checklist)</span></label><textarea id="productFeatures" rows="3" placeholder="Gradual Delivery&#10;On 5 Reels&#10;10K/Day Reels Views" style="width:100%;padding:12px 14px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:12px;font-family:'Inter',sans-serif;resize:vertical;"></textarea></div>
+<div class="input-group"><label>Specification <span style="font-weight:400;text-transform:none;">(optional — groups this service under a chip in app, e.g. "Indian Followers")</span></label><input type="text" id="productSpecification" placeholder="e.g., Indian Followers, Premium Followers, Non-Drop Followers"></div>
 
 <div style="display:flex;gap:12px;margin-top:4px;">
 <button class="btn" id="saveProductBtn" style="flex:1;"><i class="fas fa-save"></i> Save Product</button>
@@ -1894,11 +1895,12 @@ $('saveProductBtn').addEventListener('click',async()=>{
   const linkLabel=$('productLinkLabel').value.trim();
   const description=$('productDescription').value.trim();
   const features=$('productFeatures').value.trim().split('\n').map(f=>f.trim()).filter(f=>f.length>0);
+  const specification=$('productSpecification').value.trim();
   const displayOrder=parseInt($('productDisplayOrder').value)||0;
   const editId=$('editProductId').value;
   if(!title || price === '') return showToast('⚠️ Title and price are required');
   showLoading();
-  const pData={title,category:cat,subCategory:sub,discountedPrice:price,avgTime:avgTime||'',description:description||'',features,apiUrl:apiUrl||'',apiKey:apiKey||'',serviceId:serviceId||'',linkLabel:linkLabel||'',displayOrder,updatedAt:new Date().toISOString()};
+  const pData={title,category:cat,subCategory:sub,discountedPrice:price,avgTime:avgTime||'',description:description||'',features,specification:specification||'',apiUrl:apiUrl||'',apiKey:apiKey||'',serviceId:serviceId||'',linkLabel:linkLabel||'',displayOrder,updatedAt:new Date().toISOString()};
   try{
     if(editId){await update(ref(db,`products/${editId}`),pData);}
     else{pData.createdAt=new Date().toISOString();await push(ref(db,'products'),pData);}
@@ -1907,7 +1909,7 @@ $('saveProductBtn').addEventListener('click',async()=>{
 });
 
 $('clearProductBtn').addEventListener('click',()=>{
-  $('editProductId').value='';$('productFormTitle').textContent='Add Product';['productTitle','productDiscountPrice','productAvgTime','productApiUrl','productApiKey','productServiceId','productLinkLabel','productDescription','productFeatures','productDisplayOrder'].forEach(id=>$(id).value='');
+  $('editProductId').value='';$('productFormTitle').textContent='Add Product';['productTitle','productDiscountPrice','productAvgTime','productApiUrl','productApiKey','productServiceId','productLinkLabel','productDescription','productFeatures','productSpecification','productDisplayOrder'].forEach(id=>$(id).value='');
 });
 
 // ── CSV EXPORT — ALL EXISTING PRODUCTS FROM FIREBASE ─────────────────
@@ -1916,7 +1918,7 @@ window.downloadProductCSVTemplate = async () => {
   try {
     const snap = await get(ref(db, 'products'));
     const data = snap.exists() ? snap.val() : {};
-    const headers = ['title','category','subCategory','discountedPrice','avgTime','displayOrder','serviceId','apiUrl','apiKey','linkLabel','description','features'];
+    const headers = ['title','category','subCategory','discountedPrice','avgTime','displayOrder','serviceId','apiUrl','apiKey','linkLabel','description','features','specification'];
 
     const escapeCell = (val) => {
       const s = String(val ?? '').replace(/"/g, '""');
@@ -1937,7 +1939,8 @@ window.downloadProductCSVTemplate = async () => {
         p.apiKey||'',
         p.linkLabel||'',
         p.description||'',
-        features
+        features,
+        p.specification||''
       ].map(escapeCell).join(',');
     });
 
@@ -2012,6 +2015,7 @@ window.handleProductCSVImport = async (input) => {
           linkLabel:       r[idx('linklabel')]||r[idx('linkLabel')]||'',
           description:     r[idx('description')]||'',
           features,
+          specification:   r[idx('specification')]||'',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -2135,6 +2139,7 @@ window.editProduct=(id)=>{
   $('productFeatures').value=(p.features&&p.features.length)?p.features.join('\n'):'';
   $('productApiUrl').value=p.apiUrl||'';$('productApiKey').value=p.apiKey||'';
   $('productServiceId').value=p.serviceId||'';$('productLinkLabel').value=p.linkLabel||'';
+  $('productSpecification').value=p.specification||'';
   switchTab('products');window.scrollTo(0,0);
 };
 window.deleteProduct=async(id)=>{const ok=await customConfirm({title:'Delete Product?',msg:'This product will be permanently removed. This cannot be undone.',icon:'🗑️',okLabel:'Delete',danger:true});if(ok)remove(ref(db,`products/${id}`));}
