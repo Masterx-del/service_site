@@ -1694,7 +1694,7 @@ function initData(){
   onValue(ref(db,'orders'),s=>{globalOrdersData=s.val();renderOrders(globalOrdersData);buildOrdersRevenueChart(globalOrdersData);scheduleAutoComplete(globalOrdersData);});
   onValue(ref(db,'coupons'),s=>renderCoupons(s.val()));
   onValue(ref(db,'exclusivePacks'),s=>{ window._globalExclusivePacks = s.val()||{}; renderExclusivePacks(window._globalExclusivePacks); const count=Object.keys(window._globalExclusivePacks).length; if($('dashTotalSubscriptions')) $('dashTotalSubscriptions').textContent=count; });
-  onValue(ref(db,'users'),s=>{renderUsers(s.val());updateReferralDashboardStats(s.val());});
+  onValue(ref(db,'users'),s=>renderUsers(s.val()));
   onValue(ref(db,'chats'),s=>renderChatUsers(s.val()));
   onValue(ref(db,'meta/brand'),s=>{if(s.exists()){const d=s.val();$('brandName').value=d.name||'';$('brandLogoUrl').value=d.logoUrl||'';if(d.logoUrl){$('drawerLogo').src=d.logoUrl;$('drawerLogo').style.display='block';}if(d.name)$('drawerBrandName').textContent=d.name;}});
   onValue(ref(db,'meta/contact'),s=>{if(s.exists()){const d=s.val();$('contactEmail').value=d.email||'';$('contactTelegram').value=d.socialTelegram||'';}});
@@ -2286,7 +2286,7 @@ window.saveEstTime=async(id)=>{
 (function startAutoCompletePoller(){
   async function runAutoComplete(){
     try{
-      const snap=await get(query(ref(db,'orders'), orderByChild('status'), equalTo('progress')));
+      const snap=await get(query(ref(db,'orders'),orderByChild('status'),equalTo('progress')));
       if(!snap.exists())return;
       const now=Date.now();
       const updates={};
@@ -2914,7 +2914,7 @@ window.applyInlineWallet=async(uid,currentBal)=>{
     await update(ref(db,`users/${uid}/profile`),{walletBalance:finalBal});
     await push(ref(db,`users/${uid}/walletHistory`),{type,amount:amt,note,utrId:'ADMIN_'+Date.now(),createdAt:new Date().toISOString()});
     hideLoading();showToast(`✅ ${type==='credit'?'Added':'Deducted'} ₹${amt.toFixed(2)} → Balance: ₹${finalBal.toFixed(2)}`);
-    // Note: live onValue(users) listener already auto-refreshes the table — no manual refetch needed
+    const uSnap=await get(ref(db,'users'));if(uSnap.exists())renderUsers(uSnap.val());
   }catch(e){hideLoading();showToast('❌ '+e.message);}
 };
 window.filterUsers = () => { renderUsers(globalUsersData); };
@@ -3105,7 +3105,9 @@ window.submitWalletAdjust=async()=>{
     hideLoading();
     closeWalletModal();
     showToast(`✅ ${type==='credit'?'Added':'Deducted'} ₹${amt.toFixed(2)} — New Balance: ₹${finalBal.toFixed(2)}`);
-    // Note: live onValue(users) listener already auto-refreshes the table — no manual refetch needed
+    // Refresh users list
+    const uSnap=await get(ref(db,'users'));
+    if(uSnap.exists()) renderUsers(uSnap.val());
   }catch(e){
     hideLoading();
     if(e.code==='PERMISSION_DENIED'||e.message.includes('permission')){
@@ -4361,9 +4363,9 @@ window.viewUserReferrals = (uid, name) => {
 
 // Referral tab render handled in main switchTab
 
-// ── Update referral dashboard stats whenever users data loads (called from the single merged users listener above — was a duplicate onValue(users) listener) ──
-function updateReferralDashboardStats(data) {
-  data = data || {};
+// ── Update referral dashboard stats whenever users data loads ──
+onValue(ref(db, 'users'), s => {
+  const data = s.val() || {};
   // Patch globalUsersData if it's stale (for dashboard stats)
   if(Object.keys(data).length) {
     globalUsersData = data;
@@ -4391,7 +4393,7 @@ function updateReferralDashboardStats(data) {
       buildUserGrowthChart(data);
     }
   }
-}
+});
 
 
 </script>
