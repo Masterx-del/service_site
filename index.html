@@ -1329,13 +1329,15 @@
   const _apiCallInProgress = new Set();
 
   async function callExternalApi(orderKey, apiUrl, apiKey, serviceId, quantity, targetLink){
-    if(_apiCallInProgress.has(orderKey)) return;
+    console.log('%c[SMM] callExternalApi() called','color:#3b82f6;font-weight:bold', {orderKey, apiUrl, apiKey: apiKey ? apiKey.slice(0,4)+'…' : apiKey, serviceId, quantity, targetLink});
+    if(_apiCallInProgress.has(orderKey)){ console.warn('[SMM] Skipped — already in progress (same-tab dedup) for', orderKey); return; }
     _apiCallInProgress.add(orderKey);
     try{
       const lockRef = ref(db, `orders/${orderKey}/apiStatus`);
-      const lockSnap = await get(lockRef).catch(()=>null);
+      const lockSnap = await get(lockRef).catch((e)=>{ console.error('[SMM] Failed to read lock (check Firebase rules for orders read):', e); return null; });
       const currentStatus = lockSnap && lockSnap.exists() ? lockSnap.val() : null;
-      if(currentStatus && currentStatus !== 'calling'){ _apiCallInProgress.delete(orderKey); return; }
+      console.log('[SMM] Current apiStatus in DB before lock:', currentStatus);
+      if(currentStatus && currentStatus !== 'calling'){ console.warn('[SMM] Skipped — apiStatus already resolved to', currentStatus); _apiCallInProgress.delete(orderKey); return; }
 
       let txnWon = false;
       try{
@@ -1343,45 +1345,51 @@
           if(current === 'calling'){ txnWon = true; return 'processing'; }
           return undefined;
         });
-        if(!txnResult.committed || !txnWon){ _apiCallInProgress.delete(orderKey); return; }
-      }catch(txnErr){ _apiCallInProgress.delete(orderKey); return; }
+        if(!txnResult.committed || !txnWon){ console.error('[SMM] Lock transaction lost/aborted — apiStatus was not "calling" when transaction ran. currentStatus was:', currentStatus); _apiCallInProgress.delete(orderKey); return; }
+        console.log('[SMM] Lock acquired, apiStatus now "processing"');
+      }catch(txnErr){ console.error('[SMM] Lock transaction threw — likely Firebase permission/rules issue on orders/*/apiStatus:', txnErr); _apiCallInProgress.delete(orderKey); return; }
 
       if(!apiUrl || !apiKey || !serviceId || !quantity || !targetLink){
+        const missingMsg = `Missing config: url=${!!apiUrl} key=${!!apiKey} svc=${!!serviceId} qty=${!!quantity} link=${!!targetLink}`;
+        console.error('[SMM] SKIPPED —', missingMsg, {apiUrl, apiKey, serviceId, quantity, targetLink});
         await update(ref(db, `orders/${orderKey}`), {
           apiStatus: 'skipped',
-          apiRawResponse: `Missing config: url=${!!apiUrl} key=${!!apiKey} svc=${!!serviceId} qty=${!!quantity} link=${!!targetLink}`
+          apiRawResponse: missingMsg
         }).catch(()=>{});
         _apiCallInProgress.delete(orderKey);
         return;
       }
 
       const apiPayload = `key=${encodeURIComponent(apiKey)}&action=add&service=${encodeURIComponent(serviceId)}&link=${encodeURIComponent(targetLink)}&quantity=${encodeURIComponent(quantity)}`;
+      console.log('[SMM] Firing panel request to', apiUrl, 'payload:', apiPayload.replace(apiKey, apiKey.slice(0,4)+'…'));
 
       // Only POST proxies used (GET-only proxies like allorigins don't support POST APIs correctly)
       const apiURLs = [
-        { url: apiUrl, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
-        { url: `https://corsproxy.org/?${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
-        { url: `https://proxy.cors.sh/${apiUrl}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','x-cors-api-key':'temp_'}, body: apiPayload } },
-        { url: `https://thingproxy.freeboard.io/fetch/${apiUrl}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
+        { name:'direct',       url: apiUrl, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
+        { name:'corsproxy.org',url: `https://corsproxy.org/?${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
+        { name:'proxy.cors.sh',url: `https://proxy.cors.sh/${apiUrl}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','x-cors-api-key':'temp_'}, body: apiPayload } },
+        { name:'thingproxy',   url: `https://thingproxy.freeboard.io/fetch/${apiUrl}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
       ];
 
       const raceResult = await new Promise((resolve)=>{
         let settled=false, pending=apiURLs.length, lastErr='No response';
-        apiURLs.forEach(({url,opts})=>{
+        apiURLs.forEach(({name,url,opts})=>{
           fetchWithTimeout(url, opts, 18000)
-            .then(r=>r.text())
+            .then(r=>{ console.log(`[SMM] Proxy "${name}" responded HTTP ${r.status}`); return r.text(); })
             .then(text=>{
               if(settled) return;
-              let j; try{ j = JSON.parse(text); }catch(e){ lastErr = 'Invalid JSON: '+text.substring(0,80); return; }
-              if(!j || typeof j!=='object' || Array.isArray(j)){ lastErr='Non-object JSON'; return; }
+              let j; try{ j = JSON.parse(text); }catch(e){ lastErr = 'Invalid JSON: '+text.substring(0,80); console.warn(`[SMM] Proxy "${name}" gave non-JSON:`, text.substring(0,200)); return; }
+              if(!j || typeof j!=='object' || Array.isArray(j)){ lastErr='Non-object JSON'; console.warn(`[SMM] Proxy "${name}" gave non-object JSON:`, j); return; }
+              console.log(`[SMM] Proxy "${name}" WON the race with valid JSON:`, j);
               if(!settled){ settled=true; resolve({ok:true,j,text}); }
             })
-            .catch(e=>{ lastErr = e.message || 'timeout'; })
+            .catch(e=>{ lastErr = e.message || 'timeout'; console.warn(`[SMM] Proxy "${name}" failed:`, e.message||e); })
             .finally(()=>{ pending--; if(pending===0 && !settled) resolve({ok:false,text:lastErr}); });
         });
       });
 
       if(!raceResult.ok){
+        console.error('[SMM] ALL 4 proxies failed. Last error:', raceResult.text);
         await update(ref(db, `orders/${orderKey}`), {
           apiStatus: 'failed', apiRawResponse: 'All proxies failed: '+raceResult.text, apiCalledAt: new Date().toISOString(),
         }).catch(()=>{});
@@ -1392,6 +1400,8 @@
       const {j,text} = raceResult;
       const orderId = j.order ?? j.order_id ?? j.id ?? j.orderId ?? null;
       const hasError = j.error || j.status==='error' || (typeof j.message==='string' && j.message.toLowerCase().includes('error'));
+
+      console.log(hasError ? '%c[SMM] Panel returned an ERROR:' : '%c[SMM] SUCCESS — order placed on panel! Panel order ID:', hasError?'color:red;font-weight:bold':'color:green;font-weight:bold', hasError ? j : orderId);
 
       await update(ref(db, `orders/${orderKey}`), {
         apiStatus: hasError ? 'error' : 'placed',
@@ -1541,6 +1551,11 @@
       const resolvedApiUrl = chkItem.apiUrl || globalApiConfig.url;
       const resolvedApiKey = chkItem.apiKey || globalApiConfig.key;
       const hasApiConfig = !!(resolvedApiUrl && resolvedApiKey && chkItem.serviceId && chkItem.quantity && targetLink);
+      console.log('[SMM] Single checkout — API config check:', {
+        productApiUrl: chkItem.apiUrl, productApiKey: chkItem.apiKey, globalApiConfig,
+        resolvedApiUrl, resolvedApiKey: resolvedApiKey ? resolvedApiKey.slice(0,4)+'…' : resolvedApiKey,
+        serviceId: chkItem.serviceId, quantity: chkItem.quantity, targetLink, hasApiConfig
+      });
       const orderData = {
         productId: chkItem.id,
         productSnapshot: chkItem,
@@ -1635,6 +1650,10 @@
         const resolvedApiUrl = item.apiUrl || globalApiConfig.url;
         const resolvedApiKey = item.apiKey || globalApiConfig.key;
         const hasApi = !!(resolvedApiUrl && resolvedApiKey && item.serviceId && apiQuantity && item.link);
+        console.log('[SMM] Cart item — API config check:', {
+          title: item.title, itemApiUrl: item.apiUrl, itemApiKey: item.apiKey, globalApiConfig,
+          resolvedApiUrl, serviceId: item.serviceId, baseQuantity: item.baseQuantity, qty: item.qty, apiQuantity, link: item.link, hasApi
+        });
         const orderData = {
           productId: item.productId,
           productSnapshot: item,
