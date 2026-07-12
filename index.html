@@ -1009,10 +1009,11 @@
   });
 
   function resolveLinkLabel(p){
+    if(p.linkLabel && p.linkLabel.trim()) return p.linkLabel.trim(); // per-product label, highest priority
     const cat = p.category || 'Other';
     const sub = p.subCategory || 'Other';
     const ruleLabel = linkMgmtRules[`${cat}|${sub}`];
-    if(ruleLabel && ruleLabel.trim()) return ruleLabel.trim();
+    if(ruleLabel && ruleLabel.trim()) return ruleLabel.trim(); // category-wide admin rule
     return cartLinkPlaceholder(p.title); // auto-detect fallback
   }
 
@@ -1135,7 +1136,8 @@
       serviceId: p.serviceId || '',
       baseQuantity: p.quantity || '',
       category: p.category || '',
-      subCategory: p.subCategory || ''
+      subCategory: p.subCategory || '',
+      linkLabel: p.linkLabel || ''
     });
     saveCart(cart);
     const btn = document.getElementById('cartbtn-'+id) || document.getElementById('modalCartBtn');
@@ -1163,7 +1165,8 @@
       serviceId: src.serviceId,
       baseQuantity: src.baseQuantity,
       category: src.category || '',
-      subCategory: src.subCategory || ''
+      subCategory: src.subCategory || '',
+      linkLabel: src.linkLabel || ''
     };
     cart.splice(idx+1, 0, clone); // insert right after, own separate link field
     saveCart(cart);
