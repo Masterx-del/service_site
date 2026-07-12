@@ -1883,7 +1883,9 @@
           </div>`;
       } else if((o.status === 'pending' || o.status === 'progress')){
         // Uses the estimated time set on the product/order in the admin portal, else a sensible default
-        const eta = o.estimatedTime || (o.productSnapshot && o.productSnapshot.estimatedTime) || OH_DEFAULT_ETA;
+        const eta = o.estimatedTime || o.avgTime
+          || (o.productSnapshot && (o.productSnapshot.avgTime || o.productSnapshot.estimatedTime))
+          || OH_DEFAULT_ETA;
         const hours = ohParseEtaHours(eta);
         const targetMs = createdMs + hours * 3600000;
         const remain = targetMs - Date.now();
