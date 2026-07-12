@@ -1352,7 +1352,8 @@
       const apiURLs = [
         { url: apiUrl, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
         { url: `https://corsproxy.org/?${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
-        { url: `https://proxy.cors.sh/${apiUrl}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','x-cors-api-key':'temp_'}, body: apiPayload } },
+        { url: `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
+        { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl+'?'+apiPayload)}`, opts:{ method:'GET', headers:{} } },
         { url: `https://thingproxy.freeboard.io/fetch/${apiUrl}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
       ];
 
