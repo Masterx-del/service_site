@@ -1342,10 +1342,20 @@
       let txnWon = false;
       try{
         const txnResult = await runTransaction(lockRef, (current)=>{
-          if(current === 'calling'){ txnWon = true; return 'processing'; }
-          return undefined;
+          // KNOWN FIREBASE SDK GOTCHA: if this path has no locally-cached value (no live
+          // listener on it), the SDK invokes this callback with current=null on the first
+          // pass even though the server's real value is 'calling'. Returning `undefined`
+          // in that case PERMANENTLY ABORTS the transaction with no retry. So we only abort
+          // on the genuinely-resolved terminal states; null/undefined (cache-miss) or
+          // 'calling' both proceed to 'processing'.
+          if(current === 'processing' || current === 'placed' || current === 'error' || current === 'skipped' || current === 'failed'){
+            console.warn('[SMM] Transaction abort — apiStatus already resolved server-side to:', current);
+            return undefined;
+          }
+          txnWon = true;
+          return 'processing';
         });
-        if(!txnResult.committed || !txnWon){ console.error('[SMM] Lock transaction lost/aborted — apiStatus was not "calling" when transaction ran. currentStatus was:', currentStatus); _apiCallInProgress.delete(orderKey); return; }
+        if(!txnResult.committed || !txnWon){ console.error('[SMM] Lock transaction did not commit. committed=', txnResult.committed, 'txnWon=', txnWon); _apiCallInProgress.delete(orderKey); return; }
         console.log('[SMM] Lock acquired, apiStatus now "processing"');
       }catch(txnErr){ console.error('[SMM] Lock transaction threw — likely Firebase permission/rules issue on orders/*/apiStatus:', txnErr); _apiCallInProgress.delete(orderKey); return; }
 
