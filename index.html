@@ -407,19 +407,27 @@
   .right-actions{display:flex;align-items:center;gap:6px}
 
   /* Cart / Order History modals */
-  .cart-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
-  .cart-item .ci-info{flex:1;min-width:0}
-  .cart-item .ci-info b{font-family:'Sora',sans-serif;font-size:13px;display:block}
+  .cart-item{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--border)}
+  .cart-item .ci-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cart-item .ci-info{flex:1 1 110px;min-width:0}
+  .cart-item .ci-info b{font-family:'Sora',sans-serif;font-size:13px;display:block;word-break:break-word}
+  .cart-item .ci-dup-tag{font-size:10px;font-weight:700;color:var(--muted);background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:1px 5px;margin-left:4px;white-space:nowrap}
   .cart-item .ci-price{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--growth);margin-top:2px}
-  .qty-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .qty-ctrl{display:flex;align-items:center;gap:6px;flex-shrink:0}
   .qty-ctrl button{
-    width:26px;height:26px;border-radius:7px;border:1px solid var(--border);background:var(--bg-2);
-    font-size:14px;font-weight:700;color:var(--text);cursor:pointer;line-height:1;
+    width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:var(--bg-2);
+    font-size:14px;font-weight:700;color:var(--text);cursor:pointer;line-height:1;flex-shrink:0;
   }
-  .qty-ctrl span{font-size:13px;font-weight:700;min-width:16px;text-align:center}
-  .ci-remove{color:#e0607a;font-size:11px;font-weight:600;cursor:pointer;margin-left:4px;flex-shrink:0}
+  .qty-ctrl span{font-size:13px;font-weight:700;min-width:14px;text-align:center}
+  .ci-remove{color:#e0607a;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;white-space:nowrap}
+  .ci-link-field{width:100%}
+  .ci-link-field input{width:100%;box-sizing:border-box}
   .cart-empty{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px}
   .cart-total-row{display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-family:'Sora',sans-serif;font-weight:800;font-size:15px}
+  @media (max-width:380px){
+    .cart-item .ci-top{gap:6px}
+    .ci-remove{font-size:10px}
+  }
 
   /* Order History - "My Order" style: header, stats, filters, cards */
   .oh-head-row{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
@@ -1081,35 +1089,38 @@
       badge.textContent = total;
       badge.classList.toggle('show', total>0);
     }
-    // per-product badges
+    // per-product badges (sum across all cart line-items of that product)
     document.querySelectorAll('[id^="cartqty-"]').forEach(el=>{
       const id = el.id.replace('cartqty-','');
-      const item = cart.find(i=>i.id===id);
-      const qty = item ? item.qty : 0;
+      const qty = cart.filter(i=>i.productId===id).reduce((s,i)=>s+i.qty,0);
       el.textContent = qty;
       el.classList.toggle('show', qty>0);
     });
+  }
+
+  function newCartId(){
+    return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   }
 
   function addToCart(id){
     const p = productCache[id];
     if(!p) return;
     const cart = loadCart();
-    const existing = cart.find(i=>i.id===id);
-    if(existing){ existing.qty += 1; }
-    else{
-      cart.push({
-        id,
-        title: p.title || '',
-        price: parseFloat(p.discountedPrice)||0,
-        qty: 1,
-        link: '',
-        apiUrl: p.apiUrl || '',
-        apiKey: p.apiKey || '',
-        serviceId: p.serviceId || '',
-        baseQuantity: p.quantity || ''
-      });
-    }
+    // Each "Add to Cart" creates its own separate line-item (own link field),
+    // even if the same service is added again — different post/video/profile
+    // may need a different link each time.
+    cart.push({
+      cartId: newCartId(),
+      productId: id,
+      title: p.title || '',
+      price: parseFloat(p.discountedPrice)||0,
+      qty: 1,
+      link: '',
+      apiUrl: p.apiUrl || '',
+      apiKey: p.apiKey || '',
+      serviceId: p.serviceId || '',
+      baseQuantity: p.quantity || ''
+    });
     saveCart(cart);
     const btn = document.getElementById('cartbtn-'+id) || document.getElementById('modalCartBtn');
     if(btn){
@@ -1119,20 +1130,27 @@
     if(document.getElementById('cartModal').style.display==='flex') renderCartModal();
   }
 
-  function changeQty(id, delta){
+  function changeQty(cartId, delta){
     let cart = loadCart();
-    const item = cart.find(i=>i.id===id);
+    const item = cart.find(i=>i.cartId===cartId);
     if(!item) return;
     item.qty += delta;
-    if(item.qty<=0) cart = cart.filter(i=>i.id!==id);
+    if(item.qty<=0) cart = cart.filter(i=>i.cartId!==cartId);
     saveCart(cart);
     renderCartModal();
   }
 
-  function removeFromCart(id){
-    const cart = loadCart().filter(i=>i.id!==id);
+  function removeFromCart(cartId){
+    const cart = loadCart().filter(i=>i.cartId!==cartId);
     saveCart(cart);
     renderCartModal();
+  }
+
+  function cartLinkPlaceholder(title){
+    const t = (title||'').toLowerCase();
+    if(t.includes('follower') || t.includes('subscriber')) return 'Profile link / username';
+    if(t.includes('member') || t.includes('group') || t.includes('channel')) return 'Group / Channel link';
+    return 'Post / Video link';
   }
 
   function renderCartModal(){
@@ -1148,30 +1166,44 @@
       return;
     }
     checkoutBtn.style.display = 'flex';
-    listEl.innerHTML = cart.map(i=>`
+
+    const dupCount = {};
+    cart.forEach(i=>{ dupCount[i.productId] = (dupCount[i.productId]||0)+1; });
+    const seenIdx = {};
+
+    listEl.innerHTML = cart.map(i=>{
+      let nameLabel = esc(i.title);
+      if(dupCount[i.productId] > 1){
+        seenIdx[i.productId] = (seenIdx[i.productId]||0)+1;
+        nameLabel += ` <span class="ci-dup-tag">#${seenIdx[i.productId]}</span>`;
+      }
+      return `
       <div class="cart-item">
-        <div class="ci-info">
-          <b>${esc(i.title)}</b>
-          <div class="ci-price">₹${i.price} x ${i.qty}</div>
+        <div class="ci-top">
+          <div class="ci-info">
+            <b>${nameLabel}</b>
+            <div class="ci-price">₹${i.price} x ${i.qty}</div>
+          </div>
+          <div class="qty-ctrl">
+            <button onclick="changeQty('${i.cartId}',-1)">−</button>
+            <span>${i.qty}</span>
+            <button onclick="changeQty('${i.cartId}',1)">+</button>
+          </div>
+          <div class="ci-remove" onclick="removeFromCart('${i.cartId}')">Remove</div>
         </div>
-        <div class="qty-ctrl">
-          <button onclick="changeQty('${i.id}',-1)">−</button>
-          <span>${i.qty}</span>
-          <button onclick="changeQty('${i.id}',1)">+</button>
+        <div class="pg-field ci-link-field">
+          <input type="text" id="cartlink-${i.cartId}" placeholder="${esc(cartLinkPlaceholder(i.title))}" value="${esc(i.link||'')}" oninput="syncCartLink('${i.cartId}', this.value)">
         </div>
-        <div class="ci-remove" onclick="removeFromCart('${i.id}')">Remove</div>
-        <div class="pg-field" style="margin-top:6px;">
-          <input type="text" id="cartlink-${i.id}" placeholder="Target link / username" value="${esc(i.link||'')}" oninput="syncCartLink('${i.id}', this.value)">
-        </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
     totalWrap.innerHTML = `<div class="cart-total-row"><span>Total</span><span>₹${total}</span></div>`;
   }
 
-  function syncCartLink(id, val){
+  function syncCartLink(cartId, val){
     const cart = loadCart();
-    const item = cart.find(i=>i.id===id);
+    const item = cart.find(i=>i.cartId===cartId);
     if(item){ item.link = val; saveCart(cart); }
   }
 
@@ -1560,7 +1592,7 @@
         const apiQuantity = item.baseQuantity ? (parseInt(item.baseQuantity)||0) * item.qty : '';
         const hasApi = !!(item.apiUrl && item.apiKey && item.serviceId && apiQuantity && item.link);
         const orderData = {
-          productId: item.id,
+          productId: item.productId,
           productSnapshot: item,
           guestId: gid,
           finalAmount: (item.price*item.qty).toFixed(2),
