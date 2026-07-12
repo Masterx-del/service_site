@@ -1130,12 +1130,24 @@
     if(document.getElementById('cartModal').style.display==='flex') renderCartModal();
   }
 
-  function changeQty(cartId, delta){
-    let cart = loadCart();
-    const item = cart.find(i=>i.cartId===cartId);
-    if(!item) return;
-    item.qty += delta;
-    if(item.qty<=0) cart = cart.filter(i=>i.cartId!==cartId);
+  function duplicateCartItem(cartId){
+    const cart = loadCart();
+    const idx = cart.findIndex(i=>i.cartId===cartId);
+    if(idx===-1) return;
+    const src = cart[idx];
+    const clone = {
+      cartId: newCartId(),
+      productId: src.productId,
+      title: src.title,
+      price: src.price,
+      qty: 1,
+      link: '',
+      apiUrl: src.apiUrl,
+      apiKey: src.apiKey,
+      serviceId: src.serviceId,
+      baseQuantity: src.baseQuantity
+    };
+    cart.splice(idx+1, 0, clone); // insert right after, own separate link field
     saveCart(cart);
     renderCartModal();
   }
@@ -1182,12 +1194,10 @@
         <div class="ci-top">
           <div class="ci-info">
             <b>${nameLabel}</b>
-            <div class="ci-price">₹${i.price} x ${i.qty}</div>
+            <div class="ci-price">₹${i.price}</div>
           </div>
           <div class="qty-ctrl">
-            <button onclick="changeQty('${i.cartId}',-1)">−</button>
-            <span>${i.qty}</span>
-            <button onclick="changeQty('${i.cartId}',1)">+</button>
+            <button onclick="duplicateCartItem('${i.cartId}')" title="Add one more (own link)">+</button>
           </div>
           <div class="ci-remove" onclick="removeFromCart('${i.cartId}')">Remove</div>
         </div>
@@ -1960,7 +1970,7 @@
   window.setChipActive = setChipActive;
   window.applyFilters = applyFilters;
   window.addToCart = addToCart;
-  window.changeQty = changeQty;
+  window.duplicateCartItem = duplicateCartItem;
   window.removeFromCart = removeFromCart;
   window.openCart = openCart;
   window.closeCart = closeCart;
