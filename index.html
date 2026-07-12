@@ -1002,6 +1002,20 @@
     renderCatalog(lastProductsSnap);
   });
 
+  // Admin-defined checkout link labels (Category|SubCategory -> label), set from Admin > Link Management
+  let linkMgmtRules = {};
+  onValue(ref(db,'meta/linkMgmt'), (snap)=>{
+    linkMgmtRules = snap.exists() ? snap.val() : {};
+  });
+
+  function resolveLinkLabel(p){
+    const cat = p.category || 'Other';
+    const sub = p.subCategory || 'Other';
+    const ruleLabel = linkMgmtRules[`${cat}|${sub}`];
+    if(ruleLabel && ruleLabel.trim()) return ruleLabel.trim();
+    return cartLinkPlaceholder(p.title); // auto-detect fallback
+  }
+
   function showServiceDetail(id){
     const p = productCache[id];
     if(!p) return;
@@ -1119,7 +1133,9 @@
       apiUrl: p.apiUrl || '',
       apiKey: p.apiKey || '',
       serviceId: p.serviceId || '',
-      baseQuantity: p.quantity || ''
+      baseQuantity: p.quantity || '',
+      category: p.category || '',
+      subCategory: p.subCategory || ''
     });
     saveCart(cart);
     const btn = document.getElementById('cartbtn-'+id) || document.getElementById('modalCartBtn');
@@ -1145,7 +1161,9 @@
       apiUrl: src.apiUrl,
       apiKey: src.apiKey,
       serviceId: src.serviceId,
-      baseQuantity: src.baseQuantity
+      baseQuantity: src.baseQuantity,
+      category: src.category || '',
+      subCategory: src.subCategory || ''
     };
     cart.splice(idx+1, 0, clone); // insert right after, own separate link field
     saveCart(cart);
@@ -1202,7 +1220,7 @@
           <div class="ci-remove" onclick="removeFromCart('${i.cartId}')">Remove</div>
         </div>
         <div class="pg-field ci-link-field">
-          <input type="text" id="cartlink-${i.cartId}" placeholder="${esc(cartLinkPlaceholder(i.title))}" value="${esc(i.link||'')}" oninput="syncCartLink('${i.cartId}', this.value)">
+          <input type="text" id="cartlink-${i.cartId}" placeholder="${esc(resolveLinkLabel(i))}" value="${esc(i.link||'')}" oninput="syncCartLink('${i.cartId}', this.value)">
         </div>
       </div>`;
     }).join('');
@@ -1450,6 +1468,7 @@
     const isFree = parseFloat(p.discountedPrice)===0;
     document.getElementById('chkPrice').textContent = isFree ? 'FREE' : ('₹'+p.discountedPrice);
     document.getElementById('chkLinkInput').value = '';
+    document.getElementById('chkLinkLabel').textContent = resolveLinkLabel(p);
     document.getElementById('chkStep1').style.display = 'block';
     document.getElementById('chkStep2').style.display = 'none';
     document.getElementById('checkoutModal').style.display = 'flex';
