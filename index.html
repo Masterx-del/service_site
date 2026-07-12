@@ -1468,7 +1468,7 @@
     const isFree = parseFloat(p.discountedPrice)===0;
     document.getElementById('chkPrice').textContent = isFree ? 'FREE' : ('₹'+p.discountedPrice);
     document.getElementById('chkLinkInput').value = '';
-    document.getElementById('chkLinkLabel').textContent = resolveLinkLabel(p);
+    document.getElementById('chkLinkInput').placeholder = resolveLinkLabel(p);
     document.getElementById('chkStep1').style.display = 'block';
     document.getElementById('chkStep2').style.display = 'none';
     document.getElementById('checkoutModal').style.display = 'flex';
