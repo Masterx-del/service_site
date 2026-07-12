@@ -1002,6 +1002,14 @@
     renderCatalog(lastProductsSnap);
   });
 
+  // Global API fallback — Admin > Global API Configuration. If a product's own apiUrl/apiKey
+  // is left blank (admin intentionally left it blank to "use global"), fall back to this.
+  let globalApiConfig = { url:'', key:'' };
+  onValue(ref(db,'meta/globalApi'), (snap)=>{
+    const d = snap.exists() ? snap.val() : {};
+    globalApiConfig = { url: d.url || '', key: d.key || '' };
+  });
+
   // Admin-defined checkout link labels (Category|SubCategory -> label), set from Admin > Link Management
   let linkMgmtRules = {};
   onValue(ref(db,'meta/linkMgmt'), (snap)=>{
@@ -1529,7 +1537,10 @@
       const paidVal = parseFloat(result.TXNAMOUNT);
       if(paidVal < amt - 1.00){ _unlockOrder(); resetBtn(); hidePayVerify(); return alert(`❌ Amount mismatch! Required ₹${amt}, paid ₹${paidVal}`); }
 
-      const hasApiConfig = !!(chkItem.apiUrl && chkItem.apiKey && chkItem.serviceId && chkItem.quantity && targetLink);
+      // Resolve API URL/Key: use product's own values, else fall back to Admin > Global API Configuration
+      const resolvedApiUrl = chkItem.apiUrl || globalApiConfig.url;
+      const resolvedApiKey = chkItem.apiKey || globalApiConfig.key;
+      const hasApiConfig = !!(resolvedApiUrl && resolvedApiKey && chkItem.serviceId && chkItem.quantity && targetLink);
       const orderData = {
         productId: chkItem.id,
         productSnapshot: chkItem,
@@ -1558,7 +1569,7 @@
       });
 
       if(hasApiConfig){
-        callExternalApi(newOrderRef.key, chkItem.apiUrl, chkItem.apiKey, chkItem.serviceId, chkItem.quantity, targetLink);
+        callExternalApi(newOrderRef.key, resolvedApiUrl, resolvedApiKey, chkItem.serviceId, chkItem.quantity, targetLink);
       }
     }catch(e){
       _unlockOrder(); resetBtn(); hidePayVerify();
@@ -1620,7 +1631,10 @@
 
       await Promise.all(cart.map(item=>{
         const apiQuantity = item.baseQuantity ? (parseInt(item.baseQuantity)||0) * item.qty : '';
-        const hasApi = !!(item.apiUrl && item.apiKey && item.serviceId && apiQuantity && item.link);
+        // Resolve API URL/Key: use item's own values, else fall back to Admin > Global API Configuration
+        const resolvedApiUrl = item.apiUrl || globalApiConfig.url;
+        const resolvedApiKey = item.apiKey || globalApiConfig.key;
+        const hasApi = !!(resolvedApiUrl && resolvedApiKey && item.serviceId && apiQuantity && item.link);
         const orderData = {
           productId: item.productId,
           productSnapshot: item,
@@ -1634,7 +1648,7 @@
         };
         const newOrderRef = push(ref(db,'orders'));
         return set(newOrderRef, orderData).then(()=>{
-          if(hasApi) callExternalApi(newOrderRef.key, item.apiUrl, item.apiKey, item.serviceId, apiQuantity, item.link);
+          if(hasApi) callExternalApi(newOrderRef.key, resolvedApiUrl, resolvedApiKey, item.serviceId, apiQuantity, item.link);
           return newOrderRef;
         });
       }));
