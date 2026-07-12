@@ -1220,7 +1220,7 @@
           <div class="ci-remove" onclick="removeFromCart('${i.cartId}')">Remove</div>
         </div>
         <div class="pg-field ci-link-field">
-          <input type="text" id="cartlink-${i.cartId}" placeholder="${esc(resolveLinkLabel(i))}" value="${esc(i.link||'')}" oninput="syncCartLink('${i.cartId}', this.value)">
+          <input type="text" id="cartlink-${i.cartId}" placeholder="${esc(resolveLinkLabel(productCache[i.productId] || i))}" value="${esc(i.link||'')}" oninput="syncCartLink('${i.cartId}', this.value)">
         </div>
       </div>`;
     }).join('');
