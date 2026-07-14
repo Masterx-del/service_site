@@ -1020,10 +1020,13 @@
     let label = '';
     if(p.linkLabel && p.linkLabel.trim()){
       label = p.linkLabel.trim();
+      console.log('[LinkLabel] Using product-level linkLabel (this overrides Link Management):', label, 'for product:', p.title);
     } else {
       const cat = p.category || 'Other';
       const sub = p.subCategory || 'Other';
-      const ruleLabel = linkMgmtRules[`${cat}|${sub}`];
+      const lookupKey = `${cat}|${sub}`;
+      const ruleLabel = linkMgmtRules[lookupKey];
+      console.log('[LinkLabel] Looking up key:', JSON.stringify(lookupKey), '→ found:', ruleLabel, '| all linkMgmtRules keys:', Object.keys(linkMgmtRules));
       if(ruleLabel && ruleLabel.trim()) label = ruleLabel.trim();
     }
     return label ? `Enter ${label}` : 'Enter Your Target Link';
