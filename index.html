@@ -1032,7 +1032,19 @@
   // Fire-and-forget — never blocks or breaks checkout if Telegram isn't configured or fails.
   async function sendOrderTelegramNotification(orderId, o){
     try{
-      if(!telegramConfig.token || !telegramConfig.chatId || !o) return;
+      let cfg = telegramConfig;
+      if(!cfg.token || !cfg.chatId){
+        // onValue listener may not have synced yet this early in the page lifecycle — fetch fresh as a fallback.
+        console.log('[Telegram] Cached config empty, fetching fresh from meta/telegramBot...');
+        const snap = await get(ref(db,'meta/telegramBot'));
+        const d = snap.exists() ? snap.val() : {};
+        cfg = { token: d.token || '', chatId: d.chatId || '' };
+      }
+      if(!cfg.token || !cfg.chatId){
+        console.warn('[Telegram] Skipped — Bot Token or Orders Chat ID not set in Admin > Telegram Bot.');
+        return;
+      }
+      if(!o) return;
       const orderNo = orderId.slice(-6).toUpperCase();
       const productName = tgEsc(o.productSnapshot?.title || o.productSnapshot?.planName || 'N/A');
       const qty = tgEsc(o.productSnapshot?.quantity || o.quantity || '—');
@@ -1054,10 +1066,14 @@
 🧾 UTR: <code>${utr}</code>
 📌 Status: ${status}
 🕒 Time: ${time}`;
-      await fetch(`https://api.telegram.org/bot${telegramConfig.token}/sendMessage`,{
+      console.log('[Telegram] Sending order notification...', {orderNo, chatId: cfg.chatId});
+      const res = await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`,{
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({chat_id:telegramConfig.chatId, text, parse_mode:'HTML'})
+        body:JSON.stringify({chat_id:cfg.chatId, text, parse_mode:'HTML'})
       });
+      const j = await res.json();
+      if(j.ok) console.log('[Telegram] ✅ Notification sent successfully');
+      else console.error('[Telegram] ❌ Send failed:', j.description||j);
     }catch(e){
       console.warn('[Telegram] Order notification failed (non-blocking):', e.message);
     }
