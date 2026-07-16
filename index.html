@@ -1016,6 +1016,53 @@
     linkMgmtRules = snap.exists() ? snap.val() : {};
   });
 
+  // Telegram Bot config — Admin > Telegram Bot. Kept live-synced so order notifications
+  // send instantly the moment an order is placed, regardless of whether the admin panel is open.
+  let telegramConfig = { token:'', chatId:'' };
+  onValue(ref(db,'meta/telegramBot'), (snap)=>{
+    const d = snap.exists() ? snap.val() : {};
+    telegramConfig = { token: d.token || '', chatId: d.chatId || '' };
+  });
+
+  function tgEsc(str){
+    return String(str==null?'':str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Fires the instant an order is created (called right after set(newOrderRef, orderData)).
+  // Fire-and-forget — never blocks or breaks checkout if Telegram isn't configured or fails.
+  async function sendOrderTelegramNotification(orderId, o){
+    try{
+      if(!telegramConfig.token || !telegramConfig.chatId || !o) return;
+      const orderNo = orderId.slice(-6).toUpperCase();
+      const productName = tgEsc(o.productSnapshot?.title || o.productSnapshot?.planName || 'N/A');
+      const qty = tgEsc(o.productSnapshot?.quantity || o.quantity || '—');
+      const amount = parseFloat(o.finalAmount||0);
+      const user = tgEsc(o.guestId || o.userEmail || 'N/A');
+      const link = tgEsc(o.targetLink || '—');
+      const utr = tgEsc(o.utrId || '—');
+      const isFree = amount<=0;
+      const status = isFree ? '🆓 Free Order' : (o.status==='progress' ? '⚙️ In Progress (Auto)' : '⏳ Pending Review');
+      const time = new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+      const text = `🔔 <b>New Order Received!</b>
+
+🆔 Order ID: <code>#${orderNo}</code>
+🛍️ Product: ${productName}
+🔢 Quantity: ${qty}
+💰 Amount: ₹${amount}
+👤 User: <code>${user}</code>
+🔗 Link: ${link}
+🧾 UTR: <code>${utr}</code>
+📌 Status: ${status}
+🕒 Time: ${time}`;
+      await fetch(`https://api.telegram.org/bot${telegramConfig.token}/sendMessage`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat_id:telegramConfig.chatId, text, parse_mode:'HTML'})
+      });
+    }catch(e){
+      console.warn('[Telegram] Order notification failed (non-blocking):', e.message);
+    }
+  }
+
   function resolveLinkLabel(p){
     let label = '';
     if(p.linkLabel && p.linkLabel.trim()){
@@ -1582,6 +1629,7 @@
       };
       const newOrderRef = push(ref(db,'orders'));
       await set(newOrderRef, orderData);
+      sendOrderTelegramNotification(newOrderRef.key, orderData);
 
       const orderRefShort = ohOrderNumber({ key: newOrderRef.key, utrId: utr });
       _unlockOrder(); resetBtn(); hidePayVerify(); closeCheckout();
@@ -1680,6 +1728,7 @@
         };
         const newOrderRef = push(ref(db,'orders'));
         return set(newOrderRef, orderData).then(()=>{
+          sendOrderTelegramNotification(newOrderRef.key, orderData);
           if(hasApi) callExternalApi(newOrderRef.key, resolvedApiUrl, resolvedApiKey, item.serviceId, apiQuantity, item.link);
           return newOrderRef;
         });
