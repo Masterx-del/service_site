@@ -1897,7 +1897,7 @@
           labelEl.innerHTML = '<span class="oh-dot"></span>' + (isEstimate ? 'Almost there…' : 'Wrapping up your order…');
           pctEl.textContent = '100%';
           fillEl.style.width = '100%';
-          if(!isEstimate && orderId && !_ohAutoCompleteAttempted.has(orderId)){
+          if(orderId && !_ohAutoCompleteAttempted.has(orderId)){
             _ohAutoCompleteAttempted.add(orderId);
             ohAutoCompleteOrder(orderId);
           }
