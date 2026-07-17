@@ -1413,7 +1413,21 @@
 
   const _apiCallInProgress = new Set();
 
-  async function callExternalApi(orderKey, apiUrl, apiKey, serviceId, quantity, targetLink){
+  // Converts product's admin-set "Avg Time" (e.g. "30 Min", "2 Hr") into an ISO
+  // completion timestamp, +10 min buffer — same convention admin panel uses.
+  function computeAutoCompleteAt(avgTime){
+    if(!avgTime) return null;
+    const str = String(avgTime).toLowerCase().trim();
+    const num = parseFloat(str);
+    if(isNaN(num) || num <= 0) return null;
+    let ms;
+    if(str.includes('hr') || str.includes('hour')) ms = num * 60 * 60 * 1000;
+    else if(str.includes('day')) ms = num * 24 * 60 * 60 * 1000;
+    else ms = num * 60 * 1000;
+    return new Date(Date.now() + ms + 10*60*1000).toISOString();
+  }
+
+  async function callExternalApi(orderKey, apiUrl, apiKey, serviceId, quantity, targetLink, avgTime){
     console.log('%c[SMM] callExternalApi() called','color:#3b82f6;font-weight:bold', {orderKey, apiUrl, apiKey: apiKey ? apiKey.slice(0,4)+'…' : apiKey, serviceId, quantity, targetLink});
     if(_apiCallInProgress.has(orderKey)){ console.warn('[SMM] Skipped — already in progress (same-tab dedup) for', orderKey); return; }
     _apiCallInProgress.add(orderKey);
@@ -1462,8 +1476,8 @@
       const apiURLs = [
         { name:'direct',       url: apiUrl, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
         { name:'corsproxy.org',url: `https://corsproxy.org/?${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
-        { name:'proxy.cors.sh',url: `https://proxy.cors.sh/${apiUrl}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','x-cors-api-key':'temp_'}, body: apiPayload } },
-        { name:'thingproxy',   url: `https://thingproxy.freeboard.io/fetch/${apiUrl}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
+        { name:'cf-worker',    url: `https://bitter-mode-4fa8wholesale-proxy.demos-orx.workers.dev/?url=${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
+        { name:'allorigins',   url: `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl+'?'+apiPayload)}`, opts:{ method:'GET' } },
       ];
 
       const raceResult = await new Promise((resolve)=>{
@@ -1498,12 +1512,21 @@
 
       console.log(hasError ? '%c[SMM] Panel returned an ERROR:' : '%c[SMM] SUCCESS — order placed on panel! Panel order ID:', hasError?'color:red;font-weight:bold':'color:green;font-weight:bold', hasError ? j : orderId);
 
-      await update(ref(db, `orders/${orderKey}`), {
+      const successUpdate = {
         apiStatus: hasError ? 'error' : 'placed',
         apiOrderId: (!hasError && orderId) ? String(orderId) : null,
         apiRawResponse: text.substring(0,500),
         apiCalledAt: new Date().toISOString(),
-      }).catch(()=>{});
+      };
+      if(!hasError){
+        // Order confirmed received by the SMM provider — move to progress with
+        // the admin-configured timer (product's Avg Time) so the countdown starts now.
+        successUpdate.status = 'progress';
+        successUpdate.progressAt = new Date().toISOString();
+        const autoCompleteAt = computeAutoCompleteAt(avgTime);
+        if(autoCompleteAt) successUpdate.autoCompleteAt = autoCompleteAt;
+      }
+      await update(ref(db, `orders/${orderKey}`), successUpdate).catch(()=>{});
 
     }catch(outerErr){
       await update(ref(db, `orders/${orderKey}`), {
@@ -1658,7 +1681,7 @@
         finalAmount: amt.toFixed(2),
         utrId: utr,
         targetLink,
-        status: hasApiConfig ? 'progress' : 'pending',
+        status: 'pending',
         createdAt: new Date().toISOString(),
         apiStatus: hasApiConfig ? 'calling' : null,
       };
@@ -1680,7 +1703,7 @@
       });
 
       if(hasApiConfig){
-        callExternalApi(newOrderRef.key, resolvedApiUrl, resolvedApiKey, chkItem.serviceId, chkItem.quantity, targetLink);
+        callExternalApi(newOrderRef.key, resolvedApiUrl, resolvedApiKey, chkItem.serviceId, chkItem.quantity, targetLink, chkItem.avgTime);
       }
     }catch(e){
       _unlockOrder(); resetBtn(); hidePayVerify();
@@ -1756,7 +1779,7 @@
           guestId: gid,
           finalAmount: (item.price*item.qty).toFixed(2),
           utrId: utr, targetLink: item.link,
-          status: hasApi ? 'progress' : 'pending',
+          status: 'pending',
           createdAt: new Date().toISOString(),
           cartGroup: utr,
           apiStatus: hasApi ? 'calling' : null,
@@ -1764,7 +1787,7 @@
         const newOrderRef = push(ref(db,'orders'));
         return set(newOrderRef, orderData).then(()=>{
           sendOrderTelegramNotification(newOrderRef.key, orderData);
-          if(hasApi) callExternalApi(newOrderRef.key, resolvedApiUrl, resolvedApiKey, item.serviceId, apiQuantity, item.link);
+          if(hasApi) callExternalApi(newOrderRef.key, resolvedApiUrl, resolvedApiKey, item.serviceId, apiQuantity, item.link, item.avgTime);
           return newOrderRef;
         });
       }));
