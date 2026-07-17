@@ -1058,7 +1058,7 @@
         return;
       }
       if(!o) return;
-      const orderNo = orderId.slice(-6).toUpperCase();
+      const orderNo = o.orderNumber ? ('#'+o.orderNumber) : orderId.slice(-6).toUpperCase();
       const productName = o.productSnapshot?.title || o.productSnapshot?.planName || 'N/A';
       const amount = parseFloat(o.finalAmount||0);
       const user = o.guestId || o.userEmail || 'N/A';
@@ -1542,6 +1542,13 @@
   }
 
   let _isProcessingOrder = false;
+  // Atomic counter — guarantees unique, gapless, sequential order numbers even under concurrent checkouts.
+  async function getNextOrderNumber(){
+    const counterRef = ref(db,'meta/orderCounter');
+    const txn = await runTransaction(counterRef, (current) => (current || 0) + 1);
+    const n = txn.snapshot.val();
+    return String(n).padStart(5,'0');
+  }
   function _lockOrder(){ _isProcessingOrder = true; }
   function _unlockOrder(){ _isProcessingOrder = false; }
   function _guardOrder(){ if(_isProcessingOrder){ return true; } _lockOrder(); return false; }
@@ -1678,6 +1685,7 @@
         resolvedApiUrl, resolvedApiKey: resolvedApiKey ? resolvedApiKey.slice(0,4)+'…' : resolvedApiKey,
         serviceId: chkItem.serviceId, quantity: chkItem.quantity, targetLink, hasApiConfig
       });
+      const orderNumber = await getNextOrderNumber();
       const orderData = {
         productId: chkItem.id,
         productSnapshot: chkItem,
@@ -1688,12 +1696,13 @@
         status: hasApiConfig ? 'progress' : 'pending',
         createdAt: new Date().toISOString(),
         apiStatus: hasApiConfig ? 'calling' : null,
+        orderNumber,
       };
       const newOrderRef = push(ref(db,'orders'));
       await set(newOrderRef, orderData);
       sendOrderTelegramNotification(newOrderRef.key, orderData);
 
-      const orderRefShort = ohOrderNumber({ key: newOrderRef.key, utrId: utr });
+      const orderRefShort = ohOrderNumber({ key: newOrderRef.key, utrId: utr, orderNumber });
       _unlockOrder(); resetBtn(); hidePayVerify(); closeCheckout();
       saveLocalOrder({ date: new Date().toISOString(), items:[{title:chkItem.title, price:amt, qty:1}], total:amt, utr, orderRef:orderRefShort });
       updateCartBadge();
@@ -1766,6 +1775,7 @@
       if(paidVal < cartFinalAmt - 1.00){ _unlockOrder(); resetBtn(); hidePayVerify(); return alert(`❌ Amount mismatch! Required ₹${cartFinalAmt.toFixed(2)}, paid ₹${paidVal}`); }
 
       const gid = getGuestId();
+      const orderNumber = await getNextOrderNumber();
 
       await Promise.all(cart.map(item=>{
         const apiQuantity = item.baseQuantity ? (parseInt(item.baseQuantity)||0) * item.qty : '';
@@ -1787,6 +1797,7 @@
           createdAt: new Date().toISOString(),
           cartGroup: utr,
           apiStatus: hasApi ? 'calling' : null,
+          orderNumber,
         };
         const newOrderRef = push(ref(db,'orders'));
         return set(newOrderRef, orderData).then(()=>{
@@ -1796,11 +1807,11 @@
         });
       }));
 
-      saveLocalOrder({ date:new Date().toISOString(), items:cart, total:cartFinalAmt, utr });
+      saveLocalOrder({ date:new Date().toISOString(), items:cart, total:cartFinalAmt, utr, orderRef: orderNumber });
       saveCart([]);
       _unlockOrder(); resetBtn(); hidePayVerify(); closeCart();
       showReceipt({
-        orderRef: utr,
+        orderRef: orderNumber,
         amount: cartFinalAmt,
         rows: cart.map(item => ({ label: item.title + (item.qty>1?` x${item.qty}`:''), value: '₹'+(item.price*item.qty).toFixed(2) }))
       });
@@ -2010,6 +2021,8 @@
   const OH_DEFAULT_ETA = '24-48 hours'; // shown when admin portal hasn't set a per-product estimatedTime yet
 
   function ohOrderNumber(o){
+    if(o && o.orderNumber) return o.orderNumber; // new sequential #00001 style number
+    // Legacy fallback for orders created before sequential numbering was added.
     const str = String(o.utrId || o.key || '');
     let hash = 0;
     for(let i=0;i<str.length;i++){ hash = (hash*31 + str.charCodeAt(i)) >>> 0; }
