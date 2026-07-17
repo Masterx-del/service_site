@@ -2107,6 +2107,35 @@
     ohStartTicker();
   }
 
+  // Self-heal stuck orders straight from the user dashboard (no admin panel needed):
+  // - apiStatus 'placed' but status still 'pending'  → flip to 'progress' + start the timer
+  // - apiStatus 'skipped' (API info missing)          → move to 'pending_verification'
+  async function ohReconcileStuckOrders(rows){
+    const fixes = [];
+    rows.forEach(o=>{
+      if(o.status !== 'pending' || !o.key) return;
+      if(o.apiStatus === 'placed'){
+        const patch = { status:'progress' };
+        if(!o.progressAt) patch.progressAt = new Date().toISOString();
+        if(!o.autoCompleteAt){
+          const ac = computeAutoCompleteAt(o.productSnapshot && o.productSnapshot.avgTime);
+          if(ac) patch.autoCompleteAt = ac;
+        }
+        fixes.push({key:o.key, patch});
+      } else if(o.apiStatus === 'skipped'){
+        fixes.push({key:o.key, patch:{status:'pending_verification'}});
+      }
+    });
+    if(!fixes.length) return rows;
+    const multiUpdate = {};
+    fixes.forEach(({key,patch})=>{ Object.entries(patch).forEach(([k,v])=>{ multiUpdate[`orders/${key}/${k}`] = v; }); });
+    try{ await update(ref(db), multiUpdate); }catch(e){ console.warn('[Reconcile] Failed to self-heal orders:', e.message); return rows; }
+    return rows.map(o=>{
+      const fix = fixes.find(f=> f.key === o.key);
+      return fix ? { ...o, ...fix.patch } : o;
+    });
+  }
+
   async function searchOrderHistory(force){
     const gid = document.getElementById('ohIdInput').value.trim();
     const el = document.getElementById('orderHistoryList');
@@ -2130,11 +2159,12 @@
     if(btn){ btn.disabled = true; btn.innerHTML = '<span class="oh-btn-spinner"></span>Searching'; }
     try{
       const snap = await get(query(ref(db,'orders'), orderByChild('guestId'), equalTo(gid)));
-      const rows = [];
+      let rows = [];
       if(snap.exists()){
         snap.forEach(child=>{ rows.push({key: child.key, ...child.val()}); });
         rows.sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
       }
+      rows = await ohReconcileStuckOrders(rows);
       _ohRows = rows;
       _ohFilter = 'all';
       _ohLastGid = gid;
