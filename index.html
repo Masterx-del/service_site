@@ -1030,6 +1030,17 @@
 
   // Fires the instant an order is created (called right after set(newOrderRef, orderData)).
   // Fire-and-forget — never blocks or breaks checkout if Telegram isn't configured or fails.
+  // Uses Telegram Premium custom emojis (by @TgEmojis) — visible to all users, not just Premium senders.
+  const TG_CUSTOM_EMOJIS = [
+    { ph: '🔔', id: '6129577213734952104' }, // New Order Received
+    { ph: '🚀', id: '6041705726206808304' }, // Order ID
+    { ph: '⚙️', id: '5902432207519093015' }, // Product
+    { ph: '💳', id: '5902056028513505203' }, // Amount
+    { ph: '👤', id: '5902335789798265487' }, // User
+    { ph: '🔗', id: '5902449142575141204' }, // Link
+    { ph: '⏰', id: '5850317551090800862' }, // Time
+    { ph: '💳', id: '6129870117619634982' }  // Buy Now
+  ];
   async function sendOrderTelegramNotification(orderId, o){
     try{
       let cfg = telegramConfig;
@@ -1046,30 +1057,38 @@
       }
       if(!o) return;
       const orderNo = orderId.slice(-6).toUpperCase();
-      const productName = tgEsc(o.productSnapshot?.title || o.productSnapshot?.planName || 'N/A');
-      const qty = tgEsc(o.productSnapshot?.quantity || o.quantity || '—');
+      const productName = o.productSnapshot?.title || o.productSnapshot?.planName || 'N/A';
       const amount = parseFloat(o.finalAmount||0);
-      const user = tgEsc(o.guestId || o.userEmail || 'N/A');
-      const link = tgEsc(o.targetLink || '—');
-      const utr = tgEsc(o.utrId || '—');
-      const isFree = amount<=0;
-      const status = isFree ? '🆓 Free Order' : (o.status==='progress' ? '⚙️ In Progress (Auto)' : '⏳ Pending Review');
+      const user = o.guestId || o.userEmail || 'N/A';
+      const link = o.targetLink || '—';
       const time = new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
-      const text = `🔔 <b>New Order Received!</b>
 
-🆔 Order ID: <code>#${orderNo}</code>
-🛍️ Product: ${productName}
-🔢 Quantity: ${qty}
-💰 Amount: ₹${amount}
-👤 User: <code>${user}</code>
-🔗 Link: ${link}
-🧾 UTR: <code>${utr}</code>
-📌 Status: ${status}
-🕒 Time: ${time}`;
+      // Build message + entities (bold, code, custom_emoji) together, tracking UTF-16 offsets as we go.
+      // NOTE: Telegram doesn't allow mixing parse_mode with an explicit entities array, so everything
+      // here — including bold/code — is done via entities, and `text` stays plain (no HTML tags).
+      let text = '';
+      const entities = [];
+      const addEmoji = (i) => {
+        const e = TG_CUSTOM_EMOJIS[i];
+        entities.push({ type:'custom_emoji', offset: text.length, length: e.ph.length, custom_emoji_id: e.id });
+        text += e.ph;
+      };
+      const addBold = (str) => { entities.push({ type:'bold', offset: text.length, length: str.length }); text += str; };
+      const addCode = (str) => { entities.push({ type:'code', offset: text.length, length: str.length }); text += str; };
+
+      addEmoji(0); text += ' '; addBold('New Order Received!'); text += '\n\n';
+      addEmoji(1); text += ' Order ID : '; addCode('#'+orderNo); text += '\n';
+      addEmoji(2); text += ` Product : ${productName}\n`;
+      addEmoji(3); text += ` Amount : ₹${amount}\n\n`;
+      addEmoji(4); text += ' User : '; addCode(user); text += '\n';
+      addEmoji(5); text += ` Link : ${link}\n`;
+      addEmoji(6); text += ` Time : ${time}\n\n`;
+      addEmoji(7); text += ' Buy Now - WholesalerxProvider.vercel.app';
+
       console.log('[Telegram] Sending order notification...', {orderNo, chatId: cfg.chatId});
       const res = await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`,{
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({chat_id:cfg.chatId, text, parse_mode:'HTML'})
+        body:JSON.stringify({chat_id:cfg.chatId, text, entities})
       });
       const j = await res.json();
       if(j.ok) console.log('[Telegram] ✅ Notification sent successfully');
@@ -1817,7 +1836,7 @@
   }
 
   let _ohTickInterval = null;
-  const _ohRefreshedOnComplete = new Set();
+  const _ohAutoCompleteAttempted = new Set(); // order keys we've already tried to auto-complete — avoids duplicate writes
   function ohStartTicker(){
     ohStopTicker();
     _ohTickInterval = setInterval(()=>{
@@ -1828,7 +1847,7 @@
         const remain = target - now;
         const pct = Math.max(0, Math.min(100, ((now - start) / (target - start)) * 100));
         const isEstimate = el.dataset.estimate === '1';
-        const key = el.dataset.target;
+        const orderId = el.dataset.orderId;
 
         const labelEl = el.querySelector('.oh-progress-label');
         const pctEl = el.querySelector('.oh-progress-pct');
@@ -1838,10 +1857,9 @@
           labelEl.innerHTML = '<span class="oh-dot"></span>' + (isEstimate ? 'Almost there…' : 'Wrapping up your order…');
           pctEl.textContent = '100%';
           fillEl.style.width = '100%';
-          if(!isEstimate && !_ohRefreshedOnComplete.has(key)){
-            _ohRefreshedOnComplete.add(key);
-            // Patch just this one order instead of re-fetching the whole list (saves bandwidth)
-            setTimeout(()=> ohRefreshSingleOrder(key), 2500);
+          if(!isEstimate && orderId && !_ohAutoCompleteAttempted.has(orderId)){
+            _ohAutoCompleteAttempted.add(orderId);
+            ohAutoCompleteOrder(orderId);
           }
         } else {
           const timeText = isEstimate ? ohFmtRough(remain) : ohFmtRemaining(remain);
@@ -1856,14 +1874,36 @@
     if(_ohTickInterval){ clearInterval(_ohTickInterval); _ohTickInterval = null; }
   }
 
+  // Called the moment a real (autoCompleteAt-based) progress timer hits zero.
+  // Writes status:'completed' directly from the user's browser — no dependency on the admin
+  // panel being open. Re-checks current status first so we never downgrade a rejected/refunded order.
+  async function ohAutoCompleteOrder(orderId){
+    try{
+      const snap = await get(ref(db,'orders/'+orderId));
+      if(!snap.exists()) return;
+      const cur = snap.val();
+      if(cur.status !== 'progress') return; // already moved on (completed/rejected) — leave it alone
+      await update(ref(db,'orders/'+orderId), {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        autoCompletedBy: 'client'
+      });
+      console.log('[AutoComplete] Order', orderId, 'marked completed.');
+    }catch(e){
+      console.warn('[AutoComplete] Failed for order', orderId, e.message);
+    }finally{
+      setTimeout(()=> ohRefreshSingleOrder(orderId), 600);
+    }
+  }
+
   // Re-fetch a single order node (cheap) instead of the whole guestId query (expensive)
-  async function ohRefreshSingleOrder(targetIso){
-    const idx = _ohRows.findIndex(o=> o.autoCompleteAt === targetIso);
+  async function ohRefreshSingleOrder(orderId){
+    const idx = _ohRows.findIndex(o=> o.key === orderId);
     if(idx === -1) return;
     try{
-      const snap = await get(ref(db,'orders/'+_ohRows[idx].key));
+      const snap = await get(ref(db,'orders/'+orderId));
       if(snap.exists()){
-        _ohRows[idx] = { key:_ohRows[idx].key, ...snap.val() };
+        _ohRows[idx] = { key: orderId, ...snap.val() };
         const cached = _ohCache.get(_ohLastGid);
         if(cached) cached.rows = _ohRows;
         renderOhStats();
@@ -1984,14 +2024,14 @@
         const pct = Math.max(0, Math.min(100, ((Date.now() - createdMs) / (targetMs - createdMs)) * 100));
         const label = remain > 0 ? `Completing in ${ohFmtRemaining(remain)}` : 'Wrapping up your order…';
         timerHtml = `
-          <div class="oh-progress-wrap" data-start="${esc(d.toISOString())}" data-target="${esc(o.autoCompleteAt)}">
+          <div class="oh-progress-wrap" data-order-id="${esc(o.key||'')}" data-start="${esc(d.toISOString())}" data-target="${esc(o.autoCompleteAt)}">
             <div class="oh-progress-head">
               <span class="oh-progress-label"><span class="oh-dot"></span>${label}</span>
               <span class="oh-progress-pct">${Math.round(pct)}%</span>
             </div>
             <div class="oh-progress-track"><div class="oh-progress-fill" style="width:${pct}%"></div></div>
           </div>`;
-      } else if((o.status === 'pending' || o.status === 'progress')){
+      } else if(o.status === 'progress'){
         // Uses the estimated time set on the product/order in the admin portal, else a sensible default
         const eta = o.estimatedTime || o.avgTime
           || (o.productSnapshot && (o.productSnapshot.avgTime || o.productSnapshot.estimatedTime))
@@ -2002,7 +2042,7 @@
         const pct = Math.max(0, Math.min(100, ((Date.now() - createdMs) / (targetMs - createdMs)) * 100));
         const label = remain > 0 ? `Estimated delivery in ${ohFmtRough(remain)}` : 'Almost there…';
         timerHtml = `
-          <div class="oh-progress-wrap" data-start="${esc(d.toISOString())}" data-target="${esc(new Date(targetMs).toISOString())}" data-estimate="1">
+          <div class="oh-progress-wrap" data-order-id="${esc(o.key||'')}" data-start="${esc(d.toISOString())}" data-target="${esc(new Date(targetMs).toISOString())}" data-estimate="1">
             <div class="oh-progress-head">
               <span class="oh-progress-label"><span class="oh-dot"></span>${label}</span>
               <span class="oh-progress-pct">${Math.round(pct)}%</span>
