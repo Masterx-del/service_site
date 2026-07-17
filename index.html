@@ -1458,6 +1458,7 @@
         });
         if(!txnResult.committed || !txnWon){ console.error('[SMM] Lock transaction did not commit. committed=', txnResult.committed, 'txnWon=', txnWon); _apiCallInProgress.delete(orderKey); return; }
         console.log('[SMM] Lock acquired, apiStatus now "processing"');
+        update(ref(db, `orders/${orderKey}`), { apiAttemptStartedAt: new Date().toISOString() }).catch(()=>{});
       }catch(txnErr){ console.error('[SMM] Lock transaction threw — likely Firebase permission/rules issue on orders/*/apiStatus:', txnErr); _apiCallInProgress.delete(orderKey); return; }
 
       if(!apiUrl || !apiKey || !serviceId || !quantity || !targetLink){
@@ -1477,9 +1478,9 @@
 
       // Only POST proxies used (GET-only proxies like allorigins don't support POST APIs correctly)
       const apiURLs = [
-        { name:'direct',       url: apiUrl, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
-        { name:'corsproxy.org',url: `https://corsproxy.org/?${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
-        { name:'cf-worker',    url: `https://bitter-mode-4fa8wholesale-proxy.demos-orx.workers.dev/?url=${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload } },
+        { name:'direct',       url: apiUrl, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload, keepalive:true } },
+        { name:'corsproxy.org',url: `https://corsproxy.org/?${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload, keepalive:true } },
+        { name:'cf-worker',    url: `https://bitter-mode-4fa8wholesale-proxy.demos-orx.workers.dev/?url=${encodeURIComponent(apiUrl)}`, opts:{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: apiPayload, keepalive:true } },
         { name:'allorigins',   url: `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl+'?'+apiPayload)}`, opts:{ method:'GET' } },
       ];
 
