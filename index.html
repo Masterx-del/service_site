@@ -1466,7 +1466,7 @@
         console.error('[SMM] SKIPPED —', missingMsg, {apiUrl, apiKey, serviceId, quantity, targetLink});
         await update(ref(db, `orders/${orderKey}`), {
           apiStatus: 'skipped',
-          status: 'pending_verification',
+          status: 'pending',
           apiRawResponse: missingMsg
         }).catch(()=>{});
         _apiCallInProgress.delete(orderKey);
@@ -1685,7 +1685,7 @@
         finalAmount: amt.toFixed(2),
         utrId: utr,
         targetLink,
-        status: hasApiConfig ? 'pending' : 'pending_verification',
+        status: hasApiConfig ? 'progress' : 'pending',
         createdAt: new Date().toISOString(),
         apiStatus: hasApiConfig ? 'calling' : null,
       };
@@ -1783,7 +1783,7 @@
           guestId: gid,
           finalAmount: (item.price*item.qty).toFixed(2),
           utrId: utr, targetLink: item.link,
-          status: hasApi ? 'pending' : 'pending_verification',
+          status: hasApi ? 'progress' : 'pending',
           createdAt: new Date().toISOString(),
           cartGroup: utr,
           apiStatus: hasApi ? 'calling' : null,
@@ -2109,7 +2109,7 @@
 
   // Self-heal stuck orders straight from the user dashboard (no admin panel needed):
   // - apiStatus 'placed' but status still 'pending'  → flip to 'progress' + start the timer
-  // - apiStatus 'skipped' (API info missing)          → move to 'pending_verification'
+  // - apiStatus 'skipped' (API info missing, e.g. quantity/link) → keep/move to 'pending'
   async function ohReconcileStuckOrders(rows){
     const fixes = [];
     rows.forEach(o=>{
@@ -2123,7 +2123,7 @@
         }
         fixes.push({key:o.key, patch});
       } else if(o.apiStatus === 'skipped'){
-        fixes.push({key:o.key, patch:{status:'pending_verification'}});
+        fixes.push({key:o.key, patch:{status:'pending'}});
       }
     });
     if(!fixes.length) return rows;
