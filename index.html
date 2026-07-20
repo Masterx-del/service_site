@@ -1016,6 +1016,14 @@
   let linkMgmtRules = {};
   onValue(ref(db,'meta/linkMgmt'), (snap)=>{
     linkMgmtRules = snap.exists() ? snap.val() : {};
+    // Rules can arrive after the cart/checkout was already opened (async Firebase load).
+    // Re-render so placeholders update instead of staying stuck on the generic fallback text.
+    if(document.getElementById('cartModal') && document.getElementById('cartModal').style.display==='flex'){
+      renderCartModal();
+    }
+    if(chkItem && document.getElementById('checkoutModal') && document.getElementById('checkoutModal').style.display==='flex'){
+      document.getElementById('chkLinkInput').placeholder = resolveLinkLabel(chkItem);
+    }
   });
 
   // Telegram Bot config — Admin > Telegram Bot. Kept live-synced so order notifications
