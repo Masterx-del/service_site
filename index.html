@@ -3660,7 +3660,18 @@
         hideLoader();
     });
 
-    document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        // Guest (anonymous) accounts cannot be restored after sign-out — Firebase
+        // has no way to "log back in" to the same anonymous session, so every
+        // subsequent Guest sign-in was creating a brand new account and the old
+        // guest's orders/wallet/history became permanently inaccessible.
+        // Warn the user before letting that happen instead of silently signing out.
+        if (currentUser && currentUser.isAnonymous) {
+            const proceed = window.confirm('You are using a Guest account. Logging out will permanently delete this guest account and its data — signing in as Guest again will create a brand new account.\n\nLink your account (Google or Username/PIN) from your profile first if you want to keep your data.\n\nLog out anyway?');
+            if (!proceed) return;
+        }
+        signOut(auth);
+    });
 
     // ── ACCOUNT LINKING HELPERS ───────────────────────────────────────────
 
