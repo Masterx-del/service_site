@@ -3661,14 +3661,21 @@
     });
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
-        // Guest (anonymous) accounts cannot be restored after sign-out — Firebase
-        // has no way to "log back in" to the same anonymous session, so every
-        // subsequent Guest sign-in was creating a brand new account and the old
-        // guest's orders/wallet/history became permanently inaccessible.
-        // Warn the user before letting that happen instead of silently signing out.
+        // Guest (anonymous) accounts have no password/credential to log back in
+        // with, so a real Firebase signOut() permanently discards that session —
+        // every future "Continue as Guest" tap then creates a brand new account.
+        // To keep the SAME guest account reopening on the next Guest tap, we do a
+        // "soft" logout here: just hide the dashboard and go back to the auth
+        // screen, without touching the underlying Firebase anonymous session.
         if (currentUser && currentUser.isAnonymous) {
-            const proceed = window.confirm('You are using a Guest account. Logging out will permanently delete this guest account and its data — signing in as Guest again will create a brand new account.\n\nLink your account (Google or Username/PIN) from your profile first if you want to keep your data.\n\nLog out anyway?');
-            if (!proceed) return;
+            currentUser = null;
+            document.getElementById('authView').style.display = 'block';
+            document.getElementById('userProfileView').style.display = 'none';
+            document.getElementById('ordersList').innerHTML = '<div class="empty-state"><i class="fas fa-lock"></i><p>Login to view orders</p></div>';
+            document.getElementById('chatMessages').innerHTML = '<div style="text-align:center; font-size:12px; color:var(--text-secondary); margin-top:20px;">Login to chat</div>';
+            activeSubscriptions = {}; notificationsBound = false; renderSubscriptions();
+            showToast('Logged out. Tap "Continue as Guest" to reopen this account.');
+            return;
         }
         signOut(auth);
     });
@@ -3840,6 +3847,12 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
         showLoader();
         try {
+            // If a guest session is still alive in the background (from a "soft"
+            // logout), Firebase treats it as no state change at all, so
+            // signInAnonymously() below will simply hand back that SAME account
+            // rather than creating a new one — but onAuthStateChanged also won't
+            // fire in that case, so remember to refresh the UI manually.
+            const wasAlreadySignedIn = !!(auth.currentUser && auth.currentUser.isAnonymous);
             const cred = await signInAnonymously(auth);
             const user = cred.user;
             const profileSnap = await get(ref(db, `users/${user.uid}/profile`));
@@ -3856,7 +3869,12 @@
                     totalSpent: 0
                 });
             }
-            showToast('✅ Logged in as Guest!');
+            if (wasAlreadySignedIn) {
+                handleAuthUser(user); // manually restore dashboard — same account, no auto-fire
+                showToast('✅ Welcome back, Guest!');
+            } else {
+                showToast('✅ Logged in as Guest!');
+            }
         } catch(e) {
             showToast('Guest Sign In failed. Try again.');
         } finally {
@@ -3866,7 +3884,7 @@
         }
     });
 
-    onAuthStateChanged(auth, user => { 
+    function handleAuthUser(user) {
         currentUser = user;
         if(user) {
             // ── Email verification gate (skip for Google users AND username+PIN accounts) ──
@@ -3992,7 +4010,8 @@
             document.getElementById('authView').style.display = 'block'; document.getElementById('userProfileView').style.display = 'none'; document.getElementById('ordersList').innerHTML = '<div class="empty-state"><i class="fas fa-lock"></i><p>Login to view orders</p></div>'; document.getElementById('chatMessages').innerHTML = '<div style="text-align:center; font-size:12px; color:var(--text-secondary); margin-top:20px;">Login to chat</div>'; activeSubscriptions = {}; notificationsBound = false; renderSubscriptions();
             hideLoader();
         }
-    });
+    }
+    onAuthStateChanged(auth, handleAuthUser);
 
     function bindRealTimeNotifications(uid) { 
         if(notificationsBound) return; notificationsBound = true;
