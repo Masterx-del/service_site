@@ -5546,22 +5546,6 @@
         onValue(ref(db, 'meta/offers'), s => { if(s.exists()){ const d = s.val(); const banner = document.getElementById('offerBanner'); if(d.name) { banner.classList.add('visible'); document.getElementById('offerTitle').textContent = d.name; document.getElementById('offerDesc').textContent = d.description || 'Limited time offer — don\'t miss out!'; document.getElementById('offerPrice').textContent = `₹${d.newRate || 0}`; document.getElementById('offerOldPrice').textContent = `₹${d.oldRate || 0}`; const tgLink = document.getElementById('offerTgLink'); if(tgLink) tgLink.href = d.channelLink || (d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'); document.getElementById('contactLink').href = d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'; document.getElementById('updatesLink').href = d.channelLink || '#'; } else { banner.classList.remove('visible'); } } });
         onValue(ref(db, 'meta/contact'), s => { window._cachedContactMeta = s.exists() ? s.val() : null; if(s.exists() && s.val().socialTelegram){ if(document.getElementById('contactLink').getAttribute('href') === '#') { document.getElementById('contactLink').href = s.val().socialTelegram; } } });
         onValue(ref(db, 'meta/linkMgmt'), s => { linkMgmtRules = s.exists() ? s.val() : {}; });
-        let _catMapKeys = null, _catOrderArr = null;
-        function _renderCatsFromState() {
-            if (_catMapKeys === null) return; // wait until categoryMap has responded at least once
-            const existing = _catMapKeys;
-            let order = (_catOrderArr && _catOrderArr.length) ? _catOrderArr.filter(c => existing.includes(c)) : [];
-            existing.forEach(c => { if (!order.includes(c)) order.push(c); }); // anything missing from order goes to the end
-            window.renderServiceGrid(order.length ? order : window._fallbackCategoryOrder);
-        }
-        onValue(ref(db, 'meta/categoryMap'), s => {
-            _catMapKeys = s.exists() ? Object.keys(s.val()) : window._fallbackCategoryOrder.slice();
-            _renderCatsFromState();
-        });
-        onValue(ref(db, 'meta/categoryOrder'), s => {
-            _catOrderArr = (s.exists() && Array.isArray(s.val())) ? s.val() : null;
-            _renderCatsFromState();
-        });
         let _firstProductLoad = true;
         onValue(ref(db, 'products'), s => {
             productsData = s.exists() ? s.val() : {};
