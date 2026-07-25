@@ -1036,6 +1036,9 @@
                 <div class="skeleton-cat-card"><div class="skeleton skeleton-cat-icon"></div><div class="skeleton skeleton-cat-text"></div></div>
                 <div class="skeleton-cat-card"><div class="skeleton skeleton-cat-icon"></div><div class="skeleton skeleton-cat-text"></div></div>
                 <div class="skeleton-cat-card"><div class="skeleton skeleton-cat-icon"></div><div class="skeleton skeleton-cat-text"></div></div>
+                <div class="skeleton-cat-card"><div class="skeleton skeleton-cat-icon"></div><div class="skeleton skeleton-cat-text"></div></div>
+                <div class="skeleton-cat-card"><div class="skeleton skeleton-cat-icon"></div><div class="skeleton skeleton-cat-text"></div></div>
+                <div class="skeleton-cat-card"><div class="skeleton skeleton-cat-icon"></div><div class="skeleton skeleton-cat-text"></div></div>
             </div>
             <div class="services-grid" id="servicesGridReal" style="display:none;">
                 <div class="service-cat-card" onclick="openCategory('Instagram')"><i class="fab fa-instagram" style="color: #E1306C;"></i><div class="service-cat-name">Instagram</div></div>
@@ -1044,6 +1047,9 @@
                 <div class="service-cat-card" onclick="openCategory('WhatsApp')"><i class="fab fa-whatsapp" style="color: #25D366;"></i><div class="service-cat-name">WhatsApp</div></div>
                 <div class="service-cat-card" onclick="openCategory('YouTube')"><i class="fab fa-youtube" style="color: #FF0000;"></i><div class="service-cat-name">YouTube</div></div>
                 <div class="service-cat-card" onclick="openCategory('TikTok')"><i class="fab fa-tiktok" style="color: #010101;"></i><div class="service-cat-name">TikTok</div></div>
+                <div class="service-cat-card" onclick="openCategory('Twitter')"><i class="fab fa-twitter" style="color: #1DA1F2;"></i><div class="service-cat-name">Twitter</div></div>
+                <div class="service-cat-card" onclick="openCategory('Snapchat')"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:#FFFC00;margin-bottom:10px;"><i class="fab fa-snapchat" style="color:#000;font-size:18px;margin-bottom:0;"></i></span><div class="service-cat-name">Snapchat</div></div>
+                <div class="service-cat-card" onclick="openCategory('Accounts')"><i class="fas fa-address-card" style="color: #6366F1;"></i><div class="service-cat-name">Accounts</div></div>
             </div>
 
             <div id="categoryPane" style="display: none; padding-top: 24px; border-top: 1px solid var(--border-color); margin-top: 20px; padding-bottom: 20px;">
@@ -5458,11 +5464,92 @@
         return packOrderRef.key;
     }
 
+    // ── SERVICE CATEGORY GRID — dynamic, driven by admin's Category Map ──
+    // Add a logo/color entry here for any new platform so it renders with a proper brand icon;
+    // anything not listed below automatically falls back to a generic icon.
+    window._categoryIconMap = {
+        'Instagram':    {icon:'fab fa-instagram',   color:'#E1306C'},
+        'Facebook':     {icon:'fab fa-facebook',    color:'#1877F2'},
+        'YouTube':      {icon:'fab fa-youtube',     color:'#FF0000'},
+        'TikTok':       {icon:'fab fa-tiktok',      color:'#010101'},
+        'Twitter':      {icon:'fab fa-twitter',     color:'#1DA1F2'},
+        'X':            {icon:'fab fa-x-twitter',   color:'#000000'},
+        'Snapchat':     {icon:'fab fa-snapchat',    color:'#000000', badgeColor:'#FFFC00'},
+        'Telegram':     {icon:'fab fa-telegram',    color:'#0088cc'},
+        'WhatsApp':     {icon:'fab fa-whatsapp',    color:'#25D366'},
+        'LinkedIn':     {icon:'fab fa-linkedin',    color:'#0A66C2'},
+        'Pinterest':    {icon:'fab fa-pinterest',   color:'#E60023'},
+        'Reddit':       {icon:'fab fa-reddit',      color:'#FF4500'},
+        'Discord':      {icon:'fab fa-discord',     color:'#5865F2'},
+        'Spotify':      {icon:'fab fa-spotify',     color:'#1DB954'},
+        'Twitch':       {icon:'fab fa-twitch',      color:'#9146FF'},
+        'Quora':        {icon:'fab fa-quora',       color:'#B92B27'},
+        'Tumblr':       {icon:'fab fa-tumblr',      color:'#34526f'},
+        'Vimeo':        {icon:'fab fa-vimeo',       color:'#1AB7EA'},
+        'SoundCloud':   {icon:'fab fa-soundcloud',  color:'#FF7700'},
+        'WeChat':       {icon:'fab fa-weixin',      color:'#07C160'},
+        'Line':         {icon:'fab fa-line',        color:'#00C300'},
+        'VK':           {icon:'fab fa-vk',          color:'#4C75A3'},
+        'Skype':        {icon:'fab fa-skype',       color:'#00AFF0'},
+        'Viber':        {icon:'fab fa-viber',       color:'#7360F2'},
+        'Steam':        {icon:'fab fa-steam',       color:'#171A21', badgeColor:'#f1f5f9'},
+        'Medium':       {icon:'fab fa-medium',      color:'#000000'},
+        'GitHub':       {icon:'fab fa-github',      color:'#181717'},
+        'Behance':      {icon:'fab fa-behance',     color:'#1769FF'},
+        'Dribbble':     {icon:'fab fa-dribbble',    color:'#EA4C89'},
+        'Google':       {icon:'fab fa-google',      color:'#4285F4'},
+        'Google Play':  {icon:'fab fa-google-play', color:'#01875f'},
+        'App Store':    {icon:'fab fa-app-store-ios', color:'#0D96F6'},
+        'Apple Music':  {icon:'fab fa-apple',       color:'#FA243C'},
+        'Amazon':       {icon:'fab fa-amazon',      color:'#FF9900'},
+        'Trustpilot':   {icon:'fab fa-trustpilot',  color:'#00B67A'},
+        'Shopify':      {icon:'fab fa-shopify',     color:'#95BF47'},
+        'WordPress':    {icon:'fab fa-wordpress',   color:'#21759B'},
+        'PayPal':       {icon:'fab fa-paypal',      color:'#00457C'},
+        'Etsy':         {icon:'fab fa-etsy',        color:'#F45800'},
+        'Weibo':        {icon:'fab fa-weibo',       color:'#DF2029'},
+        'Netflix':      {icon:'fas fa-film',        color:'#E50914'},
+        'OnlyFans':     {icon:'fas fa-crown',       color:'#00AFF0'},
+        'Likee':        {icon:'fas fa-video',       color:'#FE2C55'},
+        'Kwai':         {icon:'fas fa-video',        color:'#FF7E00'},
+        'Bigo Live':    {icon:'fas fa-broadcast-tower', color:'#6C5CE7'},
+        'Clubhouse':    {icon:'fas fa-microphone-alt', color:'#DAA520'},
+        'Threads':      {icon:'fas fa-at',          color:'#000000'},
+        'Website':      {icon:'fas fa-globe',       color:'#0EA5E9'},
+        'Website Traffic': {icon:'fas fa-globe',    color:'#0EA5E9'},
+        'SMS':          {icon:'fas fa-sms',         color:'#10B981'},
+        'Email':        {icon:'fas fa-envelope',    color:'#F59E0B'},
+        'Accounts':     {icon:'fas fa-address-card', color:'#6366F1'},
+        'Other':        {icon:'fas fa-layer-group', color:'#64748b'}
+    };
+    window._defaultCategoryIcon = {icon:'fas fa-star', color:'#64748b'};
+    // Fallback order used only if admin has never saved a category map to Firebase yet
+    window._fallbackCategoryOrder = ['Instagram','Facebook','Telegram','WhatsApp','YouTube','TikTok','Twitter','Snapchat','Accounts'];
+
+    window._categoryIconHTML = (cat) => {
+        const cfg = window._categoryIconMap[cat] || window._defaultCategoryIcon;
+        if (cfg.badgeColor) {
+            return `<span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:${cfg.badgeColor};margin-bottom:10px;"><i class="${cfg.icon}" style="color:${cfg.color};font-size:18px;margin-bottom:0;"></i></span>`;
+        }
+        return `<i class="${cfg.icon}" style="color:${cfg.color};"></i>`;
+    };
+
+    window.renderServiceGrid = (categories) => {
+        const grid = document.getElementById('servicesGridReal');
+        if (!grid) return;
+        if (!categories || !categories.length) { grid.innerHTML = ''; return; }
+        grid.innerHTML = categories.map(cat => `<div class="service-cat-card" onclick="openCategory('${cat.replace(/'/g, "\\'")}')">${window._categoryIconHTML(cat)}<div class="service-cat-name">${cat}</div></div>`).join('');
+    };
+
     function loadPublicData() { 
         onValue(ref(db, 'meta/brand'), s => { if(s.exists()){ const d = s.val(); document.getElementById('brandName').textContent = d.name || 'Store'; if(d.logoUrl) { document.getElementById('brandLogo').src = d.logoUrl; document.getElementById('brandLogo').style.display = 'block'; const ol = document.getElementById('offerCircleLogo'); const of_ = document.getElementById('offerCircleFallback'); if(ol){ ol.src = d.logoUrl; ol.style.display = 'block'; if(of_) of_.style.display = 'none'; ol.style.position='absolute'; ol.style.inset='0'; ol.style.width='100%'; ol.style.height='100%'; } } } });
         onValue(ref(db, 'meta/offers'), s => { if(s.exists()){ const d = s.val(); const banner = document.getElementById('offerBanner'); if(d.name) { banner.classList.add('visible'); document.getElementById('offerTitle').textContent = d.name; document.getElementById('offerDesc').textContent = d.description || 'Limited time offer — don\'t miss out!'; document.getElementById('offerPrice').textContent = `₹${d.newRate || 0}`; document.getElementById('offerOldPrice').textContent = `₹${d.oldRate || 0}`; const tgLink = document.getElementById('offerTgLink'); if(tgLink) tgLink.href = d.channelLink || (d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'); document.getElementById('contactLink').href = d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'; document.getElementById('updatesLink').href = d.channelLink || '#'; } else { banner.classList.remove('visible'); } } });
         onValue(ref(db, 'meta/contact'), s => { window._cachedContactMeta = s.exists() ? s.val() : null; if(s.exists() && s.val().socialTelegram){ if(document.getElementById('contactLink').getAttribute('href') === '#') { document.getElementById('contactLink').href = s.val().socialTelegram; } } });
         onValue(ref(db, 'meta/linkMgmt'), s => { linkMgmtRules = s.exists() ? s.val() : {}; });
+        onValue(ref(db, 'meta/categoryMap'), s => {
+            const cats = s.exists() ? Object.keys(s.val()) : window._fallbackCategoryOrder;
+            window.renderServiceGrid(cats);
+        });
         let _firstProductLoad = true;
         onValue(ref(db, 'products'), s => {
             productsData = s.exists() ? s.val() : {};
