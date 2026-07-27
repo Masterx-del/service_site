@@ -2573,7 +2573,6 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, linkWithCredential, EmailAuthProvider, fetchSignInMethodsForEmail, sendPasswordResetEmail, sendEmailVerification, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
     import { getDatabase, ref, get, set, push, onValue, query, orderByChild, equalTo, update, onChildChanged, runTransaction, remove } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js';
-    import FingerprintJS from 'https://openfpcdn.io/fingerprintjs/v4/esm.min.js';
 
     const firebaseConfig = {
         apiKey: "AIzaSyDrjP8o8adBYGih_28XrDrCwVpL3WRu9rE",
@@ -2585,177 +2584,6 @@
         appId: "1:633734276998:web:b486015bd345028a406e07"
     };
     const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getDatabase(app);
-
-    // ═══════════════════════════════════════════════════════════════════
-    // 🛡️ ANTI-ABUSE ENGINE — Multi-Account Free-Service Exploit Guard
-    //
-    // Goal: 1 real user (device) = 1 free claim per day, no matter how many
-    // accounts they sign up. Everything below is defense-in-depth; the
-    // REAL security boundary is the `deviceClaims/{date}/{deviceHash}`
-    // Realtime DB rule (".write": "!data.exists()") — that rule alone
-    // guarantees only the FIRST account to claim from a device wins,
-    // even if this entire JS file is edited/bypassed in devtools.
-    //
-    // Layers:
-    //  1. Composite device fingerprint (FingerprintJS OSS + canvas/webgl/
-    //     hardware entropy) — survives Incognito & VPN because it does not
-    //     rely on storage or IP; it fingerprints the actual browser/device.
-    //  2. Redundant persisted id (localStorage + cookie + indexedDB) mixed
-    //     in for extra stability across normal (non-incognito) sessions.
-    //  3. IP hash — soft secondary signal only, used for velocity flagging,
-    //     never a hard block (protects genuine users on shared/college/
-    //     office wifi from being wrongly punished).
-    //  4. Suspicious-activity log (meta/suspiciousActivity) for the admin
-    //     panel + an admin-controlled block list (meta/blockedDevices)
-    //     checked before every claim attempt.
-    // ═══════════════════════════════════════════════════════════════════
-
-    let _fpAgentPromise = null;
-    function _getFpAgent() {
-        if (!_fpAgentPromise) _fpAgentPromise = FingerprintJS.load().catch(() => null);
-        return _fpAgentPromise;
-    }
-
-    async function _sha256Hex(str) {
-        try {
-            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-        } catch (_) {
-            // Fallback for very old browsers without SubtleCrypto
-            let h = 0; for (let i = 0; i < str.length; i++) { h = (Math.imul(31, h) + str.charCodeAt(i)) | 0; }
-            return 'fnv' + Math.abs(h).toString(16);
-        }
-    }
-
-    // Best-effort persisted id — stored redundantly so clearing ONE storage
-    // mechanism doesn't reset it. Not the primary defense (see hardware
-    // entropy below), just extra stability for normal browsing sessions.
-    function _getPersistedSeed() {
-        const KEY = '_dvid';
-        try {
-            let id = null;
-            try { id = localStorage.getItem(KEY); } catch (_) {}
-            if (!id) {
-                const m = document.cookie.match(new RegExp('(?:^|; )' + KEY + '=([^;]*)'));
-                id = m ? decodeURIComponent(m[1]) : null;
-            }
-            if (!id) id = 'd' + Array.from(crypto.getRandomValues(new Uint32Array(4))).join('');
-            try { localStorage.setItem(KEY, id); } catch (_) {}
-            try { document.cookie = KEY + '=' + encodeURIComponent(id) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (_) {}
-            try {
-                const req = indexedDB.open('_dvstore', 1);
-                req.onupgradeneeded = () => req.result.createObjectStore('kv');
-                req.onsuccess = () => { try { req.result.transaction('kv', 'readwrite').objectStore('kv').put(id, KEY); } catch (_) {} };
-            } catch (_) {}
-            return id;
-        } catch (_) { return ''; }
-    }
-
-    // Hardware/browser entropy — does NOT depend on storage, so it survives
-    // Incognito mode and cookie/localStorage clearing (the two most common
-    // "basic bypass" tricks).
-    function _getHardwareEntropy() {
-        const parts = [];
-        try {
-            const c = document.createElement('canvas'); c.width = 220; c.height = 30;
-            const ctx = c.getContext('2d');
-            ctx.textBaseline = 'top'; ctx.font = '14px Arial';
-            ctx.fillText('anti-abuse-fp-check-🔒', 2, 2);
-            parts.push(c.toDataURL());
-        } catch (_) {}
-        try {
-            const gl = document.createElement('canvas').getContext('webgl');
-            const dbg = gl && gl.getExtension('WEBGL_debug_renderer_info');
-            if (gl && dbg) parts.push(gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL), gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL));
-        } catch (_) {}
-        parts.push(
-            navigator.hardwareConcurrency || '', navigator.deviceMemory || '',
-            screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
-            Intl.DateTimeFormat().resolvedOptions().timeZone || '',
-            navigator.language, (navigator.languages || []).join(','),
-            navigator.platform || '', navigator.maxTouchPoints || '', navigator.userAgent
-        );
-        return parts.join('||');
-    }
-
-    let _deviceHashPromise = null;
-    async function getDeviceHash() {
-        if (_deviceHashPromise) return _deviceHashPromise;
-        _deviceHashPromise = (async () => {
-            let fpId = '';
-            try { const agent = await _getFpAgent(); if (agent) fpId = (await agent.get()).visitorId || ''; } catch (_) {}
-            return await _sha256Hex('v1|' + fpId + '|' + _getHardwareEntropy() + '|' + _getPersistedSeed());
-        })();
-        return _deviceHashPromise;
-    }
-
-    let _ipHashPromise = null;
-    async function getIpHash() {
-        if (_ipHashPromise) return _ipHashPromise;
-        _ipHashPromise = (async () => {
-            try {
-                const r = await fetch('https://api.ipify.org?format=json', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
-                const j = await r.json();
-                if (j && j.ip) return await _sha256Hex('ipv1|' + j.ip);
-            } catch (_) {}
-            return null; // soft signal only — never blocks on failure
-        })();
-        return _ipHashPromise;
-    }
-
-    const _todayStr = () => new Date().toISOString().slice(0, 10);
-
-    async function logSuspiciousActivity(reason, extra) {
-        try {
-            const deviceHash = await getDeviceHash();
-            await push(ref(db, `meta/suspiciousActivity/${currentUser?.uid || 'anon'}`), {
-                reason, deviceHash, ts: new Date().toISOString(), ua: navigator.userAgent, ...extra
-            });
-        } catch (_) {}
-    }
-
-    // Pre-check used to give instant UX feedback (not the security boundary —
-    // just avoids making a blocked user go through the whole checkout flow).
-    async function checkFreeClaimAbuseGuard() {
-        const deviceHash = await getDeviceHash();
-        try {
-            const blockSnap = await get(ref(db, `meta/blockedDevices/${deviceHash}`));
-            if (blockSnap.exists()) return { blocked: true, reason: 'device_blocked' };
-        } catch (_) {}
-        try {
-            const devSnap = await get(ref(db, `deviceClaims/${_todayStr()}/${deviceHash}`));
-            if (devSnap.exists() && devSnap.val()?.uid !== currentUser?.uid) {
-                return { blocked: true, reason: 'device_already_claimed' };
-            }
-        } catch (_) {}
-        return { blocked: false };
-    }
-
-    // Atomically reserves this device's daily free-claim slot. The RTDB rule
-    // "!data.exists()" on deviceClaims/{date}/{deviceHash} is what actually
-    // enforces "1 device = 1 claim/day" server-side — if two accounts race
-    // on the same device, only the first write wins; the second throws
-    // PERMISSION_DENIED, which we catch below.
-    async function reserveDeviceClaim(serviceId) {
-        const today = _todayStr();
-        const deviceHash = await getDeviceHash();
-        try {
-            await set(ref(db, `deviceClaims/${today}/${deviceHash}`), { uid: currentUser.uid, serviceId, ts: new Date().toISOString() });
-        } catch (e) {
-            logSuspiciousActivity('multi_account_free_claim_blocked', { serviceId });
-            throw new Error('DEVICE_ALREADY_CLAIMED');
-        }
-        // Soft IP-velocity signal — best effort, logged only, never blocks.
-        try {
-            const ipHash = await getIpHash();
-            if (ipHash) {
-                await set(ref(db, `ipClaims/${today}/${ipHash}/${currentUser.uid}`), new Date().toISOString());
-                const ipSnap = await get(ref(db, `ipClaims/${today}/${ipHash}`));
-                const distinctAccounts = ipSnap.exists() ? Object.keys(ipSnap.val()).length : 1;
-                if (distinctAccounts >= 4) logSuspiciousActivity('ip_velocity_multi_account', { serviceId, distinctAccounts });
-            }
-        } catch (_) {}
-    }
 
     // ═══════════════════════════════════════════════════════════════════
     // ⚡ ULTRA-FAST BULLETPROOF PAYMENT ENGINE — v3
@@ -6125,18 +5953,9 @@
             showLoader();
             Promise.all([
                 get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${today}/${id}`)),
-                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${id}`)),
-                checkFreeClaimAbuseGuard()
-            ]).then(([todaySnap, yestSnap, guard]) => {
+                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${id}`))
+            ]).then(([todaySnap, yestSnap]) => {
                 hideLoader();
-                if(guard && guard.blocked) {
-                    if(guard.reason === 'device_blocked') {
-                        showToast('🚫 This device is temporarily restricted from free services. Contact support if you think this is a mistake.');
-                    } else {
-                        showToast('⏳ A free service has already been claimed today from this device (another account). Try again tomorrow.');
-                    }
-                    return;
-                }
                 const snap = todaySnap.exists() ? todaySnap : (yestSnap.exists() ? yestSnap : null);
                 if(snap) {
                     const claimedAt = new Date(snap.val());
@@ -6681,27 +6500,6 @@
                     const m = Math.floor(((nextReset - new Date()) % 3600000) / 60000);
                     return showToast(`⏳ Already claimed! Try again in ${h}h ${m}m.`);
                 }
-            }
-
-            // Hard, server-enforced, cross-account device gate — checked as
-            // late as possible (right before we actually grant the reward)
-            // so a failed check never wastes a genuine user's daily slot.
-            // This is the real security boundary (RTDB rule "!data.exists()"
-            // on deviceClaims/{date}/{deviceHash}) — it can't be bypassed by
-            // editing this file, using Incognito, or a VPN, because it's
-            // enforced by Firebase itself, not by this JS.
-            const abuseGuard = await checkFreeClaimAbuseGuard();
-            if (abuseGuard.blocked) {
-                _unlockOrder(); hideLoader();
-                return showToast(abuseGuard.reason === 'device_blocked'
-                    ? '🚫 This device is temporarily restricted from free services.'
-                    : '⏳ A free service has already been claimed today from this device (another account). Try again tomorrow.');
-            }
-            try {
-                await reserveDeviceClaim(checkoutItem.id);
-            } catch (_) {
-                _unlockOrder(); hideLoader();
-                return showToast('⏳ A free service has already been claimed today from this device (another account). Try again tomorrow.');
             }
 
             const utr = 'FREE_' + generateUTR(8);
