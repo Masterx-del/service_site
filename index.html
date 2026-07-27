@@ -2827,56 +2827,6 @@
     let linkMgmtRules = {};
     let _productsLoaded = false;
 
-    // ── DEVICE FINGERPRINT (anti multi-account free-service abuse) ─────────
-    // Ek hi device/browser se naye-naye username bana kar baar-baar FREE
-    // service claim karne se rokne ke liye — usage ab sirf account ke
-    // upar nahi, is device ke fingerprint ke upar bhi track hota hai.
-    let _deviceFP = null;
-    async function getDeviceFingerprint() {
-        if (_deviceFP) return _deviceFP;
-        try {
-            const parts = [];
-            parts.push(navigator.userAgent || '');
-            parts.push(navigator.language || '');
-            parts.push(navigator.platform || '');
-            parts.push(String(navigator.hardwareConcurrency || ''));
-            parts.push(String(navigator.deviceMemory || ''));
-            parts.push(`${screen.width}x${screen.height}x${screen.colorDepth}`);
-            try { parts.push(Intl.DateTimeFormat().resolvedOptions().timeZone || ''); } catch(_) {}
-            try {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                ctx.textBaseline = 'top';
-                ctx.font = "14px 'Arial'";
-                ctx.fillStyle = '#f60';
-                ctx.fillRect(125, 1, 62, 20);
-                ctx.fillStyle = '#069';
-                ctx.fillText('device-chk-🔒', 2, 15);
-                parts.push(canvas.toDataURL());
-            } catch(_) {}
-            // Persistent seed — adds entropy on top of the hardware/browser signals above.
-            // Even if this seed is cleared (localStorage wipe/incognito), the hardware +
-            // browser signals above still usually keep matching on the SAME device.
-            let seed = '';
-            try {
-                seed = localStorage.getItem('_dfp_seed');
-                if(!seed) {
-                    seed = Math.random().toString(36).slice(2) + Date.now().toString(36);
-                    localStorage.setItem('_dfp_seed', seed);
-                }
-            } catch(_) {}
-            parts.push(seed);
-
-            const raw = parts.join('|||');
-            const enc = new TextEncoder().encode(raw);
-            const hashBuf = await crypto.subtle.digest('SHA-256', enc);
-            _deviceFP = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
-        } catch(_) {
-            _deviceFP = null; // fingerprint failed — device-level check will just be skipped
-        }
-        return _deviceFP;
-    }
-
     // To store Auto-generated ID
     let currentOrderId = "";
 
@@ -3329,36 +3279,21 @@
             const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
             // Fetch the full freeServiceUsed node ONCE for this render pass instead of once per free item
             // (previously each item re-downloaded the entire history — N items = N redundant full downloads)
-            // Also fetch this DEVICE's usage (shared across every account created on it) so a
-            // brand-new account on the same browser doesn't get a fresh free-service quota.
-            Promise.all([
-                get(ref(db, `users/${currentUser.uid}/freeServiceUsed`)),
-                getDeviceFingerprint().then(fp => fp ? get(ref(db, `deviceFreeUsage/${fp}`)) : null)
-            ]).then(([allSnap, deviceSnap]) => {
+            get(ref(db, `users/${currentUser.uid}/freeServiceUsed`)).then(allSnap => {
             freeItems.forEach(([id]) => {
                     const todaySnap = allSnap.child(`${today}/${id}`);
                     const yestSnap = allSnap.child(`${yesterday}/${id}`);
-                    let snap = todaySnap.exists() ? todaySnap : (yestSnap.exists() ? yestSnap : null);
-
+                    const snap = todaySnap.exists() ? todaySnap : (yestSnap.exists() ? yestSnap : null);
                     const infoEl = document.getElementById(`freeInfo_${id}`);
                     const cardEl = document.getElementById(`plc_${id}`);
                     const usedEl = document.getElementById(`freeTrackerUsed_${id}`);
                     const remEl  = document.getElementById(`freeTrackerRem_${id}`);
                     const barEl  = document.getElementById(`freeProgressBar_${id}`);
 
-                    // Count total uses across all dates for this service (this account)
+                    // Count total uses across all dates for this service
                     let totalUsed = 0;
                     if(allSnap.exists()) {
                         allSnap.forEach(dateSnap => { if(dateSnap.key >= '2026-05-22' && dateSnap.child(id).exists()) totalUsed++; });
-                    }
-                    // Count total uses for this DEVICE (any account) and take the stricter of the two
-                    if(deviceSnap && deviceSnap.exists()) {
-                        let deviceUsed = 0;
-                        const devTodaySnap = deviceSnap.child(`${today}/${id}`);
-                        const devYestSnap = deviceSnap.child(`${yesterday}/${id}`);
-                        deviceSnap.forEach(dateSnap => { if(dateSnap.key >= '2026-05-22' && dateSnap.child(id).exists()) deviceUsed++; });
-                        if(deviceUsed > totalUsed) totalUsed = deviceUsed;
-                        if(!snap) snap = devTodaySnap.exists() ? devTodaySnap : (devYestSnap.exists() ? devYestSnap : null);
                     }
                     const maxFree = 5;
                     const remaining = Math.max(0, maxFree - totalUsed);
@@ -6537,34 +6472,19 @@
         const today = new Date().toISOString().slice(0, 10);
         const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
         const limitRef = ref(db, `users/${currentUser.uid}/freeServiceUsed/${today}/${checkoutItem.id}`);
-        const deviceFP = await getDeviceFingerprint();
-        const deviceLimitRef = deviceFP ? ref(db, `deviceFreeUsage/${deviceFP}/${today}/${checkoutItem.id}`) : null;
         showLoader();
         try {
-            const [limitSnap, yestLimitSnap, deviceTodaySnap, deviceYestSnap] = await Promise.all([
+            const [limitSnap, yestLimitSnap] = await Promise.all([
                 get(limitRef),
-                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${checkoutItem.id}`)),
-                deviceFP ? get(deviceLimitRef) : Promise.resolve(null),
-                deviceFP ? get(ref(db, `deviceFreeUsage/${deviceFP}/${yesterday}/${checkoutItem.id}`)) : Promise.resolve(null)
+                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${checkoutItem.id}`))
             ]);
-            let existingClaim = limitSnap.exists() ? limitSnap : (yestLimitSnap.exists() ? yestLimitSnap : null);
-            if(!existingClaim && deviceTodaySnap) existingClaim = deviceTodaySnap.exists() ? deviceTodaySnap : (deviceYestSnap && deviceYestSnap.exists() ? deviceYestSnap : null);
+            const existingClaim = limitSnap.exists() ? limitSnap : (yestLimitSnap.exists() ? yestLimitSnap : null);
 
-            // Check total lifetime limit (max 5 per service) — per account AND per device.
-            // Whichever hits the cap first blocks the claim, so a fresh account on the
-            // same device/browser can't reset the free-service quota.
-            const [allUsedSnap, deviceAllSnap] = await Promise.all([
-                get(ref(db, `users/${currentUser.uid}/freeServiceUsed`)),
-                deviceFP ? get(ref(db, `deviceFreeUsage/${deviceFP}`)) : Promise.resolve(null)
-            ]);
+            // Check total lifetime limit (max 5 per service)
+            const allUsedSnap = await get(ref(db, `users/${currentUser.uid}/freeServiceUsed`));
             let totalUsed = 0;
             if(allUsedSnap.exists()) {
                 allUsedSnap.forEach(dateSnap => { if(dateSnap.key >= '2026-05-22' && dateSnap.child(checkoutItem.id).exists()) totalUsed++; });
-            }
-            if(deviceAllSnap && deviceAllSnap.exists()) {
-                let deviceUsed = 0;
-                deviceAllSnap.forEach(dateSnap => { if(dateSnap.key >= '2026-05-22' && dateSnap.child(checkoutItem.id).exists()) deviceUsed++; });
-                if(deviceUsed > totalUsed) totalUsed = deviceUsed;
             }
             if(totalUsed >= 5) {
                 _unlockOrder(); hideLoader();
@@ -6609,13 +6529,11 @@
             };
 
             const newOrderRef = push(ref(db, 'orders'));
-            // Save order + mark daily limit used (per account AND per device) — parallel writes
-            const _writes = [
+            // Save order + mark daily limit used — parallel writes
+            await Promise.all([
                 set(newOrderRef, orderData),
                 set(limitRef, new Date().toISOString()),
-            ];
-            if(deviceLimitRef) _writes.push(set(deviceLimitRef, new Date().toISOString()));
-            await Promise.all(_writes);
+            ]);
 
             _unlockOrder();
             closeCheckout();
