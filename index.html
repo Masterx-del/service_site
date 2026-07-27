@@ -2586,254 +2586,6 @@
     const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getDatabase(app);
 
     // ═══════════════════════════════════════════════════════════════════
-    // 🛡️ FREE-SERVICE MULTI-ACCOUNT ABUSE GUARD
-    //
-    // Goal: one real human = one free claim/day, no matter how many
-    // accounts they create. Works via layered signals, enforced primarily
-    // by DB security rules (so it can't be bypassed by editing client JS):
-    //
-    //   1. Device fingerprint (canvas+webgl+audio+fonts+hardware) — this
-    //      is the PRIMARY lock. It survives incognito mode and clearing
-    //      localStorage/cookies because it's derived from hardware/browser
-    //      characteristics, not stored state. `deviceClaims/{date}/{hash}`
-    //      can only be WRITTEN ONCE per day server-side (rule enforces
-    //      `!data.exists()`), so the 2nd account on the same device/day
-    //      is rejected by Firebase itself, not just by client logic.
-    //   2. Admin-controlled `meta/blockedDevices` — instantly kills a
-    //      device across every account, past and future.
-    //   3. IP-based velocity counter (soft signal only — never hard-blocks
-    //      by itself, since many genuine users share IPs on mobile/college
-    //      networks) — flags accounts for admin review.
-    //   4. Client-side rate limiting to slow down scripted/automated abuse.
-    //   5. Self-reporting into `meta/suspiciousActivity` whenever a device
-    //      or IP anomaly is detected, so the admin panel's Abuse Guard tab
-    //      can review/block in one click.
-    //
-    // NOTE ON HONESTY: no purely client-side technique can make VPN/
-    // incognito abuse *impossible* — a determined attacker with a fresh
-    // machine + fresh IP can still get one claim. What this guard does is
-    // make the common/easy abuse path (same laptop/phone, new email,
-    // maybe incognito) fail, and surfaces everything else to admins fast.
-    // ═══════════════════════════════════════════════════════════════════
-
-    async function _sha256Hex(str) {
-        try {
-            const enc = new TextEncoder().encode(str);
-            const buf = await crypto.subtle.digest('SHA-256', enc);
-            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-        } catch (_) {
-            // Extremely old browser fallback — weak but non-blocking
-            let h = 0; for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
-            return 'fallback_' + Math.abs(h).toString(16);
-        }
-    }
-
-    function _canvasFp() {
-        try {
-            const c = document.createElement('canvas'); c.width = 220; c.height = 30;
-            const ctx = c.getContext('2d'); if (!ctx) return 'nocanvas';
-            ctx.textBaseline = 'top'; ctx.font = "14px 'Arial'";
-            ctx.fillStyle = '#f60'; ctx.fillRect(0, 0, 100, 20);
-            ctx.fillStyle = '#069'; ctx.fillText('AbuseGuard-fp-🔒', 2, 15);
-            ctx.strokeStyle = 'rgba(102,204,0,0.7)'; ctx.strokeText('AbuseGuard-fp-🔒', 4, 17);
-            return c.toDataURL();
-        } catch (_) { return 'nocanvas'; }
-    }
-
-    function _webglFp() {
-        try {
-            const c = document.createElement('canvas');
-            const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
-            if (!gl) return 'nowebgl';
-            const dbg = gl.getExtension('WEBGL_debug_renderer_info');
-            const vendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
-            const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
-            return vendor + '~' + renderer;
-        } catch (_) { return 'nowebgl'; }
-    }
-
-    function _audioFp() {
-        return new Promise(resolve => {
-            try {
-                const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-                if (!AC) return resolve('noaudio');
-                const ctx = new AC(1, 44100, 44100);
-                const osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.value = 10000;
-                const comp = ctx.createDynamicsCompressor();
-                osc.connect(comp); comp.connect(ctx.destination); osc.start(0);
-                ctx.startRendering();
-                ctx.oncomplete = (e) => {
-                    try {
-                        let sum = 0; const data = e.renderedBuffer.getChannelData(0);
-                        for (let i = 0; i < data.length; i += 100) sum += Math.abs(data[i]);
-                        resolve(sum.toFixed(6));
-                    } catch (_) { resolve('audio-err'); }
-                };
-                setTimeout(() => resolve('audio-timeout'), 1200);
-            } catch (_) { resolve('noaudio'); }
-        });
-    }
-
-    function _fontFp() {
-        try {
-            const testFonts = ['Arial', 'Verdana', 'Times New Roman', 'Courier New', 'Georgia', 'Comic Sans MS', 'Impact', 'Tahoma', 'Trebuchet MS', 'Segoe UI', 'Helvetica', 'Calibri', 'Noto Sans'];
-            const baseFonts = ['monospace', 'sans-serif', 'serif'];
-            const testString = 'mmmmmmmmmmlli';
-            const span = document.createElement('span');
-            span.style.cssText = 'position:absolute;left:-9999px;top:-9999px;font-size:72px;white-space:nowrap;';
-            span.textContent = testString;
-            document.body.appendChild(span);
-            const baseSizes = {};
-            baseFonts.forEach(bf => { span.style.fontFamily = bf; baseSizes[bf] = span.offsetWidth + 'x' + span.offsetHeight; });
-            const detected = [];
-            testFonts.forEach(font => {
-                for (const bf of baseFonts) {
-                    span.style.fontFamily = `'${font}', ${bf}`;
-                    if ((span.offsetWidth + 'x' + span.offsetHeight) !== baseSizes[bf]) { detected.push(font); break; }
-                }
-            });
-            document.body.removeChild(span);
-            return detected.join(',');
-        } catch (_) { return 'nofonts'; }
-    }
-
-    let _deviceHashPromise = null;
-    function getDeviceHash() {
-        if (_deviceHashPromise) return _deviceHashPromise;
-        _deviceHashPromise = (async () => {
-            const nav = navigator, scr = screen;
-            const parts = [
-                nav.userAgent || '', nav.language || '', (nav.languages || []).join(','),
-                nav.platform || '', String(nav.hardwareConcurrency || ''), String(nav.deviceMemory || ''),
-                String(nav.maxTouchPoints || ''), `${scr.width}x${scr.height}x${scr.colorDepth}`,
-                String(scr.pixelDepth || ''), Intl.DateTimeFormat().resolvedOptions().timeZone || '',
-                String(new Date().getTimezoneOffset()), _webglFp(), _fontFp(), _canvasFp(), await _audioFp()
-            ];
-            return await _sha256Hex(parts.join('||'));
-        })();
-        return _deviceHashPromise;
-    }
-
-    let _ipHashPromise = null;
-    function getIpHash() {
-        if (_ipHashPromise) return _ipHashPromise;
-        _ipHashPromise = (async () => {
-            try {
-                const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 3500);
-                const res = await fetch('https://api.ipify.org?format=json', { cache: 'no-store', signal: ctrl.signal });
-                clearTimeout(t);
-                const data = await res.json();
-                if (!data || !data.ip) return null;
-                return await _sha256Hex('fsguard_salt_' + data.ip);
-            } catch (_) { return null; } // best-effort — never blocks a genuine user if this fails
-        })();
-        return _ipHashPromise;
-    }
-
-    // Client-side attempt throttle — slows down scripted/automated hammering.
-    // This is a UX/speed-bump layer only; the real guarantee is the DB rule.
-    function _rateLimitOk(key, maxAttempts, windowMs) {
-        try {
-            const now = Date.now();
-            let arr = JSON.parse(localStorage.getItem(key) || '[]');
-            arr = arr.filter(t => now - t < windowMs);
-            if (arr.length >= maxAttempts) return false;
-            arr.push(now);
-            localStorage.setItem(key, JSON.stringify(arr));
-            return true;
-        } catch (_) { return true; } // if storage is unavailable, don't block genuine users
-    }
-
-    async function logSuspiciousActivity(uid, reason, extra) {
-        try {
-            const entryRef = push(ref(db, `meta/suspiciousActivity/${uid}`));
-            await set(entryRef, Object.assign({
-                reason, ts: new Date().toISOString(),
-                ua: (navigator.userAgent || '').slice(0, 180)
-            }, extra || {}));
-        } catch (_) { /* logging must never break the user flow */ }
-    }
-
-    async function isDeviceBlocked(deviceHash) {
-        try {
-            const snap = await get(ref(db, `meta/blockedDevices/${deviceHash}`));
-            return snap.exists();
-        } catch (_) { return false; } // fail-open on read errors — don't punish genuine users for a network blip
-    }
-
-    async function getDeviceClaimToday(deviceHash) {
-        const today = new Date().toISOString().slice(0, 10);
-        try {
-            const snap = await get(ref(db, `deviceClaims/${today}/${deviceHash}`));
-            return snap.exists() ? snap.val() : null;
-        } catch (_) { return null; }
-    }
-
-    // Soft IP-velocity signal: counts distinct accounts claiming from the same
-    // IP today, using each user's own private ipClaims/{date}/{hash}/{uid}
-    // record to avoid double-counting. Never blocks by itself — only flags
-    // for admin review, since shared/CGNAT IPs are common for genuine users.
-    async function checkIpVelocityAndLog(uid, ipHash, deviceHash) {
-        if (!ipHash) return;
-        const today = new Date().toISOString().slice(0, 10);
-        try {
-            const selfRef = ref(db, `ipClaims/${today}/${ipHash}/${uid}`);
-            const selfSnap = await get(selfRef);
-            if (selfSnap.exists()) return; // already counted this account today
-            await set(selfRef, { ts: new Date().toISOString(), deviceHash: deviceHash || null });
-            const counterRef = ref(db, `meta/ipVelocityCount/${today}/${ipHash}`);
-            const result = await runTransaction(counterRef, (curr) => (curr || 0) + 1);
-            const count = (result && result.snapshot && result.snapshot.val()) || 0;
-            if (count >= 4) {
-                await logSuspiciousActivity(uid, 'ip_velocity_multi_account', { deviceHash: deviceHash || null, ipHash, count });
-            }
-        } catch (_) { /* best-effort only */ }
-    }
-
-    // Full pre-flight check run before opening the free-claim modal.
-    // Read-only (no writes) so it's cheap and never consumes the device's
-    // daily slot just because someone looked at the button.
-    async function preflightFreeServiceCheck(uid) {
-        const deviceHash = await getDeviceHash();
-        if (await isDeviceBlocked(deviceHash)) {
-            return { allowed: false, reason: 'blocked', message: '🚫 This device is blocked from claiming free services. Contact support if you think this is a mistake.' };
-        }
-        const claim = await getDeviceClaimToday(deviceHash);
-        if (claim && claim.uid && claim.uid !== uid) {
-            logSuspiciousActivity(uid, 'multi_account_free_claim_attempt', { deviceHash });
-            return { allowed: false, reason: 'device_used', message: '⏳ A free service was already claimed today from this device. Only one free claim per device per day is allowed.' };
-        }
-        return { allowed: true, deviceHash };
-    }
-
-    // Final, write-based check used at the moment of actually placing the
-    // free order. Locks the device for the day BEFORE the order is created,
-    // so the lock can never be "spent" on a claim that didn't go through.
-    async function acquireDeviceLockForFreeClaim(uid) {
-        const deviceHash = await getDeviceHash();
-        if (await isDeviceBlocked(deviceHash)) {
-            return { ok: false, message: '🚫 This device is blocked from claiming free services. Contact support if you think this is a mistake.' };
-        }
-        const today = new Date().toISOString().slice(0, 10);
-        const ipHash = await getIpHash();
-        try {
-            await set(ref(db, `deviceClaims/${today}/${deviceHash}`), {
-                uid, ts: new Date().toISOString(),
-                ua: (navigator.userAgent || '').slice(0, 180),
-                ipHash: ipHash || null
-            });
-        } catch (_) {
-            // Rejected by the DB rule → someone (this account or another) already
-            // holds today's lock for this device. Treat as a hard block.
-            logSuspiciousActivity(uid, 'multi_account_free_claim_blocked', { deviceHash });
-            return { ok: false, message: '⏳ A free service was already claimed today from this device. Only one free claim per device per day is allowed.' };
-        }
-        // Best-effort secondary signals — never block the user on these
-        checkIpVelocityAndLog(uid, ipHash, deviceHash);
-        return { ok: true, deviceHash, ipHash };
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
     // ⚡ ULTRA-FAST BULLETPROOF PAYMENT ENGINE — v3
     //
     // Key design principles:
@@ -6196,26 +5948,14 @@
 
         // Free service daily limit check — block if already claimed today
         if(isFreeService) {
-            // Anti-abuse: cheap client-side throttle before hitting the network at all
-            if(!_rateLimitOk('_fsAttempts', 6, 60000)) {
-                showToast('⏳ Too many attempts. Please wait a minute and try again.');
-                return;
-            }
             const today = new Date().toISOString().slice(0,10);
             const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
             showLoader();
             Promise.all([
                 get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${today}/${id}`)),
-                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${id}`)),
-                preflightFreeServiceCheck(currentUser.uid)
-            ]).then(([todaySnap, yestSnap, deviceCheck]) => {
+                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${id}`))
+            ]).then(([todaySnap, yestSnap]) => {
                 hideLoader();
-                // Device-level guard first — catches multi-account abuse before
-                // wasting the genuine per-account daily-limit UI flow
-                if(!deviceCheck.allowed) {
-                    showToast(deviceCheck.message);
-                    return;
-                }
                 const snap = todaySnap.exists() ? todaySnap : (yestSnap.exists() ? yestSnap : null);
                 if(snap) {
                     const claimedAt = new Date(snap.val());
@@ -6714,12 +6454,6 @@
         if (!currentUser) return showToast('Please login first');
         if (_guardOrder()) return;
 
-        // Anti-abuse: server-enforced rate limit on actual claim attempts (tighter than the modal-open throttle)
-        if (!_rateLimitOk('_fsPlaceAttempts', 4, 60000)) {
-            _unlockOrder();
-            return showToast('⏳ Too many attempts. Please wait a minute and try again.');
-        }
-
         const targetLink = document.getElementById('chkLinkInput').value.trim();
         const pollOption = document.getElementById('chkPollInput').value.trim();
         const customComments = (checkoutItem.customComments && document.getElementById('chkCommentsContainer').style.display === 'block')
@@ -6768,19 +6502,6 @@
                 }
             }
 
-            // ── MULTI-ACCOUNT ABUSE GUARD ───────────────────────────────
-            // Acquire the device-level lock BEFORE creating the order. This
-            // write can only ever succeed once per device per day (enforced
-            // by the DB security rule, not just this client code), so it's
-            // what actually stops the "sign up 50 accounts, same laptop"
-            // exploit — even if someone edits this JS or calls the API
-            // directly, the rule still rejects the 2nd write for the day.
-            const deviceLock = await acquireDeviceLockForFreeClaim(currentUser.uid);
-            if (!deviceLock.ok) {
-                _unlockOrder(); hideLoader();
-                return showToast(deviceLock.message);
-            }
-
             const utr = 'FREE_' + generateUTR(8);
             const hasApiConfig = !!(
                 checkoutItem.apiUrl && checkoutItem.apiKey &&
@@ -6805,7 +6526,6 @@
                 isFreeService:   true,
                 paymentMethod:   'free',
                 apiStatus:       hasApiConfig ? 'calling' : null,
-                deviceHash:      deviceLock.deviceHash || null,
             };
 
             const newOrderRef = push(ref(db, 'orders'));
@@ -7705,4 +7425,3 @@
 
 </body>
 </html>
-
