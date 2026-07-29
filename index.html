@@ -5735,50 +5735,46 @@
                         list.appendChild(_cardDiv);
                         return;
                     }
-                    if(!hasTimer) {
-                        // Admin set progress manually with no timer — just show In Progress, no ring/percentage,
-                        // and never auto-complete on the client. Only an actual admin status change will complete it.
-                        estTimeHtml = `
-                        <div style="display:flex; align-items:center; gap:12px; margin-top:14px; background:var(--input-bg); border:1px solid var(--border-color); border-radius:12px; padding:14px 16px;">
-                            <div style="width:14px;height:14px;border-radius:50%;background:#f59e0b;flex-shrink:0;" class="pulse-anim"></div>
-                            <div>
-                                <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Order In Progress</div>
-                                <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${estRaw && estRaw.trim() ? estRaw : 'Our team is working on it'}</div>
+                    // Ring visual always uses the same look as before. When admin set a real timer (autoCompleteAt),
+                    // that timer drives the ring accurately. When no timer was set, we fall back to estTime/avgTime
+                    // (or a default) purely for the visual — it never triggers completion on its own.
+                    const sl = estRaw.toLowerCase();
+                    const hm = sl.match(/(\d+)\s*(h|hr|hrs|hour|hours)/);
+                    const mm = sl.match(/(\d+)\s*(m|min|mins|minute|minutes)/);
+                    const hh = hm ? parseInt(hm[1]) : 0, mn = mm ? parseInt(mm[1]) : 0;
+                    const fallbackTotalMs = ((hh * 60 + mn) || 60) * 60000;
+                    const totalMs = hasTimer ? Math.max(1, new Date(o.autoCompleteAt).getTime() - new Date(startRef).getTime()) : fallbackTotalMs;
+                    const elapsed = Date.now() - new Date(startRef).getTime();
+                    const pct = Math.min(99, Math.max(1, Math.round(elapsed / totalMs * 100)));
+                    const r = 28, circ = +(2 * Math.PI * r).toFixed(2), dash = +(circ - circ * pct / 100).toFixed(2);
+                    const col = pct < 30 ? '#3b82f6' : pct < 70 ? '#f59e0b' : '#10b981';
+                    const remainingMs = hasTimer ? (new Date(o.autoCompleteAt).getTime() - Date.now()) : (totalMs - elapsed);
+                    const remaining = Math.max(0, Math.round(remainingMs / 60000));
+                    const remStr = remainingMs <= 0 ? 'Almost done' : remaining >= 60 ? `${Math.floor(remaining/60)}h ${remaining%60}m left` : `${remaining}m left`;
+                    const estLabel = estRaw && estRaw.trim() ? estRaw : 'Processing...';
+                    estTimeHtml = `
+                    <div data-prog-id="${o.id}" data-prog-start="${startRef}" data-prog-total="${totalMs}" data-prog-auto-complete="${o.autoCompleteAt||''}" style="margin-top:14px; background:var(--input-bg); border:1px solid var(--border-color); border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:16px;">
+                        <div style="position:relative; flex-shrink:0; width:70px; height:70px;">
+                            <svg width="70" height="70" style="transform:rotate(-90deg);">
+                                <circle cx="35" cy="35" r="${r}" fill="none" stroke="var(--border-color)" stroke-width="5"/>
+                                <circle class="uprog-ring-${o.id}" cx="35" cy="35" r="${r}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${dash}" style="transition:stroke-dashoffset 1s ease, stroke 0.5s ease;"/>
+                            </svg>
+                            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                                <span class="uprog-pct-${o.id}" style="font-size:13px;font-weight:800;color:${col};line-height:1;">${pct}%</span>
                             </div>
-                        </div>`;
-                    } else {
-                        const totalMs = Math.max(1, new Date(o.autoCompleteAt).getTime() - new Date(startRef).getTime());
-                        const elapsed = Date.now() - new Date(startRef).getTime();
-                        const pct = Math.min(99, Math.max(1, Math.round(elapsed / totalMs * 100)));
-                        const r = 28, circ = +(2 * Math.PI * r).toFixed(2), dash = +(circ - circ * pct / 100).toFixed(2);
-                        const col = pct < 30 ? '#3b82f6' : pct < 70 ? '#f59e0b' : '#10b981';
-                        const remaining = Math.max(0, Math.round((new Date(o.autoCompleteAt).getTime() - Date.now()) / 60000));
-                        const remStr = remaining >= 60 ? `${Math.floor(remaining/60)}h ${remaining%60}m left` : `${remaining}m left`;
-                        const estLabel = estRaw && estRaw.trim() ? estRaw : 'Processing...';
-                        estTimeHtml = `
-                        <div data-prog-id="${o.id}" data-prog-start="${startRef}" data-prog-auto-complete="${o.autoCompleteAt}" style="margin-top:14px; background:var(--input-bg); border:1px solid var(--border-color); border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:16px;">
-                            <div style="position:relative; flex-shrink:0; width:70px; height:70px;">
-                                <svg width="70" height="70" style="transform:rotate(-90deg);">
-                                    <circle cx="35" cy="35" r="${r}" fill="none" stroke="var(--border-color)" stroke-width="5"/>
-                                    <circle class="uprog-ring-${o.id}" cx="35" cy="35" r="${r}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${dash}" style="transition:stroke-dashoffset 1s ease, stroke 0.5s ease;"/>
-                                </svg>
-                                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-                                    <span class="uprog-pct-${o.id}" style="font-size:13px;font-weight:800;color:${col};line-height:1;">${pct}%</span>
-                                </div>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Estimated Completion</div>
+                            <div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">${estLabel}</div>
+                            <div style="background:var(--border-color);border-radius:999px;height:6px;overflow:hidden;">
+                                <div class="uprog-bar-${o.id}" style="height:100%;width:${pct}%;background:${col};border-radius:999px;transition:width 1s ease,background 0.5s ease;"></div>
                             </div>
-                            <div style="flex:1;min-width:0;">
-                                <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Estimated Completion</div>
-                                <div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">${estLabel}</div>
-                                <div style="background:var(--border-color);border-radius:999px;height:6px;overflow:hidden;">
-                                    <div class="uprog-bar-${o.id}" style="height:100%;width:${pct}%;background:${col};border-radius:999px;transition:width 1s ease,background 0.5s ease;"></div>
-                                </div>
-                                <div style="display:flex;justify-content:space-between;margin-top:5px;">
-                                    <span style="font-size:11px;color:var(--text-secondary);">Started ${new Date(startRef).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
-                                    <span class="uprog-rem-${o.id}" style="font-size:11px;font-weight:600;color:${col};">${remStr}</span>
-                                </div>
+                            <div style="display:flex;justify-content:space-between;margin-top:5px;">
+                                <span style="font-size:11px;color:var(--text-secondary);">Started ${new Date(startRef).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
+                                <span class="uprog-rem-${o.id}" style="font-size:11px;font-weight:600;color:${col};">${remStr}</span>
                             </div>
-                        </div>`;
-                    }
+                        </div>
+                    </div>`;
                 }
 
                 const _oCard = document.createElement('div');
@@ -5820,11 +5816,12 @@
             document.querySelectorAll('[data-prog-id]').forEach(el => {
                 const id = el.dataset.progId;
                 const startRef = new Date(el.dataset.progStart).getTime();
+                const totalMs = parseInt(el.dataset.progTotal) || 3600000;
                 const autoCompleteAt = el.dataset.progAutoComplete ? new Date(el.dataset.progAutoComplete).getTime() : null;
-                if(!autoCompleteAt) return; // no real timer set — never auto-complete, wait for admin
-                const totalMs = Math.max(1, autoCompleteAt - startRef);
                 const elapsed = Date.now() - startRef;
-                const autoExpired = Date.now() >= autoCompleteAt;
+                // Only a REAL admin-set timer (autoCompleteAt) can complete the order — a fallback/default
+                // duration is for the ring visual only and never flips the card to Completed on its own.
+                const autoExpired = autoCompleteAt && Date.now() >= autoCompleteAt;
                 if(autoExpired) {
                     // Replace the progress card with completed UI
                     const orderCard = el.closest('.order-card');
