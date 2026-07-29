@@ -3600,6 +3600,20 @@
         if(pin.length < 4) { markPinError(true); hasError = true; } else { markPinError(false); }
         if(hasError) return;
 
+        // ── One account per device (Sign Up only) ──────────────────────────
+        // Mirrors anonymous login's natural one-account-per-device behavior.
+        if(isSignupMode) {
+            let existingDeviceUid = null;
+            try { existingDeviceUid = localStorage.getItem('pinAccountCreated'); } catch(_) {}
+            if(existingDeviceUid) {
+                _mark(usernameInput, false, 'Only 1 account allowed per device.');
+                usernameInput.classList.add('shake');
+                setTimeout(() => usernameInput.classList.remove('shake'), 400);
+                _swapAuthMode(false, true);
+                return;
+            }
+        }
+
         const btn = document.getElementById('authSubmitBtn');
         btn.classList.add('btn-loading');
         btn.disabled = true;
@@ -3620,6 +3634,7 @@
                 await updateProfile(cred.user, { displayName: name }); 
                 await set(ref(db, `users/${cred.user.uid}/profile`), { name, username: usernameLower, email: syntheticEmail, createdAt: new Date().toISOString(), referredBy: referralSource || null, walletBalance: 0, totalSpent: 0 }); 
                 await set(ref(db, `usernames/${usernameLower}`), cred.user.uid);
+                try { localStorage.setItem('pinAccountCreated', cred.user.uid); } catch(_) {}
                 // Clear validation marks + suggestions on success
                 [usernameInput, nameInput].forEach(el => { el.classList.remove('input-error','input-success'); });
                 _renderUsernameSuggestions([]);
@@ -3632,6 +3647,7 @@
                 return; 
             } else { 
                 const loginCred = await signInWithEmailAndPassword(auth, syntheticEmail, derivedPassword);
+                try { localStorage.setItem('pinAccountCreated', loginCred.user.uid); } catch(_) {}
                 usernameInput.classList.remove('input-error','input-success');
                 clearPinBoxes();
                 _pinFailCount[usernameLower] = 0;
@@ -6502,6 +6518,29 @@
                 }
             }
 
+            // ── Atomic claim (fixes the race) ───────────────────────────────
+            // Old code did get(limitRef) then set(limitRef,...) as two separate
+            // round trips — if the read was slow or the user tapped twice /
+            // used two tabs, both requests could see "not claimed" and both
+            // would create an order. runTransaction() resolves read+write in
+            // one atomic server-side operation: only ONE concurrent request
+            // can ever win this slot. The DB rule's "!data.exists()" check on
+            // this exact path is the second, tamper-proof layer of defense.
+            let claimTx;
+            try {
+                claimTx = await runTransaction(limitRef, (current) => {
+                    if (current !== null) return; // abort — already claimed, don't touch it
+                    return new Date().toISOString();
+                });
+            } catch(e) {
+                _unlockOrder(); hideLoader();
+                return showToast('⏳ Already claimed! Please try again later.');
+            }
+            if (!claimTx.committed) {
+                _unlockOrder(); hideLoader();
+                return showToast('⏳ Already claimed! Please try again later.');
+            }
+
             const utr = 'FREE_' + generateUTR(8);
             const hasApiConfig = !!(
                 checkoutItem.apiUrl && checkoutItem.apiKey &&
@@ -6529,11 +6568,14 @@
             };
 
             const newOrderRef = push(ref(db, 'orders'));
-            // Save order + mark daily limit used — parallel writes
-            await Promise.all([
-                set(newOrderRef, orderData),
-                set(limitRef, new Date().toISOString()),
-            ]);
+            try {
+                await set(newOrderRef, orderData);
+            } catch(e) {
+                // Order creation failed after the slot was claimed — release the
+                // slot back so the user isn't stuck unable to claim what they never got.
+                runTransaction(limitRef, () => null).catch(() => {});
+                throw e;
+            }
 
             _unlockOrder();
             closeCheckout();
@@ -7425,4 +7467,3 @@
 
 </body>
 </html>
-
