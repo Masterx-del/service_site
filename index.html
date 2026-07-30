@@ -2696,6 +2696,26 @@
     // ── In-memory guard: prevents double callExternalApi within same page session ──
     const _apiCallInProgress = new Set();
 
+    // Computes a real completion deadline from a service's avgTime (e.g. "12 Min", "2 Hours", "1 Day")
+    // so that orders which go straight to 'progress' (auto API orders, free orders, packs, cart items)
+    // get the SAME guaranteed, independent auto-complete behavior as orders admin times manually.
+    function computeAutoCompleteAt(estTimeStr) {
+        if (!estTimeStr) return null;
+        const s = String(estTimeStr).toLowerCase();
+        const dayM = s.match(/(\d+(?:\.\d+)?)\s*(?:d|day|days)\b/);
+        const hrM  = s.match(/(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/);
+        const minM = s.match(/(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes)\b/);
+        let ms = 0;
+        if (dayM) ms += parseFloat(dayM[1]) * 86400000;
+        if (hrM)  ms += parseFloat(hrM[1]) * 3600000;
+        if (minM) ms += parseFloat(minM[1]) * 60000;
+        if (!dayM && !hrM && !minM) {
+            const n = parseFloat(s);
+            if (!isNaN(n) && n > 0) ms = n * 60000; // bare number treated as minutes
+        }
+        return ms > 0 ? new Date(Date.now() + ms).toISOString() : null;
+    }
+
     async function callExternalApi(orderKey, apiUrl, apiKey, serviceId, quantity, targetLink, comments) {
         // ── Layer 1: In-memory dedup (same tab / same session) ──
         if (_apiCallInProgress.has(orderKey)) return;
@@ -5434,6 +5454,7 @@
             targetLink: reelLink,
             status: 'progress',
             createdAt: now,
+            autoCompleteAt: computeAutoCompleteAt(pack.avgTime),
             isExclusivePack: true,
             apiStatus: 'calling',
         };
@@ -6260,6 +6281,7 @@
                 customComments:  customComments || null,
                 status:          hasApiConfig ? 'progress' : 'pending',
                 createdAt:       new Date().toISOString(),
+                autoCompleteAt:  hasApiConfig ? computeAutoCompleteAt(checkoutItem.avgTime) : null,
                 isSubscription:  checkoutItem.purchaseType === 'subscription',
                 apiStatus:       hasApiConfig ? 'calling' : null,
             };
@@ -6412,6 +6434,7 @@
                 customComments:  customComments || null,
                 status:          hasApiConfig ? 'progress' : 'pending', 
                 createdAt:       new Date().toISOString(), 
+                autoCompleteAt:  hasApiConfig ? computeAutoCompleteAt(checkoutItem.avgTime) : null,
                 isSubscription:  checkoutItem.purchaseType === 'subscription',
                 apiStatus:       hasApiConfig ? 'calling' : null,
                 paymentMethod:   'wallet'
@@ -6569,6 +6592,7 @@
                 customComments:  customComments || null,
                 status:          hasApiConfig ? 'progress' : 'pending',
                 createdAt:       new Date().toISOString(),
+                autoCompleteAt:  hasApiConfig ? computeAutoCompleteAt(checkoutItem.avgTime) : null,
                 isSubscription:  false,
                 isFreeService:   true,
                 paymentMethod:   'free',
@@ -6838,6 +6862,7 @@
                     utrId: utr, targetLink: item.link,
                     status: hasApi ? 'progress' : 'pending',
                     createdAt: new Date().toISOString(), isSubscription: false,
+                    autoCompleteAt: hasApi ? computeAutoCompleteAt(item.product.avgTime) : null,
                     apiStatus: hasApi ? 'calling' : null, cartGroup: utr,
                 };
                 const newOrderRef = push(ref(db, 'orders'));
@@ -6921,6 +6946,7 @@
                     finalAmount: (parseFloat(item.product.discountedPrice)).toFixed(2),
                     utrId: utr, targetLink: item.link, status: hasApi ? 'progress' : 'pending',
                     createdAt: new Date().toISOString(), isSubscription: false,
+                    autoCompleteAt: hasApi ? computeAutoCompleteAt(item.product.avgTime) : null,
                     apiStatus: hasApi ? 'calling' : null, cartGroup: utr, paymentMethod: 'wallet'
                 };
 
