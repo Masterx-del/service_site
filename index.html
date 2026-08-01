@@ -1048,8 +1048,8 @@
                 <div class="service-cat-card" onclick="openCategory('YouTube')"><i class="fab fa-youtube" style="color: #FF0000;"></i><div class="service-cat-name">YouTube</div></div>
                 <div class="service-cat-card" onclick="openCategory('TikTok')"><i class="fab fa-tiktok" style="color: #010101;"></i><div class="service-cat-name">TikTok</div></div>
                 <div class="service-cat-card" onclick="openCategory('Twitter')"><i class="fab fa-twitter" style="color: #1DA1F2;"></i><div class="service-cat-name">Twitter</div></div>
-                <div class="service-cat-card" onclick="openCategory('Snapchat')"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:#FFFC00;margin-bottom:10px;"><i class="fab fa-snapchat" style="color:#000;font-size:18px;margin-bottom:0;"></i></span><div class="service-cat-name">Snapchat</div></div>
                 <div class="service-cat-card" onclick="openCategory('Accounts')"><i class="fas fa-address-card" style="color: #6366F1;"></i><div class="service-cat-name">Accounts</div></div>
+                <div class="service-cat-card" onclick="openCategory('Scripts')"><i class="fas fa-laptop-code" style="color: #2563EB;"></i><div class="service-cat-name">Scripts</div></div>
             </div>
 
             <div id="categoryPane" style="display: none; padding-top: 24px; border-top: 1px solid var(--border-color); margin-top: 20px; padding-bottom: 20px;">
@@ -5565,11 +5565,12 @@
         'SMS':          {icon:'fas fa-sms',         color:'#10B981'},
         'Email':        {icon:'fas fa-envelope',    color:'#F59E0B'},
         'Accounts':     {icon:'fas fa-address-card', color:'#6366F1'},
+        'Scripts':      {icon:'fas fa-laptop-code', color:'#2563EB'},
         'Other':        {icon:'fas fa-layer-group', color:'#64748b'}
     };
     window._defaultCategoryIcon = {icon:'fas fa-star', color:'#64748b'};
     // Fallback order used only if admin has never saved a category map to Firebase yet
-    window._fallbackCategoryOrder = ['Instagram','Facebook','Telegram','WhatsApp','YouTube','TikTok','Twitter','Snapchat','Accounts'];
+    window._fallbackCategoryOrder = ['Instagram','Facebook','Telegram','WhatsApp','YouTube','TikTok','Twitter','Accounts','Scripts'];
 
     window._categoryIconHTML = (cat) => {
         const cfg = window._categoryIconMap[cat] || window._defaultCategoryIcon;
@@ -5839,14 +5840,22 @@
 
     // ── Live progress ticker for user in-progress orders ─────────────────
     let _userProgTicker = null;
+    // HTML data-* attributes are always strings. createdAt can now be either a
+    // legacy ISO string or a numeric epoch-ms value (from Firebase serverTimestamp) —
+    // new Date("1754072850000") fails to parse a bare numeric string, so detect and
+    // parse it as a number directly instead of always falling through to Date parsing.
+    function _parseProgTime(v) {
+        if (v === null || v === undefined || v === '') return NaN;
+        return /^\d+$/.test(v) ? parseInt(v, 10) : new Date(v).getTime();
+    }
     function startUserProgressTicker() {
         if (_userProgTicker) clearInterval(_userProgTicker);
         _userProgTicker = setInterval(() => {
             document.querySelectorAll('[data-prog-id]').forEach(el => {
                 const id = el.dataset.progId;
-                const startRef = new Date(el.dataset.progStart).getTime();
+                const startRef = _parseProgTime(el.dataset.progStart);
                 const totalMs = parseInt(el.dataset.progTotal) || 3600000;
-                const autoCompleteAt = el.dataset.progAutoComplete ? new Date(el.dataset.progAutoComplete).getTime() : null;
+                const autoCompleteAt = el.dataset.progAutoComplete ? _parseProgTime(el.dataset.progAutoComplete) : null;
                 const elapsed = Date.now() - startRef;
                 // Only a REAL admin-set timer (autoCompleteAt) can complete the order — a fallback/default
                 // duration is for the ring visual only and never flips the card to Completed on its own.
