@@ -2572,7 +2572,7 @@
 <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, linkWithCredential, EmailAuthProvider, fetchSignInMethodsForEmail, sendPasswordResetEmail, sendEmailVerification, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
-    import { getDatabase, ref, get, set, push, onValue, query, orderByChild, equalTo, update, onChildChanged, runTransaction, remove } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js';
+    import { getDatabase, ref, get, set, push, onValue, query, orderByChild, equalTo, update, onChildChanged, runTransaction, remove, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js';
 
     const firebaseConfig = {
         apiKey: "AIzaSyDrjP8o8adBYGih_28XrDrCwVpL3WRu9rE",
@@ -5156,7 +5156,7 @@
                     userId: currentUser.uid, userEmail: currentUser.email,
                     userName: (currentUser.displayName || currentUser.email || 'Guest'),
                     utrId: utr, finalAmount: paidVal.toFixed(2),
-                    type: 'wallet_topup', status: 'completed', createdAt: new Date().toISOString()
+                    type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp()
                 }),
                 remove(ref(db, `users/${currentUser.uid}/pendingVerification`)),
             ]);
@@ -5241,7 +5241,7 @@
             const curBal = parseFloat(profSnap.exists() ? (profSnap.val().walletBalance || 0) : 0);
             await update(ref(db, `users/${uid}/profile`), { walletBalance: curBal + paidVal });
             await push(ref(db, `users/${uid}/walletHistory`), { type: 'credit', amount: paidVal, note: 'Wallet Top-Up (Auto-Resumed)', utrId: utr, createdAt: new Date().toISOString() });
-            await push(ref(db, 'orders'), { userId: uid, userEmail: currentUser.email, userName: (currentUser.displayName || currentUser.email || 'Guest'), utrId: utr, finalAmount: paidVal.toFixed(2), type: 'wallet_topup', status: 'completed', createdAt: new Date().toISOString() });
+            await push(ref(db, 'orders'), { userId: uid, userEmail: currentUser.email, userName: (currentUser.displayName || currentUser.email || 'Guest'), utrId: utr, finalAmount: paidVal.toFixed(2), type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp() });
             await remove(ref(db, `users/${uid}/pendingVerification`));
 
             showToast(`✅ ₹${paidVal.toFixed(2)} credited! (Resumed from last session)`, 'success');
@@ -5461,7 +5461,7 @@
             utrId: utr,
             targetLink: reelLink,
             status: 'progress',
-            createdAt: now,
+            createdAt: serverTimestamp(),
             autoCompleteAt: computeAutoCompleteAt(pack.avgTime),
             isExclusivePack: true,
             apiStatus: 'calling',
@@ -6288,7 +6288,7 @@
                 pollOption:      (checkoutItem.purchaseType === 'product' && document.getElementById('chkPollContainer').style.display === 'block') ? pollOption : null,
                 customComments:  customComments || null,
                 status:          hasApiConfig ? 'progress' : 'pending',
-                createdAt:       new Date().toISOString(),
+                createdAt:       serverTimestamp(),
                 autoCompleteAt:  hasApiConfig ? computeAutoCompleteAt(checkoutItem.avgTime) : null,
                 isSubscription:  checkoutItem.purchaseType === 'subscription',
                 apiStatus:       hasApiConfig ? 'calling' : null,
@@ -6441,7 +6441,7 @@
                 pollOption:      (checkoutItem.purchaseType === 'product' && document.getElementById('chkPollContainer').style.display === 'block') ? pollOption : null, 
                 customComments:  customComments || null,
                 status:          hasApiConfig ? 'progress' : 'pending', 
-                createdAt:       new Date().toISOString(), 
+                createdAt:       serverTimestamp(), 
                 autoCompleteAt:  hasApiConfig ? computeAutoCompleteAt(checkoutItem.avgTime) : null,
                 isSubscription:  checkoutItem.purchaseType === 'subscription',
                 apiStatus:       hasApiConfig ? 'calling' : null,
@@ -6599,7 +6599,7 @@
                 pollOption:      (document.getElementById('chkPollContainer').style.display === 'block') ? pollOption : null,
                 customComments:  customComments || null,
                 status:          hasApiConfig ? 'progress' : 'pending',
-                createdAt:       new Date().toISOString(),
+                createdAt:       serverTimestamp(),
                 autoCompleteAt:  hasApiConfig ? computeAutoCompleteAt(checkoutItem.avgTime) : null,
                 isSubscription:  false,
                 isFreeService:   true,
@@ -6869,7 +6869,7 @@
                     finalAmount: parseFloat(item.product.discountedPrice).toFixed(2),
                     utrId: utr, targetLink: item.link,
                     status: hasApi ? 'progress' : 'pending',
-                    createdAt: new Date().toISOString(), isSubscription: false,
+                    createdAt: serverTimestamp(), isSubscription: false,
                     autoCompleteAt: hasApi ? computeAutoCompleteAt(item.product.avgTime) : null,
                     apiStatus: hasApi ? 'calling' : null, cartGroup: utr,
                 };
@@ -6953,7 +6953,7 @@
                     userName: (currentUser.displayName || currentUser.email || 'Guest'),
                     finalAmount: (parseFloat(item.product.discountedPrice)).toFixed(2),
                     utrId: utr, targetLink: item.link, status: hasApi ? 'progress' : 'pending',
-                    createdAt: new Date().toISOString(), isSubscription: false,
+                    createdAt: serverTimestamp(), isSubscription: false,
                     autoCompleteAt: hasApi ? computeAutoCompleteAt(item.product.avgTime) : null,
                     apiStatus: hasApi ? 'calling' : null, cartGroup: utr, paymentMethod: 'wallet'
                 };
