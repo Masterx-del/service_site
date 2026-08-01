@@ -3240,11 +3240,18 @@
 
         // Split free and paid services
         let freeItems = [], paidItems = [];
+        const _freeServiceHiddenForUser = !!(window._userProfileCache && window._userProfileCache.freeServiceHidden);
         visibleItems.forEach(([id, p]) => {
+            if(parseFloat(p.discountedPrice) === 0) {
+                if(_freeServiceHiddenForUser) return; // free service hidden for this user
+                freeItems.push([id, p]);
+            } else {
+                paidItems.push([id, p]);
+            }
             hasItems = true;
-            if(parseFloat(p.discountedPrice) === 0) freeItems.push([id, p]);
-            else paidItems.push([id, p]);
         });
+        // Rate hierarchy: paid services shown in increasing price order
+        paidItems.sort((a, b) => parseFloat(a[1].discountedPrice) - parseFloat(b[1].discountedPrice));
 
         function _renderCard(id, p) {
             const isFree = parseFloat(p.discountedPrice) === 0;
@@ -4199,6 +4206,7 @@
         onValue(ref(db, `users/${currentUser.uid}/profile`), snap => {
             if(!snap.exists()) return;
             const p = snap.val();
+            window._userProfileCache = p;
             walletBalance = parseFloat(p.walletBalance || 0);
             const refEarned = parseFloat(p.referralEarned || 0);
             const balEl = document.getElementById('walletBalance');
