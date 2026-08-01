@@ -2844,7 +2844,6 @@
     let couponsData = {}; let checkoutItem = null; let checkoutFinalAmt = 0; let appliedCouponKey = null; let notificationsBound = false;
     let currentCatView = { level: 0, cat: '', subCat: '' };
     let walletBalance = 0; let wfAmount = 0; let wfOrderId = '';
-    let isFreeServiceBanned = false;
     let linkMgmtRules = {};
     let _productsLoaded = false;
 
@@ -4197,9 +4196,6 @@
 
     function loadWallet() {
         if(!currentUser) return;
-        onValue(ref(db, `meta/freeServiceBans/${currentUser.uid}`), snap => {
-            isFreeServiceBanned = snap.exists() && snap.val() === true;
-        });
         onValue(ref(db, `users/${currentUser.uid}/profile`), snap => {
             if(!snap.exists()) return;
             const p = snap.val();
@@ -5995,11 +5991,6 @@
 
         const isFreeService = (type === 'product' && checkoutFinalAmt === 0 && !checkoutItem.customComments);
 
-        // Blocked from free services — paid purchases remain unaffected
-        if(isFreeService && isFreeServiceBanned) {
-            return showToast('🚫 Free services are blocked on this account. You can still purchase paid services.');
-        }
-
         // Free service daily limit check — block if already claimed today
         if(isFreeService) {
             const today = new Date().toISOString().slice(0,10);
@@ -6509,15 +6500,6 @@
     async function _placeFreeOrder() {
         if (!currentUser) return showToast('Please login first');
         if (_guardOrder()) return;
-
-        // Re-check ban status fresh from DB (defense-in-depth; also enforced by DB rules)
-        try {
-            const banSnap = await get(ref(db, `meta/freeServiceBans/${currentUser.uid}`));
-            if (banSnap.exists() && banSnap.val() === true) {
-                _unlockOrder();
-                return showToast('🚫 Free services are blocked on this account. You can still purchase paid services.');
-            }
-        } catch(_) {}
 
         const targetLink = document.getElementById('chkLinkInput').value.trim();
         const pollOption = document.getElementById('chkPollInput').value.trim();
