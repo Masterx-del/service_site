@@ -2585,6 +2585,32 @@
     };
     const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getDatabase(app);
 
+    // ── Dedicated, isolated Auth instance for Guest (anonymous) sessions ──
+    // Root cause of "new guest account after Google login/logout cycle":
+    // Guest and Google/username logins used to share the SAME `auth` object.
+    // signInWithPopup(auth, ...) silently REPLACES whatever session is currently
+    // active on that auth instance — so if a guest was signed in (even after a
+    // "soft" logout, which intentionally keeps the guest session alive in the
+    // background), logging in with Google overwrote/discarded that guest
+    // session forever. The next "Continue as Guest" tap then had nothing left
+    // to resume, so Firebase created a brand-new anonymous account.
+    // Fix: give guest sessions their own separate Firebase App + Auth instance
+    // (same project/config, independent persisted session). Google and
+    // username/PIN logins only ever touch `auth`, so they can never again
+    // clobber the guest session living on `guestAuth`. One guest account per
+    // device now survives any number of Google login/logout cycles.
+    const guestApp = initializeApp(firebaseConfig, 'guestApp');
+    const guestAuth = getAuth(guestApp);
+    // `db` above is bound to the main `app`/`auth` — its requests only ever carry
+    // the main `auth` user's token. Guests are signed in on the separate
+    // `guestAuth`/`guestApp` instance, so any `ref(activeDb(), ...)` call made while a
+    // guest is active was going out UNAUTHENTICATED (auth == null in rules),
+    // causing PERMISSION_DENIED on the guest's own profile/orders/wallet reads
+    // & writes. `guestDb` + `activeDb()` route each call to the database bound
+    // to whichever Auth instance is actually signed in right now.
+    const guestDb = getDatabase(guestApp);
+    function activeDb() { return (currentUser && currentUser.isAnonymous) ? guestDb : db; }
+
     // ═══════════════════════════════════════════════════════════════════
     // ⚡ ULTRA-FAST BULLETPROOF PAYMENT ENGINE — v3
     //
@@ -2723,7 +2749,7 @@
 
         try {
             // ── Layer 2: Firebase atomic lock — prevents double-fire across tabs/refreshes ──
-            const lockRef = ref(db, `orders/${orderKey}/apiStatus`);
+            const lockRef = ref(activeDb(), `orders/${orderKey}/apiStatus`);
 
             // First read — bail early if already processed
             const lockSnap = await get(lockRef).catch(() => null);
@@ -2758,7 +2784,7 @@
 
             // Validate required fields
             if (!apiUrl || !apiKey || !serviceId || !targetLink || (!quantity && !comments)) {
-                await update(ref(db, `orders/${orderKey}`), {
+                await update(ref(activeDb(), `orders/${orderKey}`), {
                     apiStatus: 'skipped',
                     apiRawResponse: `Missing config: url=${!!apiUrl} key=${!!apiKey} svc=${!!serviceId} qty=${!!quantity} comments=${!!comments} link=${!!targetLink}`
                 }).catch(() => {});
@@ -2809,7 +2835,7 @@
             });
 
             if (!raceResult.ok) {
-                await update(ref(db, `orders/${orderKey}`), {
+                await update(ref(activeDb(), `orders/${orderKey}`), {
                     apiStatus:      'failed',
                     apiRawResponse: 'All proxies failed: ' + raceResult.text,
                     apiCalledAt:    new Date().toISOString(),
@@ -2823,7 +2849,7 @@
             const hasError = j.error || j.status === 'error' ||
                              (typeof j.message === 'string' && j.message.toLowerCase().includes('error'));
 
-            await update(ref(db, `orders/${orderKey}`), {
+            await update(ref(activeDb(), `orders/${orderKey}`), {
                 apiStatus:      hasError ? 'error' : 'placed',
                 apiOrderId:     (!hasError && orderId) ? String(orderId) : null,
                 apiRawResponse: text.substring(0, 500),
@@ -2831,7 +2857,7 @@
             }).catch(() => {});
 
         } catch(outerErr) {
-            await update(ref(db, `orders/${orderKey}`), {
+            await update(ref(activeDb(), `orders/${orderKey}`), {
                 apiStatus:      'failed',
                 apiRawResponse: 'callExternalApi exception: ' + (outerErr.message || ''),
             }).catch(() => {});
@@ -3117,7 +3143,7 @@
         document.querySelector('.content-area').scrollTo(0,0);
         // Reset userUnread badge when chat tab opened + scroll to latest message
         if(targetId === 'chatTab' && currentUser) {
-            update(ref(db, `chats/${currentUser.uid}/info`), { userUnread: 0 });
+            update(ref(activeDb(), `chats/${currentUser.uid}/info`), { userUnread: 0 });
             const badge = document.getElementById('chatUnreadBadge');
             if(badge) badge.style.display = 'none';
             setTimeout(() => {
@@ -3306,7 +3332,7 @@
             const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
             // Fetch the full freeServiceUsed node ONCE for this render pass instead of once per free item
             // (previously each item re-downloaded the entire history — N items = N redundant full downloads)
-            get(ref(db, `users/${currentUser.uid}/freeServiceUsed`)).then(allSnap => {
+            get(ref(activeDb(), `users/${currentUser.uid}/freeServiceUsed`)).then(allSnap => {
             freeItems.forEach(([id]) => {
                     const todaySnap = allSnap.child(`${today}/${id}`);
                     const yestSnap = allSnap.child(`${yesterday}/${id}`);
@@ -3545,7 +3571,7 @@
     });
 
     async function _isUsernameTaken(unameLower) {
-        const snap = await get(ref(db, `usernames/${unameLower}`));
+        const snap = await get(ref(activeDb(), `usernames/${unameLower}`));
         return snap.exists();
     }
 
@@ -3659,8 +3685,8 @@
                 }
                 const cred = await createUserWithEmailAndPassword(auth, syntheticEmail, derivedPassword); 
                 await updateProfile(cred.user, { displayName: name }); 
-                await set(ref(db, `users/${cred.user.uid}/profile`), { name, username: usernameLower, email: syntheticEmail, createdAt: new Date().toISOString(), referredBy: referralSource || null, walletBalance: 0, totalSpent: 0 }); 
-                await set(ref(db, `usernames/${usernameLower}`), cred.user.uid);
+                await set(ref(activeDb(), `users/${cred.user.uid}/profile`), { name, username: usernameLower, email: syntheticEmail, createdAt: new Date().toISOString(), referredBy: referralSource || null, walletBalance: 0, totalSpent: 0 }); 
+                await set(ref(activeDb(), `usernames/${usernameLower}`), cred.user.uid);
                 try { localStorage.setItem('pinAccountCreated', cred.user.uid); } catch(_) {}
                 // Clear validation marks + suggestions on success
                 [usernameInput, nameInput].forEach(el => { el.classList.remove('input-error','input-success'); });
@@ -3810,9 +3836,9 @@
         if (!cred) return;
         hideLoader();
         const user = cred.user;
-        const profileSnap = await get(ref(db, `users/${user.uid}/profile`));
+        const profileSnap = await get(ref(activeDb(), `users/${user.uid}/profile`));
         if (!profileSnap.exists()) {
-            await set(ref(db, `users/${user.uid}/profile`), {
+            await set(ref(activeDb(), `users/${user.uid}/profile`), {
                 name: user.displayName || 'User',
                 email: user.email,
                 createdAt: new Date().toISOString(),
@@ -3846,9 +3872,9 @@
             // Popup first (desktop + standard mobile)
             const cred = await signInWithPopup(auth, provider);
             const user = cred.user;
-            const profileSnap = await get(ref(db, `users/${user.uid}/profile`));
+            const profileSnap = await get(ref(activeDb(), `users/${user.uid}/profile`));
             if (!profileSnap.exists()) {
-                await set(ref(db, `users/${user.uid}/profile`), {
+                await set(ref(activeDb(), `users/${user.uid}/profile`), {
                     name: user.displayName || 'User',
                     email: user.email,
                     createdAt: new Date().toISOString(),
@@ -3896,20 +3922,25 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
         showLoader();
         try {
+            // Guest sessions live on their own isolated `guestAuth` instance (see
+            // its setup near the top of this script), completely separate from
+            // `auth` (used by Google + username/PIN logins). This means no
+            // amount of switching between Google login/logout can ever wipe out
+            // this guest session.
             // If a guest session is still alive in the background (from a "soft"
             // logout), Firebase treats it as no state change at all, so
             // signInAnonymously() below will simply hand back that SAME account
             // rather than creating a new one — but onAuthStateChanged also won't
             // fire in that case, so remember to refresh the UI manually.
-            const wasAlreadySignedIn = !!(auth.currentUser && auth.currentUser.isAnonymous);
-            const cred = await signInAnonymously(auth);
+            const wasAlreadySignedIn = !!(guestAuth.currentUser && guestAuth.currentUser.isAnonymous);
+            const cred = await signInAnonymously(guestAuth);
             const user = cred.user;
-            const profileSnap = await get(ref(db, `users/${user.uid}/profile`));
+            const profileSnap = await get(ref(guestDb, `users/${user.uid}/profile`));
             if (!profileSnap.exists()) {
                 const guestTag = Math.random().toString(36).slice(2, 8).toUpperCase();
                 const guestName = `Guest-${guestTag}`;
                 await updateProfile(user, { displayName: guestName });
-                await set(ref(db, `users/${user.uid}/profile`), {
+                await set(ref(guestDb, `users/${user.uid}/profile`), {
                     name: guestName,
                     isAnonymous: true,
                     createdAt: new Date().toISOString(),
@@ -3958,11 +3989,11 @@
             // ── Mark referred user as verified (for referrer's stats/list only — no signup reward is paid) ──
             (async () => {
                 try {
-                    const _profSnap = await get(ref(db, `users/${user.uid}/profile`));
+                    const _profSnap = await get(ref(activeDb(), `users/${user.uid}/profile`));
                     if(_profSnap.exists()) {
                         const _prof = _profSnap.val();
                         if(_prof.referredBy && !_prof.signupRewardProcessed) {
-                            await update(ref(db, `users/${user.uid}/profile`), { signupRewardProcessed: true });
+                            await update(ref(activeDb(), `users/${user.uid}/profile`), { signupRewardProcessed: true });
                         }
                     }
                 } catch(_) {}
@@ -3979,7 +4010,7 @@
             const refLink = `${window.location.origin}${window.location.pathname}?ref=${user.uid}`;
             if(document.getElementById('referralLinkDisplay')) document.getElementById('referralLinkDisplay').value = refLink;
             // ── Update profile stats (orders count, wallet, referral earned) — real-time ──
-            onValue(ref(db, `users/${user.uid}/profile`), snap => {
+            onValue(ref(activeDb(), `users/${user.uid}/profile`), snap => {
                 if(!snap.exists()) return;
                 const p = snap.val();
                 const walBal = parseFloat(p.walletBalance || 0);
@@ -3991,7 +4022,7 @@
             }, { onlyOnce: false });
             // profileStatOrders count is now populated from the already-fetched indexed userOrdersQuery listener below (see bindRealTimeNotifications/orders query), avoiding a duplicate full 'orders' download.
             // Referral count + referred users list (real-time) — targeted indexed query instead of full users-tree scan
-            const referralQuery = query(ref(db, 'users'), orderByChild('profile/referredBy'), equalTo(user.uid));
+            const referralQuery = query(ref(activeDb(), 'users'), orderByChild('profile/referredBy'), equalTo(user.uid));
             onValue(referralQuery, async snap => {
                 if(!snap.exists()) {
                     if(document.getElementById('refTotalJoined')) document.getElementById('refTotalJoined').textContent = 0;
@@ -4021,7 +4052,7 @@
                         // Read referrer's walletHistory — match by refUid for accurate per-user earned
                         const _uidEarned = {};
                         try {
-                            const _histSnap = await get(ref(db, `users/${user.uid}/walletHistory`));
+                            const _histSnap = await get(ref(activeDb(), `users/${user.uid}/walletHistory`));
                             if(_histSnap.exists()) {
                                 _histSnap.forEach(h => {
                                     const tx = h.val();
@@ -4060,16 +4091,38 @@
             hideLoader();
         }
     }
-    onAuthStateChanged(auth, handleAuthUser);
+    // ── Coordinate the two independent Auth instances ──────────────────────
+    // `auth` (Google/username) always takes priority over `guestAuth` (guest).
+    // This drives both the initial page-load restore AND any later guest
+    // sign-in/out event fired by the "Continue as Guest" button — but a guest
+    // event is only allowed to touch the dashboard when no Google/username
+    // account is currently signed in, so it can never hijack an active
+    // Google session.
+    let _authInitDone = false, _guestInitDone = false;
+    function _resolveActiveSession(source) {
+        if (source === 'auth') _authInitDone = true;
+        if (source === 'guest') _guestInitDone = true;
+        if (auth.currentUser) { handleAuthUser(auth.currentUser); return; }
+        if (guestAuth.currentUser) { handleAuthUser(guestAuth.currentUser); return; }
+        // Neither instance has a user — but don't conclude "logged out" until BOTH
+        // instances have reported their restored state at least once. Otherwise, if
+        // `auth`'s (empty) state resolves before `guestAuth` finishes restoring its
+        // persisted guest session from storage, we'd briefly treat a real guest as
+        // logged out, and a "Continue as Guest" tap in that window would create a
+        // brand-new anonymous account instead of resuming the real one.
+        if (_authInitDone && _guestInitDone) { handleAuthUser(null); }
+    }
+    onAuthStateChanged(auth, () => _resolveActiveSession('auth'));
+    onAuthStateChanged(guestAuth, () => _resolveActiveSession('guest'));
 
     function bindRealTimeNotifications(uid) { 
         if(notificationsBound) return; notificationsBound = true;
-        const userOrdersQuery = query(ref(db, 'orders'), orderByChild('userId'), equalTo(uid));
+        const userOrdersQuery = query(ref(activeDb(), 'orders'), orderByChild('userId'), equalTo(uid));
         onChildChanged(userOrdersQuery, (snap) => { const o = snap.val(); if(o && o.status) { notifyLive(`🔔 Order #${snap.key.slice(-6).toUpperCase()} is now ${o.status.toUpperCase()}`); } });
     }
 
     function bindAdminMessageNotification(uid) {
-        onValue(ref(db, `chats/${uid}/info`), snap => {
+        onValue(ref(activeDb(), `chats/${uid}/info`), snap => {
             if(!snap.exists()) return;
             const info = snap.val();
             const unread = info.userUnread || 0;
@@ -4203,7 +4256,7 @@
 
     function loadWallet() {
         if(!currentUser) return;
-        onValue(ref(db, `users/${currentUser.uid}/profile`), snap => {
+        onValue(ref(activeDb(), `users/${currentUser.uid}/profile`), snap => {
             if(!snap.exists()) return;
             const p = snap.val();
             window._userProfileCache = p;
@@ -4223,7 +4276,7 @@
             const afBal = document.getElementById('afBalanceDisplay');
             if(afBal) afBal.textContent = `₹${walletBalance.toFixed(2)}`;
         });
-        onValue(ref(db, `users/${currentUser.uid}/walletHistory`), snap => {
+        onValue(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), snap => {
             // Hide skeleton, reveal content
             const skelEl = document.getElementById('walletHistorySkeleton');
             const contentEl = document.getElementById('walletHistoryContent');
@@ -4367,7 +4420,7 @@
 
     async function loadCryptoGatewayForUser() {
         try {
-            const snap = await get(ref(db, 'meta/cryptoGateway'));
+            const snap = await get(ref(activeDb(), 'meta/cryptoGateway'));
             if (snap.exists()) {
                 const d = snap.val();
                 if (d.usdInrRate) _cryptoUsdInrRate = parseFloat(d.usdInrRate) || 83;
@@ -4475,7 +4528,7 @@
             }
 
             await Promise.all([
-                set(ref(db, 'users/' + currentUser.uid + '/pendingCryptoDeposit'), {
+                set(ref(activeDb(), 'users/' + currentUser.uid + '/pendingCryptoDeposit'), {
                     orderId:  _cryptoOrderId,
                     uuid:     data.result.uuid || '',
                     inrAmount: _cryptoInrAmt,
@@ -4484,7 +4537,7 @@
                 }),
                 // orderId-keyed record — Heleket webhook (server-side, no auth) only gets order_id,
                 // so it needs this to know which user/amount to credit. Required for auto wallet update.
-                set(ref(db, 'cryptoPendingOrders/' + _cryptoOrderId), {
+                set(ref(activeDb(), 'cryptoPendingOrders/' + _cryptoOrderId), {
                     userId: currentUser.uid,
                     uuid:   data.result.uuid || '',
                     inrAmount: _cryptoInrAmt,
@@ -4517,7 +4570,7 @@
     let _cryptoStatusUnsub = null;
     function _watchCryptoOrderStatus(orderId) {
         if (_cryptoStatusUnsub) { try { _cryptoStatusUnsub(); } catch(_){} _cryptoStatusUnsub = null; }
-        _cryptoStatusUnsub = onValue(ref(db, 'cryptoPendingOrders/' + orderId + '/status'), snap => {
+        _cryptoStatusUnsub = onValue(ref(activeDb(), 'cryptoPendingOrders/' + orderId + '/status'), snap => {
             const status = snap.val();
             if (status === 'completed') {
                 _cryptoStatusUnsub(); _cryptoStatusUnsub = null;
@@ -4595,7 +4648,7 @@
     async function loadPaymentGatewayDetails() {
         try {
             if (_pgCache === null) {
-                const snap = await get(ref(db, 'meta/paymentGateway'));
+                const snap = await get(ref(activeDb(), 'meta/paymentGateway'));
                 _pgCache = snap.exists() ? snap.val() : {};
             }
             const pp = _pgCache.paypal || {};
@@ -4718,7 +4771,7 @@
         document.getElementById('paypalHistoryList').innerHTML = '<div style="text-align:center;padding:30px 0;color:var(--text-secondary);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
         try {
             if (!currentUser) return;
-            const q = query(ref(db, 'depositRequests'), orderByChild('userId'), equalTo(currentUser.uid));
+            const q = query(ref(activeDb(), 'depositRequests'), orderByChild('userId'), equalTo(currentUser.uid));
             const snap = await get(q);
             const items = [];
             snap.forEach(child => { const v = child.val(); if (v.method === 'paypal') items.push(v); });
@@ -4782,7 +4835,7 @@
         document.getElementById('binanceHistoryList').innerHTML = '<div style="text-align:center;padding:30px 0;color:var(--text-secondary);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
         try {
             if (!currentUser) return;
-            const q = query(ref(db, 'depositRequests'), orderByChild('userId'), equalTo(currentUser.uid));
+            const q = query(ref(activeDb(), 'depositRequests'), orderByChild('userId'), equalTo(currentUser.uid));
             const snap = await get(q);
             const items = [];
             snap.forEach(child => { const v = child.val(); if (v.method === 'binance') items.push(v); });
@@ -4851,7 +4904,7 @@
     let _paypalSubmitInProgress = false;
     // Prevent the same Transaction/Order ID being used twice for a given method
     async function _isDuplicateDepositTxnId(txnId, method) {
-        const q = query(ref(db, 'depositRequests'), orderByChild('txnId'), equalTo(txnId));
+        const q = query(ref(activeDb(), 'depositRequests'), orderByChild('txnId'), equalTo(txnId));
         const snap = await get(q);
         let dup = false;
         snap.forEach(child => { if (child.val().method === method) dup = true; });
@@ -4903,7 +4956,7 @@
                 return;
             }
             const conv = paypalConvert(inr);
-            await push(ref(db, 'depositRequests'), {
+            await push(ref(activeDb(), 'depositRequests'), {
                 userId: currentUser.uid,
                 userEmail: currentUser.email,
                 userName: (currentUser.displayName || currentUser.email || 'User'),
@@ -4917,7 +4970,7 @@
             });
 
             // Also reflect this request in the user's Payment History as a pending entry
-            push(ref(db, `users/${currentUser.uid}/walletHistory`), {
+            push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), {
                 type: 'pending_deposit',
                 method: 'paypal',
                 amount: inr,
@@ -4929,7 +4982,7 @@
 
             // Telegram notification (non-blocking)
             (async () => { try {
-                const botSnap = await get(ref(db, 'meta/telegramBot'));
+                const botSnap = await get(ref(activeDb(), 'meta/telegramBot'));
                 if (botSnap.exists()) {
                     const { token, topUpChatId } = botSnap.val();
                     if (token && topUpChatId) {
@@ -4974,7 +5027,7 @@
                 return;
             }
             const usd = binanceConvert(inr);
-            await push(ref(db, 'depositRequests'), {
+            await push(ref(activeDb(), 'depositRequests'), {
                 userId: currentUser.uid,
                 userEmail: currentUser.email,
                 userName: (currentUser.displayName || currentUser.email || 'User'),
@@ -4987,7 +5040,7 @@
             });
 
             // Also reflect this request in the user's Payment History as a pending entry
-            push(ref(db, `users/${currentUser.uid}/walletHistory`), {
+            push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), {
                 type: 'pending_deposit',
                 method: 'binance',
                 amount: inr,
@@ -4999,7 +5052,7 @@
 
             // Telegram notification (non-blocking)
             (async () => { try {
-                const botSnap = await get(ref(db, 'meta/telegramBot'));
+                const botSnap = await get(ref(activeDb(), 'meta/telegramBot'));
                 if (botSnap.exists()) {
                     const { token, topUpChatId } = botSnap.val();
                     if (token && topUpChatId) {
@@ -5112,34 +5165,34 @@
             // pendingVerification write AND payment verify fire simultaneously
             // (no sequential await — saves ~300ms on slow Firebase connections)
             const [, utrSnapshot, verifyResult] = await Promise.all([
-                set(ref(db, `users/${currentUser.uid}/pendingVerification`), {
+                set(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`), {
                     utr, amount: wfAmount, initiatedAt: new Date().toISOString()
                 }),
-                get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr))),
+                get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
                 raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
             ]);
 
             if(utrSnapshot.exists()) {
-                remove(ref(db, `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
+                remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
                 hidePayVerify(); _wfVerifyInProgress = false;
                 return showToast('❌ This Order ID has already been used!');
             }
             if(!verifyResult) {
-                remove(ref(db, `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
+                remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
                 hidePayVerify(); _wfVerifyInProgress = false;
                 return showToast("❌ Payment not verified. Check internet & try again.");
             }
 
             const result = verifyResult.json;
             if(result.STATUS !== "TXN_SUCCESS" || result.RESPMSG !== "Txn Success") {
-                remove(ref(db, `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
+                remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
                 hidePayVerify(); _wfVerifyInProgress = false;
                 return showToast("❌ Payment not verified yet. " + (result.RESPMSG || "Try again in a few seconds."));
             }
 
             const paidVal = parseFloat(result.TXNAMOUNT);
             if(paidVal < wfAmount - 1.00) {
-                remove(ref(db, `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
+                remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
                 hidePayVerify(); _wfVerifyInProgress = false;
                 return showToast(`❌ Amount mismatch! Required ₹${wfAmount}, paid ₹${paidVal}`);
             }
@@ -5147,23 +5200,23 @@
             // ── Step 3: Wallet credit — all writes in parallel ──
             const newBal = walletBalance + paidVal;
             await Promise.all([
-                update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
-                push(ref(db, `users/${currentUser.uid}/walletHistory`), {
+                update(ref(activeDb(), `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
+                push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), {
                     type: 'credit', amount: paidVal, note: 'Wallet Top-Up',
                     utrId: utr, createdAt: new Date().toISOString()
                 }),
-                push(ref(db, 'orders'), {
+                push(ref(activeDb(), 'orders'), {
                     userId: currentUser.uid, userEmail: currentUser.email,
                     userName: (currentUser.displayName || currentUser.email || 'Guest'),
                     utrId: utr, finalAmount: paidVal.toFixed(2),
                     type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp()
                 }),
-                remove(ref(db, `users/${currentUser.uid}/pendingVerification`)),
+                remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)),
             ]);
 
             // Telegram notification (non-blocking)
             (async()=>{ try {
-                const botSnap = await get(ref(db,'meta/telegramBot'));
+                const botSnap = await get(ref(activeDb(),'meta/telegramBot'));
                 if(botSnap.exists()) {
                     const {token, topUpChatId} = botSnap.val();
                     if(token && topUpChatId) {
@@ -5194,20 +5247,20 @@
     // If user closed browser mid-payment, this picks up and completes it safely
     async function resumePendingVerification(uid) {
         try {
-            const pendSnap = await get(ref(db, `users/${uid}/pendingVerification`));
+            const pendSnap = await get(ref(activeDb(), `users/${uid}/pendingVerification`));
             if(!pendSnap.exists()) return;
             const pend = pendSnap.val();
             const utr = pend.utr;
             const amount = parseFloat(pend.amount || 0);
             if(!utr || amount <= 0) {
-                await remove(ref(db, `users/${uid}/pendingVerification`));
+                await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
                 return;
             }
 
             // Already credited? (UTR exists in orders)
-            const utrSnap = await get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr)));
+            const utrSnap = await get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr)));
             if(utrSnap.exists()) {
-                await remove(ref(db, `users/${uid}/pendingVerification`));
+                await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
                 return;
             }
 
@@ -5220,29 +5273,29 @@
 
             if(!verifyResult) {
                 showToast('⚠️ Could not verify last payment. Please contact support if amount was deducted.', 'warn');
-                await remove(ref(db, `users/${uid}/pendingVerification`));
+                await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
                 return;
             }
 
             const result = verifyResult.json;
             if(result.STATUS !== "TXN_SUCCESS" || result.RESPMSG !== "Txn Success") {
-                await remove(ref(db, `users/${uid}/pendingVerification`));
+                await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
                 return;
             }
 
             const paidVal = parseFloat(result.TXNAMOUNT);
             if(paidVal < amount) {
-                await remove(ref(db, `users/${uid}/pendingVerification`));
+                await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
                 return;
             }
 
             // Credit wallet
-            const profSnap = await get(ref(db, `users/${uid}/profile`));
+            const profSnap = await get(ref(activeDb(), `users/${uid}/profile`));
             const curBal = parseFloat(profSnap.exists() ? (profSnap.val().walletBalance || 0) : 0);
-            await update(ref(db, `users/${uid}/profile`), { walletBalance: curBal + paidVal });
-            await push(ref(db, `users/${uid}/walletHistory`), { type: 'credit', amount: paidVal, note: 'Wallet Top-Up (Auto-Resumed)', utrId: utr, createdAt: new Date().toISOString() });
-            await push(ref(db, 'orders'), { userId: uid, userEmail: currentUser.email, userName: (currentUser.displayName || currentUser.email || 'Guest'), utrId: utr, finalAmount: paidVal.toFixed(2), type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp() });
-            await remove(ref(db, `users/${uid}/pendingVerification`));
+            await update(ref(activeDb(), `users/${uid}/profile`), { walletBalance: curBal + paidVal });
+            await push(ref(activeDb(), `users/${uid}/walletHistory`), { type: 'credit', amount: paidVal, note: 'Wallet Top-Up (Auto-Resumed)', utrId: utr, createdAt: new Date().toISOString() });
+            await push(ref(activeDb(), 'orders'), { userId: uid, userEmail: currentUser.email, userName: (currentUser.displayName || currentUser.email || 'Guest'), utrId: utr, finalAmount: paidVal.toFixed(2), type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp() });
+            await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
 
             showToast(`✅ ₹${paidVal.toFixed(2)} credited! (Resumed from last session)`, 'success');
         } catch(e) {}
@@ -5253,24 +5306,24 @@
 
     async function _applyReferralReward(referredBy, amount, note, subtype, refUid) {
         try {
-            const refSnap = await get(ref(db, `users/${referredBy}/profile`));
+            const refSnap = await get(ref(activeDb(), `users/${referredBy}/profile`));
             if(!refSnap.exists()) return;
             const refProfile = refSnap.val();
             const refBal = parseFloat(refProfile.walletBalance || 0);
             const refEarned = parseFloat(refProfile.referralEarned || 0);
 
-            const settingsSnap = await get(ref(db, 'meta/referralSettings'));
+            const settingsSnap = await get(ref(activeDb(), 'meta/referralSettings'));
             const refSettings = settingsSnap.exists() ? settingsSnap.val() : {};
             const maxReward = parseFloat(refSettings.maxRewardPerUser || 0);
             if(maxReward > 0 && refEarned >= maxReward) return;
             const actualReward = (maxReward > 0) ? Math.min(amount, maxReward - refEarned) : amount;
             if(actualReward <= 0) return;
 
-            await update(ref(db, `users/${referredBy}/profile`), {
+            await update(ref(activeDb(), `users/${referredBy}/profile`), {
                 walletBalance: refBal + actualReward,
                 referralEarned: refEarned + actualReward
             });
-            await push(ref(db, `users/${referredBy}/walletHistory`), {
+            await push(ref(activeDb(), `users/${referredBy}/walletHistory`), {
                 type: 'referral',
                 subtype,
                 amount: actualReward,
@@ -5284,11 +5337,11 @@
     // ── Spend % Reward — har order pe ──
     async function processReferralReward(userId, spentAmount) {
         try {
-            const settingsSnap = await get(ref(db, 'meta/referralSettings'));
+            const settingsSnap = await get(ref(activeDb(), 'meta/referralSettings'));
             const refSettings = settingsSnap.exists() ? settingsSnap.val() : {};
             if(refSettings.active === false) return;
 
-            const userSnap = await get(ref(db, `users/${userId}/profile`));
+            const userSnap = await get(ref(activeDb(), `users/${userId}/profile`));
             if(!userSnap.exists()) return;
             const referredBy = userSnap.val().referredBy;
             if(!referredBy) return;
@@ -5466,7 +5519,7 @@
             isExclusivePack: true,
             apiStatus: 'calling',
         };
-        const packOrderRef = push(ref(db, 'orders'));
+        const packOrderRef = push(ref(activeDb(), 'orders'));
         await set(packOrderRef, packOrderData);
         orderIds.push(packOrderRef.key);
 
@@ -5497,7 +5550,7 @@
                         }
                         // Optionally store per-service API result in the pack order
                         if (apiJson && apiJson.order) {
-                            await update(ref(db, `orders/${packOrderRef.key}/apiResults/${svcId}`), {
+                            await update(ref(activeDb(), `orders/${packOrderRef.key}/apiResults/${svcId}`), {
                                 apiOrderId: String(apiJson.order), status: 'placed', placedAt: new Date().toISOString()
                             }).catch(() => {});
                         }
@@ -5588,12 +5641,12 @@
     };
 
     function loadPublicData() { 
-        onValue(ref(db, 'meta/brand'), s => { if(s.exists()){ const d = s.val(); document.getElementById('brandName').textContent = d.name || 'Store'; if(d.logoUrl) { document.getElementById('brandLogo').src = d.logoUrl; document.getElementById('brandLogo').style.display = 'block'; const ol = document.getElementById('offerCircleLogo'); const of_ = document.getElementById('offerCircleFallback'); if(ol){ ol.src = d.logoUrl; ol.style.display = 'block'; if(of_) of_.style.display = 'none'; ol.style.position='absolute'; ol.style.inset='0'; ol.style.width='100%'; ol.style.height='100%'; } } } });
-        onValue(ref(db, 'meta/offers'), s => { if(s.exists()){ const d = s.val(); const banner = document.getElementById('offerBanner'); if(d.name) { banner.classList.add('visible'); document.getElementById('offerTitle').textContent = d.name; document.getElementById('offerDesc').textContent = d.description || 'Limited time offer — don\'t miss out!'; document.getElementById('offerPrice').textContent = `₹${d.newRate || 0}`; document.getElementById('offerOldPrice').textContent = `₹${d.oldRate || 0}`; const tgLink = document.getElementById('offerTgLink'); if(tgLink) tgLink.href = d.channelLink || (d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'); document.getElementById('contactLink').href = d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'; document.getElementById('updatesLink').href = d.channelLink || '#'; } else { banner.classList.remove('visible'); } } });
-        onValue(ref(db, 'meta/contact'), s => { window._cachedContactMeta = s.exists() ? s.val() : null; if(s.exists() && s.val().socialTelegram){ if(document.getElementById('contactLink').getAttribute('href') === '#') { document.getElementById('contactLink').href = s.val().socialTelegram; } } });
-        onValue(ref(db, 'meta/linkMgmt'), s => { linkMgmtRules = s.exists() ? s.val() : {}; });
+        onValue(ref(activeDb(), 'meta/brand'), s => { if(s.exists()){ const d = s.val(); document.getElementById('brandName').textContent = d.name || 'Store'; if(d.logoUrl) { document.getElementById('brandLogo').src = d.logoUrl; document.getElementById('brandLogo').style.display = 'block'; const ol = document.getElementById('offerCircleLogo'); const of_ = document.getElementById('offerCircleFallback'); if(ol){ ol.src = d.logoUrl; ol.style.display = 'block'; if(of_) of_.style.display = 'none'; ol.style.position='absolute'; ol.style.inset='0'; ol.style.width='100%'; ol.style.height='100%'; } } } });
+        onValue(ref(activeDb(), 'meta/offers'), s => { if(s.exists()){ const d = s.val(); const banner = document.getElementById('offerBanner'); if(d.name) { banner.classList.add('visible'); document.getElementById('offerTitle').textContent = d.name; document.getElementById('offerDesc').textContent = d.description || 'Limited time offer — don\'t miss out!'; document.getElementById('offerPrice').textContent = `₹${d.newRate || 0}`; document.getElementById('offerOldPrice').textContent = `₹${d.oldRate || 0}`; const tgLink = document.getElementById('offerTgLink'); if(tgLink) tgLink.href = d.channelLink || (d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'); document.getElementById('contactLink').href = d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'; document.getElementById('updatesLink').href = d.channelLink || '#'; } else { banner.classList.remove('visible'); } } });
+        onValue(ref(activeDb(), 'meta/contact'), s => { window._cachedContactMeta = s.exists() ? s.val() : null; if(s.exists() && s.val().socialTelegram){ if(document.getElementById('contactLink').getAttribute('href') === '#') { document.getElementById('contactLink').href = s.val().socialTelegram; } } });
+        onValue(ref(activeDb(), 'meta/linkMgmt'), s => { linkMgmtRules = s.exists() ? s.val() : {}; });
         let _firstProductLoad = true;
-        onValue(ref(db, 'products'), s => {
+        onValue(ref(activeDb(), 'products'), s => {
             productsData = s.exists() ? s.val() : {};
             _productsLoaded = true;
             // ── Reveal real service grid, hide skeleton ──
@@ -5607,15 +5660,15 @@
             }
             if(_firstProductLoad) { _firstProductLoad = false; }
         });
-        onValue(ref(db, 'exclusivePacks'), s => { 
+        onValue(ref(activeDb(), 'exclusivePacks'), s => { 
             window._exclusivePacksData = s.exists() ? s.val() : {};
             subsData = window._exclusivePacksData; // keep subsData in sync for payment flow
             renderSubscriptions(); 
         });
-        onValue(ref(db, 'coupons'), s => { couponsData = s.exists() ? s.val() : {}; });
+        onValue(ref(activeDb(), 'coupons'), s => { couponsData = s.exists() ? s.val() : {}; });
 
         // ── REFERRAL PROGRAM INFO (Admin se dynamic) ──
-        onValue(ref(db, 'meta/referralSettings'), s => {
+        onValue(ref(activeDb(), 'meta/referralSettings'), s => {
             const infoBox = document.getElementById('refProgramInfoBox');
             if(!infoBox) return;
             if(!s.exists()) return;
@@ -5655,7 +5708,7 @@
         });
 
         // ── ANNOUNCEMENT BANNER ──
-        onValue(ref(db, 'meta/announcement'), s => {
+        onValue(ref(activeDb(), 'meta/announcement'), s => {
             const banner = document.getElementById('annBanner');
             const text = document.getElementById('annBannerText');
             banner.classList.remove('visible', 'warn', 'danger', 'success');
@@ -5674,7 +5727,7 @@
 
     function loadOrders() {
         if(!currentUser) return;
-        const q = query(ref(db, 'orders'), orderByChild('userId'), equalTo(currentUser.uid));
+        const q = query(ref(activeDb(), 'orders'), orderByChild('userId'), equalTo(currentUser.uid));
         onValue(q, s => {
             const skeleton = document.getElementById('ordersSkeleton');
             const list = document.getElementById('ordersList');
@@ -5892,7 +5945,7 @@
     function loadChat() {
         if(!currentUser) return;
         const msgCont = document.getElementById('chatMessages');
-        onValue(ref(db, `chats/${currentUser.uid}/messages`), s => {
+        onValue(ref(activeDb(), `chats/${currentUser.uid}/messages`), s => {
             msgCont.innerHTML = '';
             if(!s.exists()) { msgCont.innerHTML = '<div style="text-align:center; font-size:12px; color:var(--text-secondary); margin-top:20px;">Send a message to start chatting</div>'; return; }
             s.forEach(mSnap => {
@@ -5911,11 +5964,11 @@
         if(!currentUser) return showToast('Please login');
         const input = document.getElementById('chatInput'); const msg = input.value.trim(); if(!msg) return;
 
-        push(ref(db, `chats/${currentUser.uid}/messages`), { message: msg, sender: 'user', timestamp: new Date().toISOString() });
+        push(ref(activeDb(), `chats/${currentUser.uid}/messages`), { message: msg, sender: 'user', timestamp: new Date().toISOString() });
 
-        const infoRef = ref(db, `chats/${currentUser.uid}/info`);
+        const infoRef = ref(activeDb(), `chats/${currentUser.uid}/info`);
         // Always get latest name from profile to ensure correct display
-        const profileSnap = await get(ref(db, `users/${currentUser.uid}/profile`));
+        const profileSnap = await get(ref(activeDb(), `users/${currentUser.uid}/profile`));
         const displayName = profileSnap.exists() ? (profileSnap.val().name || currentUser.displayName || 'User') : (currentUser.displayName || 'User');
 
         get(infoRef).then(snap => {
@@ -5925,7 +5978,7 @@
 
         // ── Telegram Support Notification ──
         (async()=>{try{
-          const botSnap=await get(ref(db,'meta/telegramBot'));
+          const botSnap=await get(ref(activeDb(),'meta/telegramBot'));
           if(botSnap.exists()){const {token,supportChatId}=botSnap.val();
             if(token&&supportChatId){
               const now=new Date().toLocaleString('en-IN');
@@ -6014,8 +6067,8 @@
             const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
             showLoader();
             Promise.all([
-                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${today}/${id}`)),
-                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${id}`))
+                get(ref(activeDb(), `users/${currentUser.uid}/freeServiceUsed/${today}/${id}`)),
+                get(ref(activeDb(), `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${id}`))
             ]).then(([todaySnap, yestSnap]) => {
                 hideLoader();
                 const snap = todaySnap.exists() ? todaySnap : (yestSnap.exists() ? yestSnap : null);
@@ -6181,7 +6234,7 @@
             showPayVerify();
             try {
                 const [utrSnapshot, verifyResult] = await Promise.all([
-                    get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr))),
+                    get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
                     raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
                 ]);
                 if (utrSnapshot.exists()) { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('❌ This Order ID has already been used!'); }
@@ -6203,9 +6256,9 @@
                     serviceCount: (checkoutItem.selectedServices || []).length,
                     notifyMsg: '✅ Exclusive Pack Order Placed!'
                 });
-                get(ref(db, `users/${currentUser.uid}/profile`)).then(spentSnap => {
+                get(ref(activeDb(), `users/${currentUser.uid}/profile`)).then(spentSnap => {
                     const prevSpent = parseFloat(spentSnap.val()?.totalSpent || 0);
-                    update(ref(db, `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + paidVal });
+                    update(ref(activeDb(), `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + paidVal });
                     processReferralReward(currentUser.uid, paidVal);
                 }).catch(() => {});
                 sendTelegramOrderNotification([{product: checkoutItem}], paidVal, utr, reelLink);
@@ -6248,7 +6301,7 @@
         try {
             // ── Duplicate check AND payment verify IN PARALLEL ──
             const [utrSnapshot, verifyResult] = await Promise.all([
-                get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr))),
+                get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
                 raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
             ]);
 
@@ -6303,10 +6356,10 @@
                 apiStatus:       hasApiConfig ? 'calling' : null,
             };
 
-            const newOrderRef = push(ref(db, 'orders'));
+            const newOrderRef = push(ref(activeDb(), 'orders'));
             const writes = [set(newOrderRef, orderData)];
             if (appliedCouponKey) {
-                writes.push(update(ref(db, `coupons/${appliedCouponKey}`), {
+                writes.push(update(ref(activeDb(), `coupons/${appliedCouponKey}`), {
                     usedCount: (couponsData[appliedCouponKey].usedCount || 0) + 1
                 }));
             }
@@ -6326,9 +6379,9 @@
             });
 
             // Non-blocking post-order tasks
-            get(ref(db, `users/${currentUser.uid}/profile`)).then(spentSnap => {
+            get(ref(activeDb(), `users/${currentUser.uid}/profile`)).then(spentSnap => {
                 const prevSpent = parseFloat(spentSnap.val()?.totalSpent || 0);
-                update(ref(db, `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + paidVal });
+                update(ref(activeDb(), `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + paidVal });
                 processReferralReward(currentUser.uid, paidVal);
             }).catch(()=>{});
             sendTelegramOrderNotification([{product: checkoutItem}], paidVal, utr, targetLink);
@@ -6355,13 +6408,13 @@
             if (walletBalance < checkoutFinalAmt) { _unlockOrder(); return showToast(`❌ Insufficient Wallet Balance! Need ₹${checkoutFinalAmt.toFixed(2)}`); }
             showLoader();
             try {
-                const freshBalSnap = await get(ref(db, `users/${currentUser.uid}/profile/walletBalance`)).catch(() => null);
+                const freshBalSnap = await get(ref(activeDb(), `users/${currentUser.uid}/profile/walletBalance`)).catch(() => null);
                 const freshBal = freshBalSnap && freshBalSnap.exists() ? parseFloat(freshBalSnap.val() || 0) : walletBalance;
                 if (freshBal < checkoutFinalAmt) { _unlockOrder(); hideLoader(); walletBalance = freshBal; return showToast(`❌ Insufficient Wallet Balance! Need ₹${checkoutFinalAmt.toFixed(2)}`); }
                 const newBal = freshBal - checkoutFinalAmt;
                 const utr = 'WALLET_' + Date.now();
-                await update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal });
-                await push(ref(db, `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: checkoutFinalAmt, note: `Exclusive Pack: ${checkoutItem.title}`, utrId: utr, createdAt: new Date().toISOString() });
+                await update(ref(activeDb(), `users/${currentUser.uid}/profile`), { walletBalance: newBal });
+                await push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: checkoutFinalAmt, note: `Exclusive Pack: ${checkoutItem.title}`, utrId: utr, createdAt: new Date().toISOString() });
                 walletBalance = newBal;
                 const packOrderKey = await placeExclusivePackOrders(checkoutItem.id, reelLink, utr, checkoutFinalAmt.toFixed(2));
                 _unlockOrder(); hideLoader(); closeCheckout(); playOrderSuccessSound();
@@ -6375,9 +6428,9 @@
                     serviceCount: (checkoutItem.selectedServices || []).length,
                     notifyMsg: '✅ Exclusive Pack Order Placed via Wallet!'
                 });
-                get(ref(db, `users/${currentUser.uid}/profile`)).then(spentSnap => {
+                get(ref(activeDb(), `users/${currentUser.uid}/profile`)).then(spentSnap => {
                     const prevSpent = parseFloat(spentSnap.val()?.totalSpent || 0);
-                    update(ref(db, `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + checkoutFinalAmt });
+                    update(ref(activeDb(), `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + checkoutFinalAmt });
                     processReferralReward(currentUser.uid, checkoutFinalAmt);
                 }).catch(() => {});
                 sendTelegramOrderNotification([{product: checkoutItem}], checkoutFinalAmt, utr, reelLink);
@@ -6415,7 +6468,7 @@
         showLoader();
         try {
             // ── Re-verify wallet balance from Firebase (prevents race on double-tap / multi-tab) ──
-            const freshBalSnap = await get(ref(db, `users/${currentUser.uid}/profile/walletBalance`)).catch(() => null);
+            const freshBalSnap = await get(ref(activeDb(), `users/${currentUser.uid}/profile/walletBalance`)).catch(() => null);
             const freshBal = freshBalSnap && freshBalSnap.exists() ? parseFloat(freshBalSnap.val() || 0) : walletBalance;
             if (freshBal < checkoutFinalAmt) {
                 _unlockOrder(); hideLoader();
@@ -6457,14 +6510,14 @@
                 paymentMethod:   'wallet'
             };
 
-            const newOrderRef = push(ref(db, 'orders'));
+            const newOrderRef = push(ref(activeDb(), 'orders'));
 
             // Fire all Firebase writes IN PARALLEL — much faster than sequential awaits
             await Promise.all([
-                update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
-                push(ref(db, `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: checkoutFinalAmt, note: 'Purchased: ' + (checkoutItem.title || checkoutItem.planName), utrId: utr, createdAt: new Date().toISOString() }),
+                update(ref(activeDb(), `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
+                push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: checkoutFinalAmt, note: 'Purchased: ' + (checkoutItem.title || checkoutItem.planName), utrId: utr, createdAt: new Date().toISOString() }),
                 set(newOrderRef, orderData),
-                ...(appliedCouponKey ? [update(ref(db, `coupons/${appliedCouponKey}`), { usedCount: (couponsData[appliedCouponKey].usedCount || 0) + 1 })] : []),
+                ...(appliedCouponKey ? [update(ref(activeDb(), `coupons/${appliedCouponKey}`), { usedCount: (couponsData[appliedCouponKey].usedCount || 0) + 1 })] : []),
             ]);
 
             _unlockOrder();
@@ -6488,9 +6541,9 @@
             }, 100);
 
             // Spend tracking & Referral
-            get(ref(db, `users/${currentUser.uid}/profile`)).then(spentSnap => {
+            get(ref(activeDb(), `users/${currentUser.uid}/profile`)).then(spentSnap => {
                 const prevSpent = parseFloat(spentSnap.val()?.totalSpent || 0);
-                update(ref(db, `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + checkoutFinalAmt });
+                update(ref(activeDb(), `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + checkoutFinalAmt });
                 processReferralReward(currentUser.uid, checkoutFinalAmt);
             }).catch(()=>{});
 
@@ -6535,17 +6588,17 @@
         // Double-check daily limit in Firebase (prevent race from double-tap)
         const today = new Date().toISOString().slice(0, 10);
         const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
-        const limitRef = ref(db, `users/${currentUser.uid}/freeServiceUsed/${today}/${checkoutItem.id}`);
+        const limitRef = ref(activeDb(), `users/${currentUser.uid}/freeServiceUsed/${today}/${checkoutItem.id}`);
         showLoader();
         try {
             const [limitSnap, yestLimitSnap] = await Promise.all([
                 get(limitRef),
-                get(ref(db, `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${checkoutItem.id}`))
+                get(ref(activeDb(), `users/${currentUser.uid}/freeServiceUsed/${yesterday}/${checkoutItem.id}`))
             ]);
             const existingClaim = limitSnap.exists() ? limitSnap : (yestLimitSnap.exists() ? yestLimitSnap : null);
 
             // Check total lifetime limit (max 5 per service)
-            const allUsedSnap = await get(ref(db, `users/${currentUser.uid}/freeServiceUsed`));
+            const allUsedSnap = await get(ref(activeDb(), `users/${currentUser.uid}/freeServiceUsed`));
             let totalUsed = 0;
             if(allUsedSnap.exists()) {
                 allUsedSnap.forEach(dateSnap => { if(dateSnap.key >= '2026-05-22' && dateSnap.child(checkoutItem.id).exists()) totalUsed++; });
@@ -6616,7 +6669,7 @@
                 apiStatus:       hasApiConfig ? 'calling' : null,
             };
 
-            const newOrderRef = push(ref(db, 'orders'));
+            const newOrderRef = push(ref(activeDb(), 'orders'));
             try {
                 await set(newOrderRef, orderData);
             } catch(e) {
@@ -6852,7 +6905,7 @@
         showPayVerify();
         try {
             const [utrSnapshot, verifyResult] = await Promise.all([
-                get(query(ref(db, 'orders'), orderByChild('utrId'), equalTo(utr))),
+                get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
                 raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
             ]);
 
@@ -6882,7 +6935,7 @@
                     autoCompleteAt: hasApi ? computeAutoCompleteAt(item.product.avgTime) : null,
                     apiStatus: hasApi ? 'calling' : null, cartGroup: utr,
                 };
-                const newOrderRef = push(ref(db, 'orders'));
+                const newOrderRef = push(ref(activeDb(), 'orders'));
                 return set(newOrderRef, orderData).then(() => {
                     if (hasApi) callExternalApi(newOrderRef.key, item.product.apiUrl, item.product.apiKey,
                         item.product.serviceId, item.product.quantity, item.link);
@@ -6892,13 +6945,13 @@
 
             // Post-order writes — all non-blocking
             if(cartAppliedCoupon && couponsData[cartAppliedCoupon]) {
-                update(ref(db, `coupons/${cartAppliedCoupon}`), {
+                update(ref(activeDb(), `coupons/${cartAppliedCoupon}`), {
                     usedCount: (couponsData[cartAppliedCoupon].usedCount || 0) + 1
                 }).catch(()=>{});
             }
-            get(ref(db, `users/${currentUser.uid}/profile`)).then(spentSnap => {
+            get(ref(activeDb(), `users/${currentUser.uid}/profile`)).then(spentSnap => {
                 const prevSpent = parseFloat(spentSnap.val()?.totalSpent || 0);
-                update(ref(db, `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + paidVal });
+                update(ref(activeDb(), `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + paidVal });
                 processReferralReward(currentUser.uid, paidVal);
             }).catch(()=>{});
             sendTelegramOrderNotification(cart, paidVal, utr, cart[0]?.link || null);
@@ -6936,7 +6989,7 @@
         showPayVerify();
         try {
             // ── Re-verify balance from Firebase before deducting (prevents multi-tab race) ──
-            const freshBalSnap2 = await get(ref(db, `users/${currentUser.uid}/profile/walletBalance`)).catch(() => null);
+            const freshBalSnap2 = await get(ref(activeDb(), `users/${currentUser.uid}/profile/walletBalance`)).catch(() => null);
             const freshBal2 = freshBalSnap2 && freshBalSnap2.exists() ? parseFloat(freshBalSnap2.val() || 0) : walletBalance;
             if (freshBal2 < cartFinalAmt) {
                 _unlockOrder(); hidePayVerify();
@@ -6950,8 +7003,8 @@
             walletBalance = newBal;
             // Fire balance + history write in parallel (non-blocking to order saves)
             Promise.all([
-                update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
-                push(ref(db, `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: cartFinalAmt, note: 'Paid for Cart Orders', utrId: utr, createdAt: new Date().toISOString() }),
+                update(ref(activeDb(), `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
+                push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), { type: 'debit', amount: cartFinalAmt, note: 'Paid for Cart Orders', utrId: utr, createdAt: new Date().toISOString() }),
             ]).catch(()=>{});
 
             // Save orders and call external API if needed
@@ -6967,7 +7020,7 @@
                     apiStatus: hasApi ? 'calling' : null, cartGroup: utr, paymentMethod: 'wallet'
                 };
 
-                const newOrderRef = push(ref(db, 'orders'));
+                const newOrderRef = push(ref(activeDb(), 'orders'));
                 await set(newOrderRef, orderData);
 
                 // Background API call for cart wallet items (atomic lock — prevents double SMM order)
@@ -6984,12 +7037,12 @@
             await Promise.all(promises);
 
             if(cartAppliedCoupon && couponsData[cartAppliedCoupon]) {
-                await update(ref(db, `coupons/${cartAppliedCoupon}`), { usedCount: (couponsData[cartAppliedCoupon].usedCount || 0) + 1 });
+                await update(ref(activeDb(), `coupons/${cartAppliedCoupon}`), { usedCount: (couponsData[cartAppliedCoupon].usedCount || 0) + 1 });
             }
 
-            const spentSnap = await get(ref(db, `users/${currentUser.uid}/profile`));
+            const spentSnap = await get(ref(activeDb(), `users/${currentUser.uid}/profile`));
             const prevSpent = parseFloat(spentSnap.val()?.totalSpent || 0);
-            await update(ref(db, `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + cartFinalAmt });
+            await update(ref(activeDb(), `users/${currentUser.uid}/profile`), { totalSpent: prevSpent + cartFinalAmt });
             processReferralReward(currentUser.uid, cartFinalAmt);
 
             sendTelegramOrderNotification(cart, cartFinalAmt, utr, cart[0]?.link || null);
@@ -7047,7 +7100,7 @@
                 }).catch(()=>{});
             };
 
-            get(ref(db, 'meta/telegramBot')).then(botSnap => {
+            get(ref(activeDb(), 'meta/telegramBot')).then(botSnap => {
                 if(botSnap.exists()) {
                     const { token, chatId } = botSnap.val();
                     if(token && chatId) sendMsg(token, chatId);
@@ -7112,14 +7165,14 @@
         showLoader();
         try {
             // Read gift codes (needs giftCodes .read: true in rules)
-            const snap = await get(ref(db, 'giftCodes'));
+            const snap = await get(ref(activeDb(), 'giftCodes'));
             if(!snap.exists()) { hideLoader(); setMsg(msg,'error','Invalid gift code'); if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-gift"></i> Redeem Gift Code';} return; }
             let foundKey = null, foundCode = null;
             snap.forEach(c => { if((c.val().code || '').toUpperCase() === code && c.val().isActive !== false) { foundKey = c.key; foundCode = c.val(); } });
             if(!foundKey) { hideLoader(); setMsg(msg,'error','Invalid or expired gift code'); if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-gift"></i> Redeem Gift Code';} return; }
 
             // Check if already redeemed — stored in user profile to avoid permission issues
-            const alreadySnap = await get(ref(db, `users/${currentUser.uid}/redeemedGiftCodes/${foundKey}`));
+            const alreadySnap = await get(ref(activeDb(), `users/${currentUser.uid}/redeemedGiftCodes/${foundKey}`));
             if(alreadySnap.exists()) { hideLoader(); setMsg(msg,'warn','You have already redeemed this code!'); if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-gift"></i> Redeem Gift Code';} return; }
 
             // Check time expiry
@@ -7138,18 +7191,18 @@
             if(rewardAmt <= 0) { hideLoader(); setMsg(msg,'error','Invalid reward amount'); if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-gift"></i> Redeem Gift Code';} return; }
 
             // Get current balance
-            const profileSnap = await get(ref(db, `users/${currentUser.uid}/profile`));
+            const profileSnap = await get(ref(activeDb(), `users/${currentUser.uid}/profile`));
             const curBal = parseFloat(profileSnap.exists() ? (profileSnap.val().walletBalance || 0) : 0);
             const newBal = curBal + rewardAmt;
 
             // Write ONLY to user node (auth.uid == $uid permission) + giftCodes (auth != null)
             await Promise.all([
-                update(ref(db, `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
-                push(ref(db, `users/${currentUser.uid}/walletHistory`), {
+                update(ref(activeDb(), `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
+                push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), {
                     type: 'credit', amount: rewardAmt, note: '🎁 Gift Code: ' + code, utrId: 'GIFT_' + code, createdAt: new Date().toISOString()
                 }),
-                set(ref(db, `users/${currentUser.uid}/redeemedGiftCodes/${foundKey}`), new Date().toISOString()),
-                update(ref(db, `giftCodes/${foundKey}`), { usedCount: usedCount + 1 }),
+                set(ref(activeDb(), `users/${currentUser.uid}/redeemedGiftCodes/${foundKey}`), new Date().toISOString()),
+                update(ref(activeDb(), `giftCodes/${foundKey}`), { usedCount: usedCount + 1 }),
             ]);
 
             hideLoader();
@@ -7258,7 +7311,7 @@
 
     async function sendTelegramChannelNotification(messageText, inlineButtons = null) {
         try {
-            const botSnap = await get(ref(db, 'meta/telegramBot'));
+            const botSnap = await get(ref(activeDb(), 'meta/telegramBot'));
             if(!botSnap.exists()) return;
             const { token, giftCodeChatId } = botSnap.val();
             if(!token || !giftCodeChatId) return;
@@ -7479,7 +7532,7 @@
       async function runAutoComplete(){
         if(!currentUser)return;
         try{
-          const progressQuery = query(ref(db,'orders'), orderByChild('status'), equalTo('progress'));
+          const progressQuery = query(ref(activeDb(),'orders'), orderByChild('status'), equalTo('progress'));
           const snap = await get(progressQuery);
           if(!snap.exists())return;
           const now=Date.now();
@@ -7507,7 +7560,7 @@
             }
           });
           if(Object.keys(updates).length>0){
-            await update(ref(db),updates);
+            await update(ref(activeDb()),updates);
           }
         }catch(e){}
       }
