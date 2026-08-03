@@ -2609,7 +2609,91 @@
     // & writes. `guestDb` + `activeDb()` route each call to the database bound
     // to whichever Auth instance is actually signed in right now.
     const guestDb = getDatabase(guestApp);
-    function activeDb() { return (currentUser && currentUser.isAnonymous) ? guestDb : db; }
+    // BUGFIX (permission-denied for old guest users): activeDb() used to route purely on
+    // `currentUser.isAnonymous`. That's wrong — a guest created BEFORE this dual-app split
+    // shipped is still anonymous, but their session lives on the MAIN `auth` instance (that's
+    // the persisted session Firebase restores it into), not on `guestAuth`. Routing them to
+    // `guestDb` (bound to `guestAuth`) sent every request out with `guestAuth.currentUser`'s
+    // token — which is null for these users — so the server saw `auth == null` and rejected
+    // every write/read that requires `auth != null` (redeem code, "I Have Paid Verify Now",
+    // wallet debit, etc.), even though the user WAS validly signed in on `auth`.
+    // Fix: track which Auth instance actually produced the active session and route on that,
+    // not on the isAnonymous flag. Their data was never split across databases (guestDb and
+    // db are the same physical Firebase project) so no data migration is needed — this alone
+    // resolves it.
+    let currentAuthApp = null; // 'main' | 'guest' | null
+    function activeDb() { return currentAuthApp === 'guest' ? guestDb : db; }
+
+    // ── One-time reconciliation for guests split across the two Auth instances ──
+    // Covers accounts that got forked BEFORE the activeDb() fix above shipped: an old
+    // guest whose real wallet/orders live on the MAIN `auth` uid, who — because of the
+    // old bug, or a logout+"Continue as Guest" tap in the meantime — also ended up with
+    // a second, separate account on `guestAuth`. This merges anything of value from the
+    // guestAuth-side account into the canonical main-auth account (wallet balance, wallet
+    // history, and any orders placed under the guest uid), then permanently tags the
+    // guestAuth-side profile so this never re-runs and never double-credits.
+    let _migrationChecked = false;
+    async function migrateOrphanedGuestData(mainUser) {
+        if (_migrationChecked) return;
+        if (!(guestAuth.currentUser && guestAuth.currentUser.isAnonymous)) { _migrationChecked = true; return; }
+        const guestUid = guestAuth.currentUser.uid;
+        if (guestUid === mainUser.uid) { _migrationChecked = true; return; } // not actually split
+        _migrationChecked = true; // set immediately — prevents duplicate/concurrent runs
+        try {
+            const guestProfSnap = await get(ref(guestDb, `users/${guestUid}/profile`));
+            if (!guestProfSnap.exists()) return;
+            const gp = guestProfSnap.val();
+            if (gp.mergedInto) return; // already reconciled previously — never touch again
+
+            const guestBal    = parseFloat(gp.walletBalance || 0);
+            const guestSpent  = parseFloat(gp.totalSpent || 0);
+            const guestOrders = await get(query(ref(db, 'orders'), orderByChild('userId'), equalTo(guestUid)));
+
+            if (guestBal <= 0 && guestSpent <= 0 && !guestOrders.exists()) {
+                // Nothing of value on the guest side — just tag it dead, don't touch the main account.
+                await update(ref(guestDb, `users/${guestUid}/profile`), { mergedInto: mainUser.uid, mergedAt: new Date().toISOString() });
+                return;
+            }
+
+            // 1) Fold balance + spend into the main account
+            const mainProfSnap = await get(ref(db, `users/${mainUser.uid}/profile`));
+            const mp = mainProfSnap.exists() ? mainProfSnap.val() : {};
+            const newBal   = parseFloat(mp.walletBalance || 0) + guestBal;
+            const newSpent = parseFloat(mp.totalSpent || 0) + guestSpent;
+            await update(ref(db, `users/${mainUser.uid}/profile`), { walletBalance: newBal, totalSpent: newSpent });
+            if (guestBal > 0) {
+                await push(ref(db, `users/${mainUser.uid}/walletHistory`), {
+                    type: 'credit', amount: guestBal, note: '🔗 Merged from previous guest session',
+                    utrId: 'MERGE_' + guestUid.slice(-8), createdAt: new Date().toISOString()
+                });
+            }
+
+            // 2) Copy the guest's wallet history entries over so the transaction trail isn't lost
+            const guestHistSnap = await get(ref(guestDb, `users/${guestUid}/walletHistory`));
+            if (guestHistSnap.exists()) {
+                const copies = [];
+                guestHistSnap.forEach(h => { copies.push(push(ref(db, `users/${mainUser.uid}/walletHistory`), h.val())); });
+                await Promise.all(copies);
+            }
+
+            // 3) Re-point any orders placed under the guest uid to the main uid so they appear in order history
+            if (guestOrders.exists()) {
+                const orderUpdates = [];
+                guestOrders.forEach(o => { orderUpdates.push(update(ref(db, `orders/${o.key}`), { userId: mainUser.uid })); });
+                await Promise.all(orderUpdates);
+            }
+
+            // 4) Zero out + tag the guest-side profile so this can never run again / never double-credit
+            await update(ref(guestDb, `users/${guestUid}/profile`), {
+                walletBalance: 0, totalSpent: 0, mergedInto: mainUser.uid, mergedAt: new Date().toISOString()
+            });
+
+            showToast('✅ Recovered your previous guest wallet balance & orders!');
+        } catch (e) {
+            _migrationChecked = false; // allow retry on next load if this run errored out
+            console.warn('Guest data migration failed:', e);
+        }
+    }
 
     // ═══════════════════════════════════════════════════════════════════
     // ⚡ ULTRA-FAST BULLETPROOF PAYMENT ENGINE — v3
@@ -3922,6 +4006,19 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
         showLoader();
         try {
+            // BUGFIX (data-loss on logout -> "Continue as Guest"): if this device already
+            // has a live guest-type session on the MAIN `auth` instance (an old-style guest,
+            // predating the guestApp split, whose real wallet/orders live under THAT uid),
+            // just resume it directly. Do NOT fall through to signInAnonymously(guestAuth) —
+            // that would spin up a second, blank account and orphan the real one.
+            if (auth.currentUser && auth.currentUser.isAnonymous) {
+                currentAuthApp = 'main';
+                handleAuthUser(auth.currentUser);
+                showToast('✅ Welcome back, Guest!');
+                btn.disabled = false; btn.innerHTML = _origHtml; hideLoader();
+                return;
+            }
+
             // Guest sessions live on their own isolated `guestAuth` instance (see
             // its setup near the top of this script), completely separate from
             // `auth` (used by Google + username/PIN logins). This means no
@@ -3950,6 +4047,7 @@
                 });
             }
             if (wasAlreadySignedIn) {
+                currentAuthApp = 'guest';
                 handleAuthUser(user); // manually restore dashboard — same account, no auto-fire
                 showToast('✅ Welcome back, Guest!');
             } else {
@@ -4102,15 +4200,15 @@
     function _resolveActiveSession(source) {
         if (source === 'auth') _authInitDone = true;
         if (source === 'guest') _guestInitDone = true;
-        if (auth.currentUser) { handleAuthUser(auth.currentUser); return; }
-        if (guestAuth.currentUser) { handleAuthUser(guestAuth.currentUser); return; }
+        if (auth.currentUser) { currentAuthApp = 'main'; handleAuthUser(auth.currentUser); migrateOrphanedGuestData(auth.currentUser); return; }
+        if (guestAuth.currentUser) { currentAuthApp = 'guest'; handleAuthUser(guestAuth.currentUser); return; }
         // Neither instance has a user — but don't conclude "logged out" until BOTH
         // instances have reported their restored state at least once. Otherwise, if
         // `auth`'s (empty) state resolves before `guestAuth` finishes restoring its
         // persisted guest session from storage, we'd briefly treat a real guest as
         // logged out, and a "Continue as Guest" tap in that window would create a
         // brand-new anonymous account instead of resuming the real one.
-        if (_authInitDone && _guestInitDone) { handleAuthUser(null); }
+        if (_authInitDone && _guestInitDone) { currentAuthApp = null; handleAuthUser(null); }
     }
     onAuthStateChanged(auth, () => _resolveActiveSession('auth'));
     onAuthStateChanged(guestAuth, () => _resolveActiveSession('guest'));
