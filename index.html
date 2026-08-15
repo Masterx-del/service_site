@@ -370,6 +370,35 @@
         .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .sheet-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-primary); }
 
+        /* ── ALERT MODAL (centered card, e.g. duplicate-link restriction) ── */
+        .alert-modal-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            z-index: 2000; opacity: 0; visibility: hidden; transition: var(--transition);
+            display: flex; align-items: center; justify-content: center; padding: 24px;
+        }
+        .alert-modal-overlay.active { opacity: 1; visibility: visible; }
+        .alert-modal-card {
+            background: var(--card-solid); width: 100%; max-width: 340px;
+            border-radius: 20px; padding: 28px 24px 24px; text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+            transform: scale(0.92); opacity: 0; transition: transform 0.25s cubic-bezier(0.32,0.72,0,1), opacity 0.25s;
+        }
+        .alert-modal-overlay.active .alert-modal-card { transform: scale(1); opacity: 1; }
+        .alert-modal-icon {
+            width: 56px; height: 56px; border-radius: 50%; background: rgba(225, 29, 72, 0.1);
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;
+        }
+        .alert-modal-icon i { font-size: 24px; color: var(--accent-pink); }
+        .alert-modal-title { font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.3px; margin-bottom: 10px; }
+        .alert-modal-desc { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 22px; }
+        .alert-modal-btn {
+            width: 100%; padding: 13px; border-radius: 12px; border: none; cursor: pointer;
+            background: var(--accent-pink); color: #fff; font-size: 14.5px; font-weight: 700;
+            transition: var(--transition); letter-spacing: -0.2px;
+        }
+        .alert-modal-btn:hover { opacity: 0.92; }
+
         .checkout-summary { 
             background: var(--bg-color); border: 1px solid var(--border-color); 
             border-radius: 12px; padding: 16px; margin-bottom: 20px; display: flex; gap: 16px; align-items: center; 
@@ -2377,6 +2406,16 @@
     </div>
 </div>
 
+<!-- RESTRICTION / DUPLICATE-LINK ALERT MODAL -->
+<div class="alert-modal-overlay" id="alertRestrictModal">
+    <div class="alert-modal-card">
+        <div class="alert-modal-icon"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="alert-modal-title" id="alertRestrictTitle">Service Restricted</div>
+        <div class="alert-modal-desc" id="alertRestrictDesc">Duplicate link detected. This link has already been used for this free service, so your account has been restricted from claiming it again.</div>
+        <button class="alert-modal-btn" onclick="closeAlertRestrictModal()">Understood</button>
+    </div>
+</div>
+
 <!-- FORGOT PASSWORD MODAL -->
 <div class="modal-overlay" id="forgotPasswordModal" style="position:fixed !important;">
     <div class="bottom-sheet" style="max-height:auto; overflow:visible;">
@@ -2979,6 +3018,19 @@
         t._timer = setTimeout(() => t.classList.remove('show'), 3200);
     };
 
+    // ── RESTRICTION ALERT MODAL (e.g. duplicate-link free-service ban) ──
+    const showAlertRestrictModal = (title, desc) => {
+        const ov = document.getElementById('alertRestrictModal');
+        if (!ov) return showToast(desc || title, 'error');
+        document.getElementById('alertRestrictTitle').textContent = title || 'Service Restricted';
+        document.getElementById('alertRestrictDesc').textContent = desc || '';
+        ov.classList.add('active');
+    };
+    window.closeAlertRestrictModal = () => {
+        const ov = document.getElementById('alertRestrictModal');
+        if (ov) ov.classList.remove('active');
+    };
+
     // ── NETWORK STATUS MONITOR ─────────────────────────────────────────
     (function initNetworkMonitor() {
         const banner = document.getElementById('networkBanner');
@@ -3351,9 +3403,11 @@
         // Split free and paid services
         let freeItems = [], paidItems = [];
         const _freeServiceHiddenForUser = !!(window._userProfileCache && window._userProfileCache.freeServiceHidden);
+        const _freeServiceBansForUser = window._freeServiceBansCache || {};
         visibleItems.forEach(([id, p]) => {
             if(parseFloat(p.discountedPrice) === 0) {
-                if(_freeServiceHiddenForUser) return; // free service hidden for this user
+                if(_freeServiceHiddenForUser) return; // free service hidden (all) for this user
+                if(_freeServiceBansForUser[id]) return; // this specific free service banned for this user (duplicate link) — paid services unaffected
                 freeItems.push([id, p]);
             } else {
                 paidItems.push([id, p]);
@@ -3374,7 +3428,8 @@
                 : `<div class="plc-price" style="margin-bottom:0;margin-left:12px;flex-shrink:0;">₹${p.discountedPrice}</div>`;
             const buyBtnClass = isFree ? 'plc-buy free-btn' : 'plc-buy';
             const buyBtnTxt = isFree ? '<i class="fas fa-gift"></i> Claim Free' : 'Buy Now';
-            const freeInfoHtml = isFree ? `<div class="free-daily-info" id="freeInfo_${id}"><i class="fas fa-clock"></i> Once per day · Free</div><div class="free-progress-wrap" id="freeTracker_${id}"><div class="free-progress-labels"><span id="freeTrackerUsed_${id}" style="color:var(--text-secondary);">Used: 0/5</span><span id="freeTrackerRem_${id}" style="color:#10b981;">Remaining: 5</span></div><div class="free-progress-track"><div class="free-progress-fill" id="freeProgressBar_${id}" style="width:0%;background:#10b981;"></div></div></div>` : '';
+            const _pFreeLimit = (parseInt(p.freeLimit) > 0) ? parseInt(p.freeLimit) : 5;
+            const freeInfoHtml = isFree ? `<div class="free-daily-info" id="freeInfo_${id}"><i class="fas fa-clock"></i> Once per day · Free</div><div class="free-progress-wrap" id="freeTracker_${id}"><div class="free-progress-labels"><span id="freeTrackerUsed_${id}" style="color:var(--text-secondary);">Used: 0/${_pFreeLimit}</span><span id="freeTrackerRem_${id}" style="color:#10b981;">Remaining: ${_pFreeLimit}</span></div><div class="free-progress-track"><div class="free-progress-fill" id="freeProgressBar_${id}" style="width:0%;background:#10b981;"></div></div></div>` : '';
             return `<div class="${cardClass}" id="plc_${id}">
               <div class="plc-header">
                 <div class="plc-info"><div class="plc-name">${p.title}</div></div>
@@ -3417,7 +3472,7 @@
             // Fetch the full freeServiceUsed node ONCE for this render pass instead of once per free item
             // (previously each item re-downloaded the entire history — N items = N redundant full downloads)
             get(ref(activeDb(), `users/${currentUser.uid}/freeServiceUsed`)).then(allSnap => {
-            freeItems.forEach(([id]) => {
+            freeItems.forEach(([id, p]) => {
                     const todaySnap = allSnap.child(`${today}/${id}`);
                     const yestSnap = allSnap.child(`${yesterday}/${id}`);
                     const snap = todaySnap.exists() ? todaySnap : (yestSnap.exists() ? yestSnap : null);
@@ -3432,7 +3487,7 @@
                     if(allSnap.exists()) {
                         allSnap.forEach(dateSnap => { if(dateSnap.key >= '2026-05-22' && dateSnap.child(id).exists()) totalUsed++; });
                     }
-                    const maxFree = 5;
+                    const maxFree = (parseInt(p && p.freeLimit) > 0) ? parseInt(p.freeLimit) : 5;
                     const remaining = Math.max(0, maxFree - totalUsed);
                     const pct = Math.min(100, (totalUsed / maxFree) * 100);
                     const barColor = totalUsed >= maxFree ? '#ef4444' : totalUsed >= 4 ? '#f59e0b' : '#10b981';
@@ -4099,7 +4154,7 @@
 
             document.getElementById('authView').style.display = 'none'; document.getElementById('userProfileView').style.display = 'block'; document.getElementById('profileName').textContent = user.displayName || 'User'; document.getElementById('profileEmail').textContent = user.isAnonymous ? 'Guest Account' : (isPinAccount ? ('@' + user.email.split('@')[0]) : user.email); document.getElementById('profileAvatar').textContent = (user.displayName || 'U').charAt(0).toUpperCase();
             if ("Notification" in window && Notification.permission === "default") { Notification.requestPermission(); }
-            loadOrders(); loadChat(); loadWallet();
+            loadOrders(); loadChat(); loadWallet(); loadFreeServiceBans();
             resumePendingVerification(user.uid);
             if(document.getElementById('profileTab').classList.contains('active')){ switchTab('homeTab'); }
             bindRealTimeNotifications(user.uid);
@@ -4395,6 +4450,18 @@
             }
             renderWalletHistory();
         });
+    }
+
+    // ── Free Service Bans — per-service duplicate-link bans ────────────────
+    // Fetched once per login (not a live listener — same bandwidth-conscious
+    // pattern used for freeServiceUsed). Updated in memory immediately when a
+    // ban is set client-side, and re-synced fresh every login/reload — which
+    // is also when an admin's unban becomes visible again.
+    function loadFreeServiceBans() {
+        if(!currentUser) return;
+        get(ref(activeDb(), `users/${currentUser.uid}/freeServiceBans`)).then(snap => {
+            window._freeServiceBansCache = snap.exists() ? snap.val() : {};
+        }).catch(() => { window._freeServiceBansCache = window._freeServiceBansCache || {}; });
     }
 
     // ── Add Funds Modal helpers ──────────────────────────────────
@@ -6096,6 +6163,20 @@
         return utr;
     }
 
+    // ── Free Service Anti-Duplicate — link hashing (Firebase key-safe) ─────
+    // Same target link used across DIFFERENT accounts for the SAME free
+    // service = multi-account farming. We hash the normalized link into a
+    // short Firebase-safe key so we can atomically check/claim "who used
+    // this link for this service first" via the `freeLinkClaims` node.
+    function _normalizeLink(link) {
+        return (link || '').trim().toLowerCase().replace(/\/+$/, '');
+    }
+    function _hashLink(str) {
+        let hash = 5381;
+        for (let i = 0; i < str.length; i++) { hash = ((hash * 33) ^ str.charCodeAt(i)) >>> 0; }
+        return hash.toString(36) + '_' + str.length.toString(36);
+    }
+
     // ── CUSTOM COMMENTS — tiered price calculator ────────────────────────
     // Piecewise-linear interpolation between admin-configured {count, price} tiers.
     // Below the first tier or above the last tier, scales proportionally at that tier's rate.
@@ -6158,6 +6239,11 @@
         checkoutItem.id = id; checkoutItem.purchaseType = type; checkoutFinalAmt = (type === 'product' && checkoutItem.customComments) ? 0 : (type === 'product' ? parseFloat(checkoutItem.discountedPrice) : parseFloat(checkoutItem.price)); appliedCouponKey = null;
 
         const isFreeService = (type === 'product' && checkoutFinalAmt === 0 && !checkoutItem.customComments);
+
+        // Banned from this specific free service (duplicate link detected earlier) — only admin can lift this
+        if(isFreeService && window._freeServiceBansCache && window._freeServiceBansCache[id]) {
+            return showAlertRestrictModal('Service Restricted', 'Duplicate link detected. This service has already been restricted on your account and can only be lifted by admin.');
+        }
 
         // Free service daily limit check — block if already claimed today
         if(isFreeService) {
@@ -6683,6 +6769,44 @@
             if (_cmtLines.length < 20) { _unlockOrder(); return showToast('⚠️ Minimum 20 comments required'); }
         }
 
+        // ── Duplicate-link abuse check (per free service only) ──────────────
+        // Same target link claimed by a DIFFERENT account for this exact free
+        // service = multi-account farming (bypassing the per-account limit via
+        // fresh accounts on the same target). The first account to use a link
+        // "owns" it for that service; any other account submitting the same
+        // link gets banned from THAT ONE service only — other free services and
+        // all paid services are completely unaffected. Only an admin can lift
+        // this ban (admin dashboard → Users → Unban) — there is no user-side
+        // way to clear it.
+        showLoader();
+        try {
+            const _linkKey = _hashLink(_normalizeLink(targetLink));
+            const _linkClaimRef = ref(activeDb(), `freeLinkClaims/${checkoutItem.id}/${_linkKey}`);
+            const _claimTx = await runTransaction(_linkClaimRef, (current) => {
+                if (current !== null) return; // already claimed by someone — abort, inspect below
+                return { uid: currentUser.uid, link: targetLink, ts: Date.now() };
+            });
+            const _claimedByUid = _claimTx.committed
+                ? currentUser.uid
+                : (_claimTx.snapshot.exists() ? _claimTx.snapshot.val().uid : null);
+            if (_claimedByUid && _claimedByUid !== currentUser.uid) {
+                await set(ref(activeDb(), `users/${currentUser.uid}/freeServiceBans/${checkoutItem.id}`), {
+                    ts: Date.now(), link: targetLink, reason: 'duplicate_link'
+                }).catch(() => {});
+                window._freeServiceBansCache = window._freeServiceBansCache || {};
+                window._freeServiceBansCache[checkoutItem.id] = true;
+                _unlockOrder(); hideLoader();
+                closeCheckout();
+                showAlertRestrictModal('Service Restricted', 'Duplicate link detected. This link has already been used for this free service, so your account has been restricted from claiming it again.');
+                const _bannedCardEl = document.getElementById(`plc_${checkoutItem.id}`);
+                if (_bannedCardEl) _bannedCardEl.remove();
+                return;
+            }
+        } catch (e) {
+            _unlockOrder(); hideLoader();
+            return showToast('❌ Could not verify link right now. Please try again.');
+        }
+
         // Double-check daily limit in Firebase (prevent race from double-tap)
         const today = new Date().toISOString().slice(0, 10);
         const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
@@ -6695,21 +6819,44 @@
             ]);
             const existingClaim = limitSnap.exists() ? limitSnap : (yestLimitSnap.exists() ? yestLimitSnap : null);
 
-            // Check total lifetime limit (max 5 per service)
+            // Check total lifetime limit (dynamic — admin-configurable per service, default 5)
+            const _maxFree = (parseInt(checkoutItem.freeLimit) > 0) ? parseInt(checkoutItem.freeLimit) : 5;
             const allUsedSnap = await get(ref(activeDb(), `users/${currentUser.uid}/freeServiceUsed`));
             let totalUsed = 0;
             if(allUsedSnap.exists()) {
                 allUsedSnap.forEach(dateSnap => { if(dateSnap.key >= '2026-05-22' && dateSnap.child(checkoutItem.id).exists()) totalUsed++; });
             }
-            if(totalUsed >= 5) {
+            if(totalUsed >= _maxFree) {
                 _unlockOrder(); hideLoader();
                 return showToast('🔒 Free limit completed. Please purchase the paid order package to continue.');
             }
 
             if (existingClaim) {
-                const claimedAt = new Date(existingClaim.val());
+                const _claimVal = existingClaim.val();
+                // Legacy records stored a plain ISO string; newer ones store { ts, link }.
+                const _claimTs   = (_claimVal && typeof _claimVal === 'object') ? _claimVal.ts : _claimVal;
+                const _claimLink = (_claimVal && typeof _claimVal === 'object') ? _claimVal.link : null;
+                const claimedAt = new Date(_claimTs);
                 const nextReset = new Date(claimedAt.getTime() + 24 * 60 * 60 * 1000);
                 if(nextReset > new Date()) {
+                    // Cooldown still active. Reusing the SAME link before the wait is
+                    // over is a bypass attempt (spamming/scripting to force the order
+                    // through) — restrict the service. A DIFFERENT link, or simply
+                    // waiting out the cooldown, is normal usage and stays unaffected.
+                    const _sameLinkRetry = _claimLink && (_hashLink(_normalizeLink(_claimLink)) === _hashLink(_normalizeLink(targetLink)));
+                    if (_sameLinkRetry) {
+                        await set(ref(activeDb(), `users/${currentUser.uid}/freeServiceBans/${checkoutItem.id}`), {
+                            ts: Date.now(), link: targetLink, reason: 'cooldown_bypass_attempt'
+                        }).catch(() => {});
+                        window._freeServiceBansCache = window._freeServiceBansCache || {};
+                        window._freeServiceBansCache[checkoutItem.id] = true;
+                        _unlockOrder(); hideLoader();
+                        closeCheckout();
+                        showAlertRestrictModal('Service Restricted', 'Same link reused before your cooldown period ended for this free service. Your account has been restricted from claiming it again.');
+                        const _bannedCardEl = document.getElementById(`plc_${checkoutItem.id}`);
+                        if (_bannedCardEl) _bannedCardEl.remove();
+                        return;
+                    }
                     _unlockOrder(); hideLoader();
                     const h = Math.floor((nextReset - new Date()) / 3600000);
                     const m = Math.floor(((nextReset - new Date()) % 3600000) / 60000);
@@ -6729,7 +6876,7 @@
             try {
                 claimTx = await runTransaction(limitRef, (current) => {
                     if (current !== null) return; // abort — already claimed, don't touch it
-                    return new Date().toISOString();
+                    return { ts: new Date().toISOString(), link: targetLink };
                 });
             } catch(e) {
                 _unlockOrder(); hideLoader();
@@ -7383,7 +7530,7 @@
                 document.getElementById('profileName').textContent = u.displayName || 'User';
                 document.getElementById('profileEmail').textContent = u.email;
                 document.getElementById('profileAvatar').textContent = (u.displayName || 'U').charAt(0).toUpperCase();
-                loadOrders(); loadChat(); loadWallet();
+                loadOrders(); loadChat(); loadWallet(); loadFreeServiceBans();
                 bindRealTimeNotifications(u.uid);
                 bindAdminMessageNotification(u.uid);
                 const refLink = `${window.location.origin}${window.location.pathname}?ref=${u.uid}`;
