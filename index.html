@@ -3509,7 +3509,9 @@
 
                     // Daily 24hr window check
                     if(snap) {
-                        const claimedAt = new Date(snap.val());
+                        const _snapVal = snap.val();
+                        const _snapTs = (_snapVal && typeof _snapVal === 'object') ? _snapVal.ts : _snapVal;
+                        const claimedAt = new Date(_snapTs);
                         const nextReset = new Date(claimedAt.getTime() + 24 * 60 * 60 * 1000);
                         if(nextReset > new Date()) {
                             if(cardEl) {
@@ -6257,7 +6259,9 @@
                 hideLoader();
                 const snap = todaySnap.exists() ? todaySnap : (yestSnap.exists() ? yestSnap : null);
                 if(snap) {
-                    const claimedAt = new Date(snap.val());
+                    const _snapVal = snap.val();
+                    const _snapTs = (_snapVal && typeof _snapVal === 'object') ? _snapVal.ts : _snapVal;
+                    const claimedAt = new Date(_snapTs);
                     const nextReset = new Date(claimedAt.getTime() + 24 * 60 * 60 * 1000);
                     if(nextReset > new Date()) {
                         const h = Math.floor((nextReset - new Date()) / 3600000);
@@ -6777,7 +6781,9 @@
         // link gets banned from THAT ONE service only — other free services and
         // all paid services are completely unaffected. Only an admin can lift
         // this ban (admin dashboard → Users → Unban) — there is no user-side
-        // way to clear it.
+        // way to clear it. Admin can disable this entire check per-product via
+        // the "Free Service Restriction" toggle on the product form.
+        if (checkoutItem.freeRestrictionEnabled !== false) {
         showLoader();
         try {
             const _linkKey = _hashLink(_normalizeLink(targetLink));
@@ -6805,6 +6811,7 @@
         } catch (e) {
             _unlockOrder(); hideLoader();
             return showToast('❌ Could not verify link right now. Please try again.');
+        }
         }
 
         // Double-check daily limit in Firebase (prevent race from double-tap)
@@ -6843,7 +6850,7 @@
                     // over is a bypass attempt (spamming/scripting to force the order
                     // through) — restrict the service. A DIFFERENT link, or simply
                     // waiting out the cooldown, is normal usage and stays unaffected.
-                    const _sameLinkRetry = _claimLink && (_hashLink(_normalizeLink(_claimLink)) === _hashLink(_normalizeLink(targetLink)));
+                    const _sameLinkRetry = (checkoutItem.freeRestrictionEnabled !== false) && _claimLink && (_hashLink(_normalizeLink(_claimLink)) === _hashLink(_normalizeLink(targetLink)));
                     if (_sameLinkRetry) {
                         await set(ref(activeDb(), `users/${currentUser.uid}/freeServiceBans/${checkoutItem.id}`), {
                             ts: Date.now(), link: targetLink, reason: 'cooldown_bypass_attempt'
