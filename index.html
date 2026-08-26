@@ -672,7 +672,11 @@
         .toast { border-radius: 12px !important; }
         .toast.toast-success { background: #10b981 !important; }
         .toast.toast-error { background: #ef4444 !important; }
-        .toast.toast-warn { background: #f59e0b !important; }
+        .toast.toast-warn {
+            background: #f87171 !important;
+            color: #ffffff !important;
+        }
+        .toast.toast-warn i { color: #ffffff; }
 
         /* ── WALLET BALANCE PULSE ON LOAD ─────────────────────────────────── */
         @keyframes balancePop {
@@ -2119,7 +2123,7 @@
             <div class="af-section visible" id="afUPISection">
                 <div class="af-info-bar">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    Minimum ₹10 &nbsp;•&nbsp; Maximum ₹30,000
+                    Minimum ₹1 &nbsp;•&nbsp; Maximum ₹30,000
                 </div>
 
                 <!-- Deposit breakdown -->
@@ -2150,7 +2154,7 @@
                 <!-- Custom amount -->
                 <div class="af-custom-input-wrap">
                     <span class="af-rupee-prefix">₹</span>
-                    <input type="number" class="af-custom-input" id="wfAmountInput" placeholder="Enter custom amount" min="10" max="30000" oninput="afOnAmountInput(this.value)">
+                    <input type="number" class="af-custom-input" id="wfAmountInput" placeholder="Enter custom amount" min="1" max="30000" oninput="afOnAmountInput(this.value)">
                 </div>
 
                 <!-- Pay button -->
@@ -2815,12 +2819,13 @@
 
     // Build the full verified proxy list — fastest/most reliable first.
     // All fire in parallel; only the fastest valid response is used.
-    // 4 confirmed-working proxies only — dead ones removed after testing.
+    // corsfix removed — requires manual per-domain whitelisting on their dashboard
+    // and was returning 403 for paytm.anujbots.xyz. Own worker already whitelists
+    // pikaapis + anujbots + redoxng, so it's the only proxy needed as fallback.
     const buildVerifyURLs = (verifyUrl) => {
         const enc = encodeURIComponent(verifyUrl);
         return [
             { url: verifyUrl,                                                                    opts: {} },
-            { url: `https://proxy.corsfix.com/?${verifyUrl}`,                                    opts: {} },
             { url: `https://bitter-mode-4fa8wholesale-proxy.demos-orx.workers.dev/?url=${enc}`,    opts: {} },
         ];
     };
@@ -2832,7 +2837,6 @@
     function prewarmProxies(verifyUrl) {
         const enc = encodeURIComponent(verifyUrl);
         [
-            `https://proxy.corsfix.com/?${verifyUrl}`,
             `https://bitter-mode-4fa8wholesale-proxy.demos-orx.workers.dev/?url=${enc}`,
         ].forEach(url => {
             fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(5000) }).catch(() => {});
@@ -5299,10 +5303,10 @@
     window.goToWfStep2 = () => {
         wfAmount = parseFloat(document.getElementById('wfAmountInput').value);
         const inp = document.getElementById('wfAmountInput');
-        if(!wfAmount || wfAmount < 10) {
+        if(!wfAmount || wfAmount < 1) {
             inp.classList.add('input-error');
             inp.style.animation = 'none'; inp.offsetWidth; inp.style.animation = 'shake 0.4s ease';
-            return showToast('⚠️ Minimum ₹10 required', 'warn');
+            return showToast('⚠️ Minimum ₹1 required', 'warn');
         }
         if(wfAmount > 30000) {
             inp.classList.add('input-error');
@@ -5322,7 +5326,7 @@
 
         // Pre-warm proxies for faster wallet payment verification
         const MERCHANT_ID_WF = "MdXwlu49903940058924";
-        prewarmProxies(`https://verify.pikaapis.workers.dev/?trn=PREWARM&id=${MERCHANT_ID_WF}`);
+        prewarmProxies(`https://paytm.anujbots.xyz/verify.php?orderid=PREWARM&merchantid=${MERCHANT_ID_WF}&merchantkey=${MERCHANT_ID_WF}`);
     };
 
     window.goBackWfStep1 = () => {
@@ -5339,7 +5343,7 @@
 
         // Fire prewarm NOW (button tap) — TCP connections get max warm-up time
         const MERCHANT_ID = "MdXwlu49903940058924";
-        const verifyUrl   = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
+        const verifyUrl   = `https://paytm.anujbots.xyz/verify.php?orderid=${utr}&merchantid=${MERCHANT_ID}&merchantkey=${MERCHANT_ID}`;
         const verifyURLs  = buildVerifyURLs(verifyUrl);
         prewarmProxies(verifyUrl);
 
@@ -5353,7 +5357,7 @@
                     utr, amount: wfAmount, initiatedAt: new Date().toISOString()
                 }),
                 get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
-                raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
+                raceFetchWithRetry(verifyURLs, j => j && j.success === true && typeof j.status !== 'undefined'),
             ]);
 
             if(utrSnapshot.exists()) {
@@ -5364,22 +5368,30 @@
             if(!verifyResult) {
                 remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
                 hidePayVerify(); _wfVerifyInProgress = false;
-                return showToast("❌ Payment not verified. Check internet & try again.");
+                return showToast("Payment not verified yet.", "warn");
             }
 
             const result = verifyResult.json;
-            if(result.STATUS !== "TXN_SUCCESS" || result.RESPMSG !== "Txn Success") {
+            if(result.status !== "TXN_SUCCESS" || result.success !== true) {
                 remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
                 hidePayVerify(); _wfVerifyInProgress = false;
-                return showToast("❌ Payment not verified yet. " + (result.RESPMSG || "Try again in a few seconds."));
+                return showToast("Payment not verified yet.", "warn");
             }
 
-            const paidVal = parseFloat(result.TXNAMOUNT);
+            const paidVal = parseFloat(result.amount);
             if(paidVal < wfAmount - 1.00) {
                 remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
                 hidePayVerify(); _wfVerifyInProgress = false;
                 return showToast(`❌ Amount mismatch! Required ₹${wfAmount}, paid ₹${paidVal}`);
             }
+            // Keep the full gateway response for later reference (support/dispute lookups)
+            const gatewayMeta = {
+                gatewayTxnId: result.transaction_id || null,
+                paytmReference: result.paytm_reference || null,
+                bankReference: result.bank_reference || null,
+                gatewayMerchantId: result.merchant_id || null,
+                gatewayTimestamp: result.timestamp || null,
+            };
 
             // ── Step 3: Wallet credit — all writes in parallel ──
             const newBal = walletBalance + paidVal;
@@ -5387,13 +5399,14 @@
                 update(ref(activeDb(), `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
                 push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), {
                     type: 'credit', amount: paidVal, note: 'Wallet Top-Up',
-                    utrId: utr, createdAt: new Date().toISOString()
+                    utrId: utr, createdAt: new Date().toISOString(), ...gatewayMeta
                 }),
                 push(ref(activeDb(), 'orders'), {
                     userId: currentUser.uid, userEmail: currentUser.email,
                     userName: (currentUser.displayName || currentUser.email || 'Guest'),
                     utrId: utr, finalAmount: paidVal.toFixed(2),
-                    type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp()
+                    type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp(),
+                    ...gatewayMeta
                 }),
                 remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)),
             ]);
@@ -5451,9 +5464,9 @@
             showToast('⏳ Resuming your last payment verification...', 'warn');
 
             const MERCHANT_ID = "MdXwlu49903940058924";
-            const verifyUrl = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
+            const verifyUrl = `https://paytm.anujbots.xyz/verify.php?orderid=${utr}&merchantid=${MERCHANT_ID}&merchantkey=${MERCHANT_ID}`;
             const verifyURLs = buildVerifyURLs(verifyUrl);
-            const verifyResult = await raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined');
+            const verifyResult = await raceFetchWithRetry(verifyURLs, j => j && j.success === true && typeof j.status !== 'undefined');
 
             if(!verifyResult) {
                 showToast('⚠️ Could not verify last payment. Please contact support if amount was deducted.', 'warn');
@@ -5462,23 +5475,30 @@
             }
 
             const result = verifyResult.json;
-            if(result.STATUS !== "TXN_SUCCESS" || result.RESPMSG !== "Txn Success") {
+            if(result.status !== "TXN_SUCCESS" || result.success !== true) {
                 await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
                 return;
             }
 
-            const paidVal = parseFloat(result.TXNAMOUNT);
+            const paidVal = parseFloat(result.amount);
             if(paidVal < amount) {
                 await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
                 return;
             }
+            const gatewayMeta = {
+                gatewayTxnId: result.transaction_id || null,
+                paytmReference: result.paytm_reference || null,
+                bankReference: result.bank_reference || null,
+                gatewayMerchantId: result.merchant_id || null,
+                gatewayTimestamp: result.timestamp || null,
+            };
 
             // Credit wallet
             const profSnap = await get(ref(activeDb(), `users/${uid}/profile`));
             const curBal = parseFloat(profSnap.exists() ? (profSnap.val().walletBalance || 0) : 0);
             await update(ref(activeDb(), `users/${uid}/profile`), { walletBalance: curBal + paidVal });
-            await push(ref(activeDb(), `users/${uid}/walletHistory`), { type: 'credit', amount: paidVal, note: 'Wallet Top-Up (Auto-Resumed)', utrId: utr, createdAt: new Date().toISOString() });
-            await push(ref(activeDb(), 'orders'), { userId: uid, userEmail: currentUser.email, userName: (currentUser.displayName || currentUser.email || 'Guest'), utrId: utr, finalAmount: paidVal.toFixed(2), type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp() });
+            await push(ref(activeDb(), `users/${uid}/walletHistory`), { type: 'credit', amount: paidVal, note: 'Wallet Top-Up (Auto-Resumed)', utrId: utr, createdAt: new Date().toISOString(), ...gatewayMeta });
+            await push(ref(activeDb(), 'orders'), { userId: uid, userEmail: currentUser.email, userName: (currentUser.displayName || currentUser.email || 'Guest'), utrId: utr, finalAmount: paidVal.toFixed(2), type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp(), ...gatewayMeta });
             await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
 
             showToast(`✅ ₹${paidVal.toFixed(2)} credited! (Resumed from last session)`, 'success');
@@ -5664,13 +5684,14 @@
         try { localStorage.setItem('lastOrderId', currentOrderId); } catch(_) {}
         updateQRCode(checkoutFinalAmt, currentOrderId);
         const MERCHANT_ID_PW = "MdXwlu49903940058924";
-        prewarmProxies(`https://verify.pikaapis.workers.dev/?trn=PREWARM&id=${MERCHANT_ID_PW}`);
+        prewarmProxies(`https://paytm.anujbots.xyz/verify.php?orderid=PREWARM&merchantid=${MERCHANT_ID_PW}&merchantkey=${MERCHANT_ID_PW}`);
 
         document.getElementById('checkoutModal').classList.add('active');
     };
 
     // ── EXCLUSIVE PACK MULTI-ORDER PLACEMENT ─────────────────────────────
-    async function placeExclusivePackOrders(packId, reelLink, utr, finalAmt) {
+    async function placeExclusivePackOrders(packId, reelLink, utr, finalAmt, gatewayMeta) {
+        gatewayMeta = gatewayMeta || {};
         const pack = (window._exclusivePacksData || {})[packId];
         if (!pack) throw new Error('Pack not found');
         const services = pack.selectedServices || [];
@@ -5702,6 +5723,7 @@
             autoCompleteAt: computeAutoCompleteAt(pack.avgTime),
             isExclusivePack: true,
             apiStatus: 'calling',
+            ...gatewayMeta,
         };
         const packOrderRef = push(ref(activeDb(), 'orders'));
         await set(packOrderRef, packOrderData);
@@ -6346,7 +6368,7 @@
         if(!isFreeService) {
             updateQRCode(checkoutFinalAmt, currentOrderId);
             const MERCHANT_ID_PW = "MdXwlu49903940058924";
-            prewarmProxies(`https://verify.pikaapis.workers.dev/?trn=PREWARM&id=${MERCHANT_ID_PW}`);
+            prewarmProxies(`https://paytm.anujbots.xyz/verify.php?orderid=PREWARM&merchantid=${MERCHANT_ID_PW}&merchantkey=${MERCHANT_ID_PW}`);
         }
 
         document.getElementById('chkLinkContainer').style.display = 'block';
@@ -6433,23 +6455,30 @@
             if (!reelLink) { _unlockOrder(); _resetBtnEx(); return showToast('Please enter the Reels link'); }
 
             const MERCHANT_ID = "MdXwlu49903940058924";
-            const verifyUrl = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
+            const verifyUrl = `https://paytm.anujbots.xyz/verify.php?orderid=${utr}&merchantid=${MERCHANT_ID}&merchantkey=${MERCHANT_ID}`;
             const verifyURLs = buildVerifyURLs(verifyUrl);
             prewarmProxies(verifyUrl);
             showPayVerify();
             try {
                 const [utrSnapshot, verifyResult] = await Promise.all([
                     get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
-                    raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
+                    raceFetchWithRetry(verifyURLs, j => j && j.success === true && typeof j.status !== 'undefined'),
                 ]);
                 if (utrSnapshot.exists()) { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('❌ This Order ID has already been used!'); }
-                if (!verifyResult) { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('❌ Could not verify payment. Check internet & try again.'); }
+                if (!verifyResult) { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('Payment not verified yet.', 'warn'); }
                 const result = verifyResult.json;
-                if (result.STATUS !== 'TXN_SUCCESS' || result.RESPMSG !== 'Txn Success') { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('❌ Payment not received yet. ' + (result.RESPMSG || 'Please wait 10 secs and retry.')); }
-                const paidVal = parseFloat(result.TXNAMOUNT);
+                if (result.status !== 'TXN_SUCCESS' || result.success !== true) { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('Payment not verified yet.', 'warn'); }
+                const paidVal = parseFloat(result.amount);
                 if (paidVal < checkoutFinalAmt - 1.00) { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast(`❌ Amount mismatch! Required ₹${checkoutFinalAmt}, paid ₹${paidVal}`); }
+                const gatewayMeta = {
+                    gatewayTxnId: result.transaction_id || null,
+                    paytmReference: result.paytm_reference || null,
+                    bankReference: result.bank_reference || null,
+                    gatewayMerchantId: result.merchant_id || null,
+                    gatewayTimestamp: result.timestamp || null,
+                };
 
-                const packOrderKey = await placeExclusivePackOrders(checkoutItem.id, reelLink, utr, checkoutFinalAmt.toFixed(2));
+                const packOrderKey = await placeExclusivePackOrders(checkoutItem.id, reelLink, utr, checkoutFinalAmt.toFixed(2), gatewayMeta);
                 _unlockOrder(); _resetBtnEx(); closeCheckout(); playOrderSuccessSound();
                 showPayVerifySuccess({
                     amount: checkoutFinalAmt.toFixed(2),
@@ -6498,7 +6527,7 @@
 
         // Fire prewarm on button tap — maximises proxy warmth at verification moment
         const MERCHANT_ID = "MdXwlu49903940058924";
-        const verifyUrl   = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
+        const verifyUrl   = `https://paytm.anujbots.xyz/verify.php?orderid=${utr}&merchantid=${MERCHANT_ID}&merchantkey=${MERCHANT_ID}`;
         const verifyURLs  = buildVerifyURLs(verifyUrl);
         prewarmProxies(verifyUrl);
 
@@ -6507,7 +6536,7 @@
             // ── Duplicate check AND payment verify IN PARALLEL ──
             const [utrSnapshot, verifyResult] = await Promise.all([
                 get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
-                raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
+                raceFetchWithRetry(verifyURLs, j => j && j.success === true && typeof j.status !== 'undefined'),
             ]);
 
             if (utrSnapshot.exists()) {
@@ -6516,21 +6545,28 @@
             }
             if (!verifyResult) {
                 _unlockOrder(); _resetBtn(); hidePayVerify();
-                return showToast("❌ Could not verify payment. Check internet & try again.");
+                return showToast("Payment not verified yet.", "warn");
             }
 
             const result = verifyResult.json;
 
-            if (result.STATUS !== "TXN_SUCCESS" || result.RESPMSG !== "Txn Success") {
+            if (result.status !== "TXN_SUCCESS" || result.success !== true) {
                 _unlockOrder(); _resetBtn(); hidePayVerify();
-                return showToast("❌ Payment not received yet. " + (result.RESPMSG || "Please wait 10 secs and retry."));
+                return showToast("Payment not verified yet.", "warn");
             }
 
-            const paidVal = parseFloat(result.TXNAMOUNT);
+            const paidVal = parseFloat(result.amount);
             if (paidVal < checkoutFinalAmt - 1.00) {
                 _unlockOrder(); _resetBtn(); hidePayVerify();
                 return showToast(`❌ Amount mismatch! Required ₹${checkoutFinalAmt}, paid ₹${paidVal}`);
             }
+            const gatewayMeta = {
+                gatewayTxnId: result.transaction_id || null,
+                paytmReference: result.paytm_reference || null,
+                bankReference: result.bank_reference || null,
+                gatewayMerchantId: result.merchant_id || null,
+                gatewayTimestamp: result.timestamp || null,
+            };
 
             // ── Process Order ──
             const hasApiConfig = !!(
@@ -6559,6 +6595,7 @@
                 autoCompleteAt:  hasApiConfig ? computeAutoCompleteAt(checkoutItem.avgTime) : null,
                 isSubscription:  checkoutItem.purchaseType === 'subscription',
                 apiStatus:       hasApiConfig ? 'calling' : null,
+                ...gatewayMeta,
             };
 
             const newOrderRef = push(ref(activeDb(), 'orders'));
@@ -7153,7 +7190,7 @@
 
         // Pre-warm proxies so verification is instant
         const MERCHANT_ID_PW2 = "MdXwlu49903940058924";
-        prewarmProxies(`https://verify.pikaapis.workers.dev/?trn=PREWARM&id=${MERCHANT_ID_PW2}`);
+        prewarmProxies(`https://paytm.anujbots.xyz/verify.php?orderid=PREWARM&merchantid=${MERCHANT_ID_PW2}&merchantkey=${MERCHANT_ID_PW2}`);
     };
     document.getElementById('cartUpiId').addEventListener('click', () => {
         const t = document.getElementById('cartUpiId').textContent;
@@ -7167,7 +7204,7 @@
 
         // Fire prewarm NOW (button tap) for maximum connection warmth
         const MERCHANT_ID = "MdXwlu49903940058924";
-        const verifyUrl = `https://verify.pikaapis.workers.dev/?trn=${utr}&id=${MERCHANT_ID}`;
+        const verifyUrl = `https://paytm.anujbots.xyz/verify.php?orderid=${utr}&merchantid=${MERCHANT_ID}&merchantkey=${MERCHANT_ID}`;
         const verifyURLs = buildVerifyURLs(verifyUrl);
         prewarmProxies(verifyUrl);
 
@@ -7175,20 +7212,27 @@
         try {
             const [utrSnapshot, verifyResult] = await Promise.all([
                 get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
-                raceFetchWithRetry(verifyURLs, j => j && typeof j.STATUS !== 'undefined'),
+                raceFetchWithRetry(verifyURLs, j => j && j.success === true && typeof j.status !== 'undefined'),
             ]);
 
             if(utrSnapshot.exists()) { _unlockOrder(); hidePayVerify(); return showToast('❌ This Order ID already used!'); }
-            if(!verifyResult)        { _unlockOrder(); hidePayVerify(); return showToast("❌ Could not verify payment. Check internet & retry."); }
+            if(!verifyResult)        { _unlockOrder(); hidePayVerify(); return showToast("Payment not verified yet.", "warn"); }
 
             const result = verifyResult.json;
-            if(result.STATUS !== "TXN_SUCCESS" || result.RESPMSG !== "Txn Success") {
+            if(result.status !== "TXN_SUCCESS" || result.success !== true) {
                 _unlockOrder(); hidePayVerify();
-                return showToast("❌ Payment not verified yet. " + (result.RESPMSG || "Wait a moment and try again."));
+                return showToast("Payment not verified yet.", "warn");
             }
 
-            const paidVal = parseFloat(result.TXNAMOUNT);
+            const paidVal = parseFloat(result.amount);
             if(paidVal < cartFinalAmt - 1.00) { _unlockOrder(); hidePayVerify(); return showToast(`❌ Amount mismatch! Required ₹${cartFinalAmt.toFixed(2)}, paid ₹${paidVal}`); }
+            const gatewayMeta = {
+                gatewayTxnId: result.transaction_id || null,
+                paytmReference: result.paytm_reference || null,
+                bankReference: result.bank_reference || null,
+                gatewayMerchantId: result.merchant_id || null,
+                gatewayTimestamp: result.timestamp || null,
+            };
 
             // Save ALL cart orders in parallel (much faster than sequential for multi-item carts)
             const orderRefs = await Promise.all(cart.map(item => {
@@ -7203,6 +7247,7 @@
                     createdAt: serverTimestamp(), isSubscription: false,
                     autoCompleteAt: hasApi ? computeAutoCompleteAt(item.product.avgTime) : null,
                     apiStatus: hasApi ? 'calling' : null, cartGroup: utr,
+                    ...gatewayMeta,
                 };
                 const newOrderRef = push(ref(activeDb(), 'orders'));
                 return set(newOrderRef, orderData).then(() => {
