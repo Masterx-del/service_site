@@ -2734,7 +2734,6 @@
             showToast('✅ Recovered your previous guest wallet balance & orders!');
         } catch (e) {
             _migrationChecked = false; // allow retry on next load if this run errored out
-            console.warn('Guest data migration failed:', e);
         }
     }
 
