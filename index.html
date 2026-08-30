@@ -3097,6 +3097,278 @@
     // To store Auto-generated ID
     let currentOrderId = "";
 
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔒 UPI PAYMENT SESSION GUARD — survives app-switch / background / reload
+    //
+    // Problem: tapping to pay via an external UPI app (GPay/PhonePe/Paytm/BHIM)
+    // backgrounds the browser. Mobile OS/Chrome/WebView may then reclaim the
+    // tab's memory, so returning to it triggers a hard reload — wiping all
+    // in-memory JS state (currentOrderId/wfOrderId/cartOrderId, checkoutItem,
+    // typed links, applied coupon) before the user could tap "I Have Paid".
+    //
+    // Fix: persist the minimum state needed to resume EXACTLY where the user
+    // left off — same order/UTR reference (no duplicate order), same amount,
+    // same links — in localStorage, and restore + auto re-check verification
+    // status when the user returns. This does NOT touch verifyDualEngine or
+    // any existing verification logic — it only re-calls the SAME existing
+    // confirmPurchase()/confirmCartPurchase()/confirmWalletPayment() functions
+    // that the "I Have Paid. Verify Now" buttons already call.
+    // ═══════════════════════════════════════════════════════════════════
+    const PGW_SESSION_KEY = 'pgw_active_upi_session_v1';
+    const PGW_SESSION_MAX_AGE_MS = 45 * 60 * 1000; // 45 min — a UPI QR/tr shouldn't be resumed forever
+
+    function pgwSaveSession(data) {
+        try {
+            localStorage.setItem(PGW_SESSION_KEY, JSON.stringify({
+                ...data,
+                uid: currentUser ? currentUser.uid : null,
+                savedAt: Date.now()
+            }));
+        } catch(_) {}
+    }
+    function pgwLoadSession() {
+        try {
+            const raw = localStorage.getItem(PGW_SESSION_KEY);
+            if(!raw) return null;
+            const data = JSON.parse(raw);
+            if(!data || !data.savedAt || (Date.now() - data.savedAt) > PGW_SESSION_MAX_AGE_MS) {
+                pgwClearSession();
+                return null;
+            }
+            return data;
+        } catch(_) { return null; }
+    }
+    function pgwClearSession() { try { localStorage.removeItem(PGW_SESSION_KEY); } catch(_) {} }
+    function pgwClearSessionIfFlow(flow) {
+        const d = pgwLoadSession();
+        if(d && d.flow === flow) pgwClearSession();
+    }
+
+    // ── Snapshot helpers — called whenever a flow reaches its "pay via UPI" step ──
+    function pgwSnapshotChk() {
+        if(!checkoutItem || !currentOrderId) return;
+        const step2 = document.getElementById('chkStep2');
+        if(!step2 || step2.style.display !== 'block') return;
+        const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+        pgwSaveSession({
+            flow: 'chk',
+            orderId: currentOrderId,
+            amount: checkoutFinalAmt,
+            itemId: checkoutItem.id,
+            itemType: checkoutItem.purchaseType,
+            appliedCouponKey,
+            targetLink:  val('chkLinkInput'),
+            targetLink2: val('chkLinkInput2'),
+            targetLink3: val('chkLinkInput3'),
+            targetLink4: val('chkLinkInput4'),
+            targetLink5: val('chkLinkInput5'),
+            pollOption:  val('chkPollInput'),
+            customComments: val('chkCommentsInput'),
+        });
+    }
+    function pgwSnapshotWf() {
+        if(!wfOrderId) return;
+        const step2 = document.getElementById('wfStep2');
+        if(!step2 || step2.style.display === 'none') return;
+        pgwSaveSession({ flow: 'wf', orderId: wfOrderId, amount: wfAmount });
+    }
+    function pgwSnapshotCart() {
+        if(!cartOrderId) return;
+        const step2 = document.getElementById('cartStep2');
+        if(!step2 || step2.style.display !== 'block') return;
+        pgwSaveSession({
+            flow: 'cart',
+            orderId: cartOrderId,
+            amount: cartFinalAmt,
+            cartItems: cart,
+            appliedCouponKey: cartAppliedCoupon,
+            couponDiscount: cartCouponDiscount,
+        });
+    }
+    function pgwSnapshotActiveFlow() {
+        try {
+            if(document.getElementById('checkoutModal')?.classList.contains('active')) pgwSnapshotChk();
+            if(document.getElementById('walletFundModal')?.classList.contains('active')) pgwSnapshotWf();
+            if(document.getElementById('cartModal')?.classList.contains('active')) pgwSnapshotCart();
+        } catch(_) {}
+    }
+
+    // ── Restore — called once auth + product data are both ready ──
+    let _pgwRestoreDone = false;
+    function pgwTryRestoreAfterAuth() {
+        if(_pgwRestoreDone) return;
+        if(!currentUser || !_productsLoaded) return;
+        _pgwRestoreDone = true;
+        setTimeout(pgwRestoreSession, 400);
+    }
+
+    function pgwRestoreSession() {
+        const data = pgwLoadSession();
+        if(!data) return;
+        if(data.uid && currentUser && data.uid !== currentUser.uid) { pgwClearSession(); return; }
+
+        if(data.flow === 'chk') {
+            let item = null;
+            if(data.itemType === 'exclusive_pack') {
+                const pack = (window._exclusivePacksData || {})[data.itemId];
+                if(!pack) { pgwClearSession(); return; }
+                item = { id: data.itemId, title: pack.packName || pack.planName, price: pack.price, discountedPrice: pack.price,
+                    purchaseType: 'exclusive_pack', packData: pack, packName: pack.packName || pack.planName,
+                    description: pack.description || '', features: pack.features || [], selectedServices: pack.selectedServices || [] };
+            } else {
+                const src = data.itemType === 'product' ? productsData : subsData;
+                const found = src ? src[data.itemId] : null;
+                if(!found) { pgwClearSession(); return; }
+                item = { ...found, id: data.itemId, purchaseType: data.itemType };
+            }
+            checkoutItem = item;
+            checkoutFinalAmt = parseFloat(data.amount) || 0;
+            appliedCouponKey = data.appliedCouponKey || null;
+            currentOrderId = data.orderId;
+            try { localStorage.setItem('lastOrderId', currentOrderId); } catch(_) {}
+
+            const imgEl = document.getElementById('chkImg');
+            if(imgEl) { if(item.imageUrl) { imgEl.src = item.imageUrl; imgEl.style.display = 'block'; } else { imgEl.style.display = 'none'; } }
+            const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+            setTxt('chkTitle', item.title || item.planName || item.packName || '');
+            setTxt('chkPrice', `₹${checkoutFinalAmt}`);
+            setTxt('chkFinalPrice', `₹${checkoutFinalAmt}`);
+            setTxt('chkPayAmt', `₹${checkoutFinalAmt}`);
+            const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
+            setVal('chkLinkInput', data.targetLink);
+            setVal('chkLinkInput2', data.targetLink2);
+            setVal('chkLinkInput3', data.targetLink3);
+            setVal('chkLinkInput4', data.targetLink4);
+            setVal('chkLinkInput5', data.targetLink5);
+            setVal('chkPollInput', data.pollOption);
+            setVal('chkCommentsInput', data.customComments);
+
+            // Restore the same field-container visibility the existing verify logic
+            // reads from (customComments/pollOption/extraLinks are only included
+            // if their container is visible) so the order completes with the
+            // exact same data as before the reload.
+            const setDisp = (id, d) => { const el = document.getElementById(id); if(el) el.style.display = d; };
+            if(item.purchaseType === 'exclusive_pack') {
+                setDisp('chkLinkContainer', 'block'); setDisp('chkExtraLinksContainer', 'none');
+                setDisp('chkPollContainer', 'none');  setDisp('chkCommentsContainer', 'none');
+            } else if(item.purchaseType === 'product') {
+                setDisp('chkLinkContainer', 'block'); setDisp('chkExtraLinksContainer', 'none');
+                setDisp('chkPollContainer', data.pollOption ? 'block' : 'none');
+                setDisp('chkCommentsContainer', item.customComments ? 'block' : 'none');
+            } else {
+                setDisp('chkLinkContainer', 'block'); setDisp('chkExtraLinksContainer', 'block');
+                setDisp('chkPollContainer', 'none');  setDisp('chkCommentsContainer', 'none');
+            }
+
+            document.getElementById('checkoutModal').classList.add('active');
+            document.getElementById('chkStep1').style.display = 'none';
+            document.getElementById('chkStep2').style.display = 'block';
+            updateQRCode(checkoutFinalAmt, currentOrderId);
+
+            showToast('⏳ Resuming your pending payment — checking status...', 'warn');
+            pgwAutoVerify('chk');
+        } else if(data.flow === 'wf') {
+            wfAmount = parseFloat(data.amount) || 0;
+            wfOrderId = data.orderId;
+            const upiId = "Paytmqr6i3w0w@ptys";
+            const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+            setTxt('wfUpiId', upiId);
+            setTxt('wfPayAmt', `₹${wfAmount.toFixed(2)}`);
+            setTxt('wfOrderIdDisplay', wfOrderId);
+            const upiStr = `upi://pay?pa=${upiId}&pn=${encodeURIComponent("SACHIN SAYSING RAUT")}&am=${wfAmount}&cu=INR&tr=${wfOrderId}`;
+            const qrEl = document.getElementById('wf-dynamic-qr');
+            if(qrEl) qrEl.src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(upiStr);
+            document.getElementById('walletFundModal').classList.add('active');
+            document.getElementById('afStep1').style.display = 'none';
+            document.getElementById('wfStep2').style.display = 'flex';
+
+            showToast('⏳ Resuming your pending wallet top-up — checking status...', 'warn');
+            pgwAutoVerify('wf');
+        } else if(data.flow === 'cart') {
+            if(!Array.isArray(data.cartItems) || !data.cartItems.length) { pgwClearSession(); return; }
+            cart = data.cartItems;
+            cartOrderId = data.orderId;
+            cartFinalAmt = parseFloat(data.amount) || 0;
+            cartAppliedCoupon = data.appliedCouponKey || null;
+            cartCouponDiscount = parseFloat(data.couponDiscount) || 0;
+            updateCartBadge();
+
+            const upiId = "Paytmqr6i3w0w@ptys";
+            const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+            setTxt('cartUpiId', upiId);
+            setTxt('cartPayAmt', `₹${cartFinalAmt.toFixed(2)}`);
+            setTxt('cartOrderIdDisplay', cartOrderId);
+            const upiStr = `upi://pay?pa=${upiId}&pn=${encodeURIComponent("SACHIN SAYSING RAUT")}&am=${cartFinalAmt}&cu=INR&tr=${cartOrderId}`;
+            const qrEl = document.getElementById('cart-dynamic-qr');
+            if(qrEl) qrEl.src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(upiStr);
+            document.getElementById('cartModal').classList.add('active');
+            document.getElementById('cartStep1').style.display = 'none';
+            document.getElementById('cartStep2').style.display = 'block';
+
+            showToast('⏳ Resuming your pending payment — checking status...', 'warn');
+            pgwAutoVerify('cart');
+        } else {
+            pgwClearSession();
+        }
+    }
+
+    // ── Auto-verify — reuses the EXISTING verify buttons' handlers as-is ──
+    // (same dual-engine verification, same duplicate-order guard, same
+    // success/pending/failed handling — nothing about verification itself changes)
+    const _pgwLastVerifyAt = {};
+    function pgwAutoVerify(flow) {
+        const now = Date.now();
+        if(_pgwLastVerifyAt[flow] && (now - _pgwLastVerifyAt[flow]) < 4000) return; // small cooldown vs rapid app-switch spam
+        _pgwLastVerifyAt[flow] = now;
+        setTimeout(() => {
+            try {
+                if(flow === 'chk' && typeof window.confirmPurchase === 'function') window.confirmPurchase();
+                else if(flow === 'wf' && typeof window.confirmWalletPayment === 'function') window.confirmWalletPayment();
+                else if(flow === 'cart' && typeof window.confirmCartPurchase === 'function') window.confirmCartPurchase();
+            } catch(_) {}
+        }, 500);
+    }
+
+    // If the tab never actually reloaded (bfcache / short background), state is
+    // already intact in memory — just re-check whichever payment step is open.
+    function pgwAutoCheckActiveFlow() {
+        if(!currentUser) return;
+        try {
+            if(document.getElementById('checkoutModal')?.classList.contains('active') &&
+               document.getElementById('chkStep2')?.style.display === 'block' && currentOrderId) {
+                pgwAutoVerify('chk');
+            } else if(document.getElementById('walletFundModal')?.classList.contains('active') &&
+                      document.getElementById('wfStep2')?.style.display !== 'none' && wfOrderId) {
+                pgwAutoVerify('wf');
+            } else if(document.getElementById('cartModal')?.classList.contains('active') &&
+                      document.getElementById('cartStep2')?.style.display === 'block' && cartOrderId) {
+                pgwAutoVerify('cart');
+            }
+        } catch(_) {}
+    }
+
+    // ── Lifecycle wiring ─────────────────────────────────────────────────
+    // visibilitychange: fires reliably on Android Chrome/WebView when the user
+    // switches to a UPI app and comes back — WITHOUT necessarily reloading.
+    let _pgwHiddenAt = 0;
+    document.addEventListener('visibilitychange', () => {
+        if(document.visibilityState === 'hidden') {
+            _pgwHiddenAt = Date.now();
+            pgwSnapshotActiveFlow(); // flush latest state in case OS kills the page while hidden
+        } else if(document.visibilityState === 'visible') {
+            const hiddenFor = _pgwHiddenAt ? (Date.now() - _pgwHiddenAt) : 0;
+            if(_pgwHiddenAt && hiddenFor > 800) pgwAutoCheckActiveFlow();
+        }
+    });
+    // pageshow: fires on normal load AND on bfcache restore (event.persisted) —
+    // covers the case where the browser kept the page in memory during the
+    // app-switch instead of reloading it.
+    window.addEventListener('pageshow', () => { pgwAutoCheckActiveFlow(); });
+    // pagehide / beforeunload: last-chance flush before the page is torn down
+    // (some browsers only reliably fire one of the two on background/close).
+    window.addEventListener('pagehide', pgwSnapshotActiveFlow);
+    window.addEventListener('beforeunload', pgwSnapshotActiveFlow);
+
     // Referral from URL
     const urlParams = new URLSearchParams(window.location.search);
     const referralSource = urlParams.get('ref') || '';
@@ -4273,6 +4545,7 @@
             if ("Notification" in window && Notification.permission === "default") { Notification.requestPermission(); }
             loadOrders(); loadChat(); loadWallet(); loadFreeServiceBans();
             resumePendingVerification(user.uid);
+            pgwTryRestoreAfterAuth();
             if(document.getElementById('profileTab').classList.contains('active')){ switchTab('homeTab'); }
             bindRealTimeNotifications(user.uid);
             bindAdminMessageNotification(user.uid);
@@ -4615,7 +4888,7 @@
         document.getElementById('walletFundModal').classList.add('active');
     };
 
-    window.closeWalletFund = () => document.getElementById('walletFundModal').classList.remove('active');
+    window.closeWalletFund = () => { document.getElementById('walletFundModal').classList.remove('active'); pgwClearSessionIfFlow('wf'); };
 
     // Close the deposit modal and jump straight to the Payment History tab
     window.goToWalletHistory = () => {
@@ -5417,6 +5690,7 @@
         document.getElementById('wf-dynamic-qr').src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(upiStr);
         document.getElementById('afStep1').style.display = 'none';
         document.getElementById('wfStep2').style.display = 'flex';
+        pgwSnapshotWf();
 
         // Pre-warm proxies for faster wallet payment verification
         prewarmDualEngines('PREWARM');
@@ -5452,6 +5726,7 @@
             ]);
 
             if(utrSnapshot.exists()) {
+                pgwClearSessionIfFlow('wf');
                 remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
                 hidePayVerify(); _wfVerifyInProgress = false;
                 return showToast('❌ This Order ID has already been used!');
@@ -5916,6 +6191,7 @@
         onValue(ref(activeDb(), 'products'), s => {
             productsData = s.exists() ? s.val() : {};
             _productsLoaded = true;
+            pgwTryRestoreAfterAuth();
             // ── Reveal real service grid, hide skeleton ──
             const skeleton = document.getElementById('serviceGridSkeleton');
             const realGrid = document.getElementById('servicesGridReal');
@@ -6316,7 +6592,7 @@
         document.getElementById('chkPayAmt').textContent = `₹${price.toFixed(2)}`;
         const chkBtn = document.getElementById('chkWalletBtn');
         if (chkBtn) chkBtn.innerHTML = `<i class="fas fa-wallet"></i> Pay via Wallet (Bal: ₹${walletBalance.toFixed(2)})`;
-        if (currentOrderId) updateQRCode(price, currentOrderId);
+        if (currentOrderId) { updateQRCode(price, currentOrderId); pgwSnapshotChk(); }
     }
     const _chkCommentsInputEl = document.getElementById('chkCommentsInput');
     if (_chkCommentsInputEl) _chkCommentsInputEl.addEventListener('input', updateCustomCommentsPrice);
@@ -6473,6 +6749,7 @@
 
         document.getElementById('chkStep1').style.display = 'none';
         document.getElementById('chkStep2').style.display = 'block';
+        pgwSnapshotChk();
     };
 
     window.goBackToStep1 = () => {
@@ -6480,7 +6757,7 @@
         document.getElementById('chkStep1').style.display = 'block';
     };
 
-    window.closeCheckout = () => { document.getElementById('checkoutModal').classList.remove('active'); };
+    window.closeCheckout = () => { document.getElementById('checkoutModal').classList.remove('active'); pgwClearSessionIfFlow('chk'); };
 
     window.applyCoupon = () => { 
         const code = document.getElementById('chkCouponInput').value.trim().toUpperCase(); const msg = document.getElementById('chkCouponMsg'); if(!code) return;
@@ -6499,6 +6776,7 @@
         if(chkBtn) chkBtn.innerHTML = `<i class="fas fa-wallet"></i> Pay via Wallet (Bal: ₹${walletBalance.toFixed(2)})`;
 
         updateQRCode(checkoutFinalAmt, currentOrderId);
+        pgwSnapshotChk();
     };
 
     window.confirmPurchase = async () => {
@@ -6521,7 +6799,7 @@
                     get(query(ref(activeDb(), 'orders'), orderByChild('utrId'), equalTo(utr))),
                     verifyDualEngine(utr),
                 ]);
-                if (utrSnapshot.exists()) { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('❌ This Order ID has already been used!'); }
+                if (utrSnapshot.exists()) { pgwClearSessionIfFlow('chk'); _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('❌ This Order ID has already been used!'); }
                 if (!verifyResult) { _unlockOrder(); _resetBtnEx(); hidePayVerify(); return showToast('Payment not verified yet.', 'warn'); }
                 const paidVal = verifyResult.amount;
                 const gatewayMeta = verifyResult.meta || {};
@@ -6587,6 +6865,7 @@
             ]);
 
             if (utrSnapshot.exists()) {
+                pgwClearSessionIfFlow('chk');
                 _unlockOrder(); _resetBtn(); hidePayVerify();
                 return showToast('❌ This Order ID has already been used!');
             }
@@ -7125,7 +7404,7 @@
 
         document.getElementById('cartModal').classList.add('active');
     };
-    window.closeCart = () => document.getElementById('cartModal').classList.remove('active');
+    window.closeCart = () => { document.getElementById('cartModal').classList.remove('active'); pgwClearSessionIfFlow('cart'); };
     window.backToCartStep1 = () => { document.getElementById('cartStep2').style.display = 'none'; document.getElementById('cartStep1').style.display = 'block'; };
 
     function renderCartItems() {
@@ -7221,6 +7500,7 @@
         document.getElementById('cart-dynamic-qr').src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(upiStr);
         document.getElementById('cartStep1').style.display = 'none';
         document.getElementById('cartStep2').style.display = 'block';
+        pgwSnapshotCart();
 
         // Pre-warm proxies so verification is instant
         prewarmDualEngines('PREWARM');
@@ -7245,7 +7525,7 @@
                 verifyDualEngine(utr),
             ]);
 
-            if(utrSnapshot.exists()) { _unlockOrder(); hidePayVerify(); return showToast('❌ This Order ID already used!'); }
+            if(utrSnapshot.exists()) { pgwClearSessionIfFlow('cart'); _unlockOrder(); hidePayVerify(); return showToast('❌ This Order ID already used!'); }
             if(!verifyResult)        { _unlockOrder(); hidePayVerify(); return showToast("Payment not verified yet.", "warn"); }
 
             const paidVal = verifyResult.amount;
