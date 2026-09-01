@@ -140,6 +140,39 @@
         }
         .offer-circle-deco .deco-label { font-size:7px; font-weight:800; color:#2563eb; letter-spacing:0.4px; text-transform:uppercase; line-height:1; position:absolute; bottom:6px; background:rgba(255,255,255,0.85); padding:1px 4px; border-radius:4px; }
 
+        /* ── Advertisement Carousel (built on top of the existing Promo Banner Card) ── */
+        .offer-carousel { padding: 0; }
+        .offer-track-viewport { position: relative; z-index: 2; width: 100%; overflow: hidden; touch-action: pan-y; }
+        .offer-track { display: flex; transition: transform 0.45s cubic-bezier(0.22,0.61,0.36,1); cursor: grab; }
+        .offer-track.dragging { transition: none !important; cursor: grabbing; }
+        .offer-slide { flex: 0 0 100%; width: 100%; min-width: 0; position: relative; }
+        .offer-nav-btn {
+            display: none !important; /* arrows hidden — autoplay + manual swipe still work */
+        }
+        .offer-nav-prev { left: 8px; }
+        .offer-nav-next { right: 8px; }
+        .offer-carousel.single-slide .offer-nav-btn,
+        .offer-carousel.single-slide .offer-dots { display: none; }
+        .offer-dots {
+            position: absolute; bottom: 7px; left: 0; right: 0;
+            display: flex; align-items: center; justify-content: center; gap: 5px; z-index: 5;
+        }
+        .offer-dot {
+            width: 6px; height: 6px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(37,99,235,0.3); cursor: pointer; transition: all 0.2s ease;
+        }
+        .offer-dot.active { background: #2563eb; width: 16px; border-radius: 4px; }
+        .offer-carousel-slides { position: relative; }
+        .offer-buy-strip {
+            display: none; width: 100%; align-items: center; justify-content: center; gap: 8px;
+            padding: 12px 0; font-size: 13px; font-weight: 800; letter-spacing: 0.2px;
+            background: #1d4ed8; color: #fff; border: none; cursor: pointer;
+        }
+        .offer-buy-strip.visible { display: flex; }
+        @media (prefers-reduced-motion: reduce) {
+            .offer-track { transition: none !important; }
+        }
+
         .action-cards-stack { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
         .action-card-row { 
             background: var(--card-solid); border: 1px solid var(--border-color); 
@@ -1031,22 +1064,16 @@
     <main class="content-area">
 
         <div id="homeTab" class="tab-content active">
-            <div id="offerBanner" class="offer-banner">
-                <div class="offer-content">
-                    <div class="offer-pill"><i class="fas fa-tag" style="font-size:9px;"></i>&nbsp;PRICE DROP!</div>
-                    <h3 id="offerTitle" class="offer-title"></h3>
-                    <div class="offer-price-row">
-                        <span id="offerPrice" class="offer-price"></span>
-                        <span id="offerOldPrice" class="offer-old-price"></span>
+            <div id="offerCarousel" class="offer-banner offer-carousel" role="region" aria-roledescription="carousel" aria-label="Special offers">
+                <div class="offer-carousel-slides">
+                    <div class="offer-track-viewport" id="offerTrackViewport">
+                        <div class="offer-track" id="offerTrack"></div>
                     </div>
-                    <div class="offer-limit-row"><i class="fas fa-fire" style="font-size:10px;color:#fbbf24;"></i>&nbsp;<span id="offerDesc"></span></div>
-                    <a href="https://t.me/WH0LESALExPROVIDER" id="offerTgLink" class="offer-tg-cta" target="_blank"><i class="fab fa-telegram-plane"></i>&nbsp;Get Updates on Telegram</a>
+                    <button type="button" class="offer-nav-btn offer-nav-prev" id="offerPrevBtn" aria-label="Previous offer"><i class="fas fa-chevron-left"></i></button>
+                    <button type="button" class="offer-nav-btn offer-nav-next" id="offerNextBtn" aria-label="Next offer"><i class="fas fa-chevron-right"></i></button>
+                    <div class="offer-dots" id="offerDots"></div>
                 </div>
-                <div class="offer-circle-deco" id="offerCircleDeco">
-                    <img id="offerCircleLogo" src="" alt="Logo" style="width:100%;height:100%;object-fit:cover;display:none;border-radius:50%;">
-                    <i id="offerCircleFallback" class="fas fa-shield-alt" style="color:#2563eb;font-size:22px;"></i>
-                    <span class="deco-label">Trusted</span>
-                </div>
+                <button type="button" class="offer-buy-strip" id="offerBuyStrip" onclick="offerBuyStripClick()"><i class="fas fa-bolt"></i>&nbsp;Buy Now</button>
             </div>
 
             <div class="action-cards-stack">
@@ -6182,9 +6209,232 @@
         grid.innerHTML = categories.map(cat => `<div class="service-cat-card" onclick="openCategory('${cat.replace(/'/g, "\\'")}')">${window._categoryIconHTML(cat)}<div class="service-cat-name">${cat}</div></div>`).join('');
     };
 
+    // ── ADVERTISEMENT CAROUSEL ──────────────────────────────────────────
+    let offerSlidesRaw = {};
+    let offerActiveSlides = [];
+    let offerRealIndex = 0;
+    let offerAutoplayTimer = null;
+    let offerResumeTimer = null;
+    let offerDrag = { active: false, startX: 0, deltaX: 0, pointerId: null };
+    let offerBrandLogoUrl = '';
+    const OFFER_AUTOPLAY_MS = 5000;
+    const OFFER_RESUME_DELAY_MS = 2500;
+    const offerReducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    function offerEscapeHtml(str) {
+        return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function buildOfferSlideHTML(slide) {
+        const name = offerEscapeHtml(slide.name || '');
+        const badge = offerEscapeHtml(slide.badge || 'PRICE DROP!');
+        const desc = offerEscapeHtml(slide.description || 'Limited time offer — don\'t miss out!');
+        const newRate = (slide.newRate !== undefined && slide.newRate !== null && slide.newRate !== '') ? slide.newRate : 0;
+        const oldRate = slide.oldRate;
+        const imgUrl = slide.imageUrl || offerBrandLogoUrl || '';
+        // Buy CTA now lives in the persistent strip below the carousel (#offerBuyStrip),
+        // kept in sync with the active slide by offerUpdateBuyStrip() — not rendered per-slide.
+        return `<div class="offer-slide">
+                <div class="offer-content">
+                    <div class="offer-pill"><i class="fas fa-tag" style="font-size:9px;"></i>&nbsp;${badge}</div>
+                    <h3 class="offer-title">${name}</h3>
+                    <div class="offer-price-row">
+                        <span class="offer-price">₹${offerEscapeHtml(newRate)}</span>
+                        ${oldRate ? `<span class="offer-old-price">₹${offerEscapeHtml(oldRate)}</span>` : ''}
+                    </div>
+                    <div class="offer-limit-row"><i class="fas fa-fire" style="font-size:10px;color:#fbbf24;"></i>&nbsp;<span>${desc}</span></div>
+                </div>
+                <div class="offer-circle-deco">
+                    ${imgUrl ? `<img src="${offerEscapeHtml(imgUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : `<i class="fas fa-shield-alt" style="color:#2563eb;font-size:22px;"></i>`}
+                    <span class="deco-label">Trusted</span>
+                </div>
+            </div>`;
+    }
+
+    function offerSlideCanBuy(slide) {
+        if (!slide || !slide.productId) return false;
+        const product = productsData[slide.productId];
+        return !!(product && product.isActive !== false);
+    }
+
+    function offerUpdateBuyStrip() {
+        const strip = document.getElementById('offerBuyStrip');
+        if (!strip) return;
+        const slide = offerActiveSlides[offerRealIndex];
+        if (slide && offerSlideCanBuy(slide)) {
+            strip.classList.add('visible');
+            strip.dataset.productId = slide.productId;
+        } else {
+            strip.classList.remove('visible');
+            delete strip.dataset.productId;
+        }
+    }
+
+    window.offerBuyStripClick = () => {
+        const strip = document.getElementById('offerBuyStrip');
+        const productId = strip && strip.dataset.productId;
+        if (!productId) return;
+        initCheckout(productId, 'product');
+    };
+
+    function offerSetPosition(trackIndex, animate) {
+        const track = document.getElementById('offerTrack');
+        if (!track) return;
+        track.style.transition = (animate && !offerReducedMotion) ? '' : 'none';
+        track.style.transform = `translateX(-${trackIndex * 100}%)`;
+    }
+
+    function offerUpdateDots() {
+        const dotsWrap = document.getElementById('offerDots');
+        if (!dotsWrap) return;
+        dotsWrap.querySelectorAll('.offer-dot').forEach((dot, i) => dot.classList.toggle('active', i === offerRealIndex));
+    }
+
+    function renderOfferCarousel(preserveIndex) {
+        const carousel = document.getElementById('offerCarousel');
+        const track = document.getElementById('offerTrack');
+        const dotsWrap = document.getElementById('offerDots');
+        if (!carousel || !track || !dotsWrap) return;
+
+        const entries = Object.entries(offerSlidesRaw)
+            .filter(([, sl]) => sl && sl.isActive !== false && sl.name)
+            .sort((a, b) => (parseFloat(a[1].order) || 0) - (parseFloat(b[1].order) || 0));
+        offerActiveSlides = entries.map(([id, sl]) => Object.assign({ id }, sl));
+
+        if (!offerActiveSlides.length) {
+            carousel.classList.remove('visible');
+            stopOfferAutoplay();
+            track.innerHTML = '';
+            dotsWrap.innerHTML = '';
+            return;
+        }
+
+        carousel.classList.add('visible');
+        const n = offerActiveSlides.length;
+        if (!preserveIndex || offerRealIndex >= n) offerRealIndex = 0;
+
+        if (n === 1) {
+            carousel.classList.add('single-slide');
+            track.style.transition = 'none';
+            track.innerHTML = buildOfferSlideHTML(offerActiveSlides[0]);
+            track.style.transform = 'translateX(0%)';
+            dotsWrap.innerHTML = '';
+            stopOfferAutoplay();
+            offerUpdateBuyStrip();
+            return;
+        }
+
+        carousel.classList.remove('single-slide');
+        track.innerHTML = [offerActiveSlides[n - 1], ...offerActiveSlides, offerActiveSlides[0]].map(buildOfferSlideHTML).join('');
+        track.style.transition = 'none';
+        track.style.transform = `translateX(-${(offerRealIndex + 1) * 100}%)`;
+        void track.offsetWidth; // force reflow so the next transform change animates
+        track.style.transition = '';
+
+        dotsWrap.innerHTML = offerActiveSlides.map((_, i) =>
+            `<button type="button" class="offer-dot${i === offerRealIndex ? ' active' : ''}" data-idx="${i}" aria-label="Go to slide ${i + 1}"></button>`
+        ).join('');
+
+        offerUpdateBuyStrip();
+        startOfferAutoplay();
+    }
+
+    function offerStepTo(targetRealIndex) {
+        const n = offerActiveSlides.length;
+        if (n <= 1) return;
+        const track = document.getElementById('offerTrack');
+        const nextRealIndex = ((targetRealIndex % n) + n) % n;
+        const currentTrackIndex = offerRealIndex + 1;
+        const goingNext = targetRealIndex > offerRealIndex || (offerRealIndex === n - 1 && targetRealIndex === 0);
+        const rawTrackIndex = goingNext ? currentTrackIndex + 1 : currentTrackIndex - 1;
+        offerSetPosition(rawTrackIndex, true);
+        offerRealIndex = nextRealIndex;
+        offerUpdateDots();
+        offerUpdateBuyStrip();
+        if (track && (rawTrackIndex === 0 || rawTrackIndex === n + 1)) {
+            const onEnd = () => { track.removeEventListener('transitionend', onEnd); offerSetPosition(offerRealIndex + 1, false); };
+            track.addEventListener('transitionend', onEnd);
+            if (offerReducedMotion) onEnd();
+        }
+    }
+    function offerNext() { offerStepTo(offerRealIndex + 1); }
+    function offerPrev() { offerStepTo(offerRealIndex - 1); }
+
+    function startOfferAutoplay() {
+        stopOfferAutoplay();
+        if (offerReducedMotion || offerActiveSlides.length <= 1) return;
+        offerAutoplayTimer = setInterval(() => { offerNext(); }, OFFER_AUTOPLAY_MS);
+    }
+    function stopOfferAutoplay() {
+        if (offerAutoplayTimer) { clearInterval(offerAutoplayTimer); offerAutoplayTimer = null; }
+    }
+    function pauseThenResumeOfferAutoplay() {
+        stopOfferAutoplay();
+        if (offerResumeTimer) clearTimeout(offerResumeTimer);
+        offerResumeTimer = setTimeout(() => { startOfferAutoplay(); }, OFFER_RESUME_DELAY_MS);
+    }
+
+    function initOfferCarouselControls() {
+        const prevBtn = document.getElementById('offerPrevBtn');
+        const nextBtn = document.getElementById('offerNextBtn');
+        const dotsWrap = document.getElementById('offerDots');
+        const viewport = document.getElementById('offerTrackViewport');
+        const track = document.getElementById('offerTrack');
+        if (prevBtn) prevBtn.addEventListener('click', () => { offerPrev(); pauseThenResumeOfferAutoplay(); });
+        if (nextBtn) nextBtn.addEventListener('click', () => { offerNext(); pauseThenResumeOfferAutoplay(); });
+        if (dotsWrap) dotsWrap.addEventListener('click', (e) => {
+            const dot = e.target.closest('.offer-dot');
+            if (!dot) return;
+            offerStepTo(parseInt(dot.dataset.idx, 10));
+            pauseThenResumeOfferAutoplay();
+        });
+        if (viewport && track) {
+            const dragStart = (x) => {
+                if (offerActiveSlides.length <= 1) return;
+                offerDrag.active = true; offerDrag.startX = x; offerDrag.deltaX = 0;
+                track.classList.add('dragging');
+                stopOfferAutoplay();
+                if (offerResumeTimer) clearTimeout(offerResumeTimer);
+            };
+            const dragMove = (x) => {
+                if (!offerDrag.active) return;
+                offerDrag.deltaX = x - offerDrag.startX;
+                track.style.transform = `translateX(calc(-${(offerRealIndex + 1) * 100}% + ${offerDrag.deltaX}px))`;
+            };
+            const dragEnd = () => {
+                if (!offerDrag.active) return;
+                offerDrag.active = false;
+                track.classList.remove('dragging');
+                const threshold = viewport.clientWidth * 0.15;
+                if (Math.abs(offerDrag.deltaX) > threshold) { offerDrag.deltaX < 0 ? offerNext() : offerPrev(); }
+                else { offerSetPosition(offerRealIndex + 1, true); }
+                pauseThenResumeOfferAutoplay();
+            };
+            viewport.addEventListener('pointerdown', (e) => {
+                if (e.button !== undefined && e.button !== 0) return;
+                // Don't hijack taps that start on the slide's own buttons/links (e.g. "Buy Now") —
+                // grabbing pointer capture on the viewport here was swallowing their click.
+                if (e.target.closest('button, a')) return;
+                dragStart(e.clientX);
+                try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
+            });
+            viewport.addEventListener('pointermove', (e) => { if (offerDrag.active) dragMove(e.clientX); });
+            viewport.addEventListener('pointerup', dragEnd);
+            viewport.addEventListener('pointercancel', dragEnd);
+            viewport.addEventListener('pointerleave', () => { if (offerDrag.active) dragEnd(); });
+            // Hover-based pause (mouseenter/mouseleave) removed — on mobile/WebView these
+            // fire inconsistently after a touch (mouseenter without a matching mouseleave),
+            // which was leaving autoplay stuck stopped forever. Drag pause/resume above is
+            // the only thing that pauses it now, so it keeps auto-sliding indefinitely.
+        }
+    }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initOfferCarouselControls); }
+    else { initOfferCarouselControls(); }
+
     function loadPublicData() { 
-        onValue(ref(activeDb(), 'meta/brand'), s => { if(s.exists()){ const d = s.val(); document.getElementById('brandName').textContent = d.name || 'Store'; if(d.logoUrl) { document.getElementById('brandLogo').src = d.logoUrl; document.getElementById('brandLogo').style.display = 'block'; const ol = document.getElementById('offerCircleLogo'); const of_ = document.getElementById('offerCircleFallback'); if(ol){ ol.src = d.logoUrl; ol.style.display = 'block'; if(of_) of_.style.display = 'none'; ol.style.position='absolute'; ol.style.inset='0'; ol.style.width='100%'; ol.style.height='100%'; } } } });
-        onValue(ref(activeDb(), 'meta/offers'), s => { if(s.exists()){ const d = s.val(); const banner = document.getElementById('offerBanner'); if(d.name) { banner.classList.add('visible'); document.getElementById('offerTitle').textContent = d.name; document.getElementById('offerDesc').textContent = d.description || 'Limited time offer — don\'t miss out!'; document.getElementById('offerPrice').textContent = `₹${d.newRate || 0}`; document.getElementById('offerOldPrice').textContent = `₹${d.oldRate || 0}`; const tgLink = document.getElementById('offerTgLink'); if(tgLink) tgLink.href = d.channelLink || (d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'); document.getElementById('contactLink').href = d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'; document.getElementById('updatesLink').href = d.channelLink || '#'; } else { banner.classList.remove('visible'); } } });
+        onValue(ref(activeDb(), 'meta/brand'), s => { if(s.exists()){ const d = s.val(); document.getElementById('brandName').textContent = d.name || 'Store'; if(d.logoUrl) { document.getElementById('brandLogo').src = d.logoUrl; document.getElementById('brandLogo').style.display = 'block'; offerBrandLogoUrl = d.logoUrl; renderOfferCarousel(true); } } });
+        onValue(ref(activeDb(), 'meta/offers'), s => { if(s.exists()){ const d = s.val(); const tgHref = d.contactUsername ? (d.contactUsername.startsWith('http') ? d.contactUsername : `https://t.me/${d.contactUsername.replace('@','')}`) : '#'; document.getElementById('contactLink').href = tgHref; document.getElementById('updatesLink').href = d.channelLink || '#'; } });
+        onValue(ref(activeDb(), 'meta/offerSlides'), s => { offerSlidesRaw = s.exists() ? s.val() : {}; renderOfferCarousel(true); });
         onValue(ref(activeDb(), 'meta/contact'), s => { window._cachedContactMeta = s.exists() ? s.val() : null; if(s.exists() && s.val().socialTelegram){ if(document.getElementById('contactLink').getAttribute('href') === '#') { document.getElementById('contactLink').href = s.val().socialTelegram; } } });
         onValue(ref(activeDb(), 'meta/linkMgmt'), s => { linkMgmtRules = s.exists() ? s.val() : {}; });
         let _firstProductLoad = true;
@@ -6192,6 +6442,7 @@
             productsData = s.exists() ? s.val() : {};
             _productsLoaded = true;
             pgwTryRestoreAfterAuth();
+            renderOfferCarousel(true);
             // ── Reveal real service grid, hide skeleton ──
             const skeleton = document.getElementById('serviceGridSkeleton');
             const realGrid = document.getElementById('servicesGridReal');
