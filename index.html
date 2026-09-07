@@ -4519,6 +4519,12 @@
     function handleAuthUser(user) {
         currentUser = user;
         if(user) {
+            // Remember that this device has successfully authenticated at least once
+            // (real account OR guest). Lets _resolveActiveSession() below tell a
+            // genuinely brand-new visitor apart from an existing user who is simply
+            // signed out right now (e.g. after a real Google/PIN logout) — the latter
+            // must still see the normal login screen, never auto-guest.
+            try { localStorage.setItem('hasAuthedBefore', '1'); } catch(_) {}
             // ── Email verification gate (skip for Google users AND username+PIN accounts) ──
             const isEmailProvider = user.providerData.some(p => p.providerId === 'password');
             const isPinAccount = !!(user.email && user.email.endsWith(PIN_DOMAIN));
@@ -4668,7 +4674,7 @@
     // event is only allowed to touch the dashboard when no Google/username
     // account is currently signed in, so it can never hijack an active
     // Google session.
-    let _authInitDone = false, _guestInitDone = false;
+    let _authInitDone = false, _guestInitDone = false, _autoGuestAttempted = false;
     function _resolveActiveSession(source) {
         if (source === 'auth') _authInitDone = true;
         if (source === 'guest') _guestInitDone = true;
@@ -4680,7 +4686,33 @@
         // persisted guest session from storage, we'd briefly treat a real guest as
         // logged out, and a "Continue as Guest" tap in that window would create a
         // brand-new anonymous account instead of resuming the real one.
-        if (_authInitDone && _guestInitDone) { currentAuthApp = null; handleAuthUser(null); }
+        if (_authInitDone && _guestInitDone) {
+            currentAuthApp = null;
+            // ── NEW-USER AUTO-GUEST ──────────────────────────────────────────
+            // If this device has NEVER successfully authenticated before (no real
+            // account, no guest ever created — checked via the flag set in
+            // handleAuthUser), there is no existing account/session to protect,
+            // so auto-create the guest account instead of waiting for a manual
+            // "Continue as Guest" tap. Existing users never reach this branch:
+            // a real account or a live guest session already returned above, and
+            // a user who explicitly logged out of a real account still carries
+            // the flag, so they correctly fall through to the normal login screen.
+            let _hasAuthedBefore = true;
+            try { _hasAuthedBefore = localStorage.getItem('hasAuthedBefore') === '1'; } catch(_) {}
+            if (!_hasAuthedBefore && !_autoGuestAttempted) {
+                _autoGuestAttempted = true;
+                const anonBtn = document.getElementById('anonSignInBtn');
+                if (anonBtn) {
+                    anonBtn.click();
+                    // Safety net: if auto guest sign-in doesn't succeed (e.g. no
+                    // network), fall back to the normal login screen so the user
+                    // isn't stuck on a blank view and can retry manually.
+                    setTimeout(() => { if (!currentUser) handleAuthUser(null); }, 8000);
+                    return;
+                }
+            }
+            handleAuthUser(null);
+        }
     }
     onAuthStateChanged(auth, () => _resolveActiveSession('auth'));
     onAuthStateChanged(guestAuth, () => _resolveActiveSession('guest'));
