@@ -1786,16 +1786,6 @@
 
             <!-- Payment Method Toggle -->
             <div class="af-methods" id="afMethodsGrid">
-                <div class="af-method-card selected" id="afMethodUPI" onclick="afSelectMethod('upi')" style="grid-column: 1 / -1;">
-                    <div class="af-selected-dot"></div>
-                    <div class="af-method-icon" style="background:rgba(37,99,235,0.1);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/>
-                        </svg>
-                    </div>
-                    <div class="af-method-name">UPI</div>
-                    <div class="af-method-sub">Instant • No fees</div>
-                </div>
                 <div class="af-method-card" id="afMethodCrypto" onclick="afSelectMethod('crypto')">
                     <div class="af-selected-dot"></div>
                     <div class="af-method-icon" style="background:rgba(245,158,11,0.1);">
@@ -1827,6 +1817,16 @@
                     </div>
                     <div class="af-method-name">Binance</div>
                     <div class="af-method-sub">Crypto Exchange</div>
+                </div>
+                <div class="af-method-card selected" id="afMethodUPI" onclick="afSelectMethod('upi')" style="grid-column: 1 / -1;">
+                    <div class="af-selected-dot"></div>
+                    <div class="af-method-icon" style="background:rgba(37,99,235,0.1);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="af-method-name">UPI</div>
+                    <div class="af-method-sub">Instant • No fees</div>
                 </div>
             </div>
 
