@@ -192,13 +192,23 @@
         .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 10px; }
         .service-cat-card { 
             background: var(--card-solid); border: 1px solid var(--border-color); 
-            border-radius: var(--border-radius); padding: 16px 8px; text-align: center; 
+            border-radius: var(--border-radius); padding: 14px 6px 0; text-align: center; 
             box-shadow: var(--shadow); cursor: pointer; transition: var(--transition); 
+            overflow: hidden; display: flex; flex-direction: column;
         }
         .service-cat-card:hover { border-color: var(--accent-cyan); background: var(--bg-color); }
         .service-cat-card:active { transform: scale(0.97); }
-        .service-cat-card i { font-size: 22px; margin-bottom: 10px; opacity: 0.9; }
-        .service-cat-name { font-size: 11px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.2px; }
+        .service-cat-card i { font-size: 20px; margin-bottom: 6px; opacity: 0.9; }
+        .service-cat-name { font-size: 10.5px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.2px; margin-bottom: 10px; }
+        .service-cat-select-btn {
+            display: flex; align-items: center; justify-content: center; gap: 3px;
+            width: calc(100% + 14px); padding: 6px 2px; border: none;
+            border-radius: 0 0 11px 11px; background: #475569; color: #fff; font-size: 9.5px; font-weight: 700;
+            cursor: pointer; transition: var(--transition); font-family: inherit;
+            margin: auto -7px -1px;
+        }
+        .service-cat-select-btn:hover { background: #334155; }
+        .service-cat-select-btn:active { transform: scale(0.96); }
 
         .subcategory-card { 
             background: var(--card-solid); border: 1px solid var(--border-color); 
@@ -733,23 +743,6 @@
         .service-cat-card { transition: var(--transition); }
         .service-cat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
 
-        /* ── SERVICE CARD: "N Services" chip + "Select →" bottom strip ──── */
-        .service-cat-card { padding-bottom: 0; }
-        .cat-chip {
-            display: none !important;
-        }
-        .cat-chip b { color: var(--text-primary); font-weight: 800; }
-        .cat-strip {
-            margin: 10px -8px 0; height: 26px; background: rgba(0, 0, 0, 0.47); color: #fff;
-            font-size: 10px; font-weight: 700; letter-spacing: 0.1px;
-            display: flex; align-items: center; justify-content: center; gap: 5px;
-            border-radius: 0 0 calc(var(--border-radius) - 1px) calc(var(--border-radius) - 1px);
-            transition: var(--transition);
-        }
-        .service-cat-card .cat-strip i { font-size: 9px; margin: 0; opacity: 1; }
-        .service-cat-card:hover .cat-strip { filter: brightness(1.12); }
-        .skeleton-cat-card { padding-bottom: 64px; } /* keeps skeleton height = real card height (no layout jump) */
-
         /* ── SCROLL TO TOP BUTTON ────────────────────────────────────────── */
         .scroll-top-btn {
             position: absolute; bottom: 80px; right: 16px;
@@ -1118,15 +1111,15 @@
                 <div class="skeleton-cat-card"><div class="skeleton skeleton-cat-icon"></div><div class="skeleton skeleton-cat-text"></div></div>
             </div>
             <div class="services-grid" id="servicesGridReal" style="display:none;">
-                <div class="service-cat-card" data-cat="Instagram" onclick="openCategory('Instagram')"><i class="fab fa-instagram" style="color: #E1306C;"></i><div class="service-cat-name">Instagram</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
-                <div class="service-cat-card" data-cat="Facebook" onclick="openCategory('Facebook')"><i class="fab fa-facebook" style="color: #1877F2;"></i><div class="service-cat-name">Facebook</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
-                <div class="service-cat-card" data-cat="Telegram" onclick="openCategory('Telegram')"><i class="fab fa-telegram" style="color: #0088cc;"></i><div class="service-cat-name">Telegram</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
-                <div class="service-cat-card" data-cat="WhatsApp" onclick="openCategory('WhatsApp')"><i class="fab fa-whatsapp" style="color: #25D366;"></i><div class="service-cat-name">WhatsApp</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
-                <div class="service-cat-card" data-cat="YouTube" onclick="openCategory('YouTube')"><i class="fab fa-youtube" style="color: #FF0000;"></i><div class="service-cat-name">YouTube</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
-                <div class="service-cat-card" data-cat="TikTok" onclick="openCategory('TikTok')"><i class="fab fa-tiktok" style="color: #010101;"></i><div class="service-cat-name">TikTok</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
-                <div class="service-cat-card" data-cat="Twitter" onclick="openCategory('Twitter')"><i class="fab fa-twitter" style="color: #1DA1F2;"></i><div class="service-cat-name">Twitter</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
-                <div class="service-cat-card" data-cat="Accounts" onclick="openCategory('Accounts')"><i class="fas fa-address-card" style="color: #6366F1;"></i><div class="service-cat-name">Accounts</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
-                <div class="service-cat-card" data-cat="Scripts" onclick="openCategory('Scripts')"><i class="fas fa-laptop-code" style="color: #2563EB;"></i><div class="service-cat-name">Scripts</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>
+                <div class="service-cat-card" onclick="openCategory('Instagram')"><i class="fab fa-instagram" style="color: #E1306C;"></i><div class="service-cat-name">Instagram</div><button class="service-cat-select-btn" onclick="openCategory('Instagram')">Select</button></div>
+                <div class="service-cat-card" onclick="openCategory('Facebook')"><i class="fab fa-facebook" style="color: #1877F2;"></i><div class="service-cat-name">Facebook</div><button class="service-cat-select-btn" onclick="openCategory('Facebook')">Select</button></div>
+                <div class="service-cat-card" onclick="openCategory('Telegram')"><i class="fab fa-telegram" style="color: #0088cc;"></i><div class="service-cat-name">Telegram</div><button class="service-cat-select-btn" onclick="openCategory('Telegram')">Select</button></div>
+                <div class="service-cat-card" onclick="openCategory('WhatsApp')"><i class="fab fa-whatsapp" style="color: #25D366;"></i><div class="service-cat-name">WhatsApp</div><button class="service-cat-select-btn" onclick="openCategory('WhatsApp')">Select</button></div>
+                <div class="service-cat-card" onclick="openCategory('YouTube')"><i class="fab fa-youtube" style="color: #FF0000;"></i><div class="service-cat-name">YouTube</div><button class="service-cat-select-btn" onclick="openCategory('YouTube')">Select</button></div>
+                <div class="service-cat-card" onclick="openCategory('TikTok')"><i class="fab fa-tiktok" style="color: #010101;"></i><div class="service-cat-name">TikTok</div><button class="service-cat-select-btn" onclick="openCategory('TikTok')">Select</button></div>
+                <div class="service-cat-card" onclick="openCategory('Twitter')"><i class="fab fa-twitter" style="color: #1DA1F2;"></i><div class="service-cat-name">Twitter</div><button class="service-cat-select-btn" onclick="openCategory('Twitter')">Select</button></div>
+                <div class="service-cat-card" onclick="openCategory('Accounts')"><i class="fas fa-address-card" style="color: #6366F1;"></i><div class="service-cat-name">Accounts</div><button class="service-cat-select-btn" onclick="openCategory('Accounts')">Select</button></div>
+                <div class="service-cat-card" onclick="openCategory('Scripts')"><i class="fas fa-laptop-code" style="color: #2563EB;"></i><div class="service-cat-name">Scripts</div><button class="service-cat-select-btn" onclick="openCategory('Scripts')">Select</button></div>
             </div>
 
             <div id="categoryPane" style="display: none; padding-top: 24px; border-top: 1px solid var(--border-color); margin-top: 20px; padding-bottom: 20px;">
@@ -6255,21 +6248,7 @@
         const grid = document.getElementById('servicesGridReal');
         if (!grid) return;
         if (!categories || !categories.length) { grid.innerHTML = ''; return; }
-        grid.innerHTML = categories.map(cat => `<div class="service-cat-card" data-cat="${cat.replace(/"/g, '&quot;')}" onclick="openCategory('${cat.replace(/'/g, "\\'")}')">${window._categoryIconHTML(cat)}<div class="service-cat-name">${cat}</div><div class="cat-chip"><span class="cat-chip-txt">Services</span></div><div class="cat-strip">Select <i class="fas fa-arrow-right"></i></div></div>`).join('');
-        window.updateServiceCounts();
-    };
-
-    // Fills each category card's chip with its live "N Services" count (active products only)
-    window.updateServiceCounts = () => {
-        const counts = {};
-        Object.values(productsData || {}).forEach(p => {
-            if (p && p.isActive !== false) { const c = p.category || 'Other'; counts[c] = (counts[c] || 0) + 1; }
-        });
-        document.querySelectorAll('.service-cat-card[data-cat]').forEach(card => {
-            const n = counts[card.dataset.cat] || 0;
-            const t = card.querySelector('.cat-chip-txt');
-            if (t) t.innerHTML = n > 0 ? `<b>${n}</b> Services` : 'Coming soon';
-        });
+        grid.innerHTML = categories.map(cat => `<div class="service-cat-card" onclick="openCategory('${cat.replace(/'/g, "\\'")}')">${window._categoryIconHTML(cat)}<div class="service-cat-name">${cat}</div><button class="service-cat-select-btn" onclick="event.stopPropagation();openCategory('${cat.replace(/'/g, "\\'")}')">Select</button></div>`).join('');
     };
 
     // ── ADVERTISEMENT CAROUSEL ──────────────────────────────────────────
@@ -6504,7 +6483,6 @@
         onValue(ref(activeDb(), 'products'), s => {
             productsData = s.exists() ? s.val() : {};
             _productsLoaded = true;
-            if (window.updateServiceCounts) window.updateServiceCounts();
             pgwTryRestoreAfterAuth();
             renderOfferCarousel(true);
             // ── Reveal real service grid, hide skeleton ──
