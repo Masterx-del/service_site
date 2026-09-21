@@ -210,6 +210,32 @@
         .service-cat-select-btn:hover { background: #334155; }
         .service-cat-select-btn:active { transform: scale(0.96); }
 
+        /* ── HOW IT WORKS SECTION (reuses existing design system) ── */
+        .hiw-section { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border-color); }
+        .hiw-subtitle { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: -6px 0 20px; }
+        .hiw-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 4px; }
+        .hiw-card {
+            background: var(--card-solid); border: 1px solid var(--border-color);
+            border-radius: var(--border-radius); padding: 18px; box-shadow: var(--shadow);
+            display: flex; gap: 14px; align-items: flex-start;
+            transition: var(--transition), transform 0.2s;
+        }
+        .hiw-card:hover { border-color: var(--accent-cyan); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37,99,235,0.08); }
+        .hiw-icon-wrap {
+            width: 44px; height: 44px; border-radius: 10px; background: rgba(37,99,235,0.1);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .hiw-icon-wrap i { font-size: 18px; color: var(--accent-cyan); }
+        .hiw-body { flex: 1; min-width: 0; }
+        .hiw-num { font-size: 11px; font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        .hiw-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; letter-spacing: -0.2px; }
+        .hiw-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+        @media (max-width: 480px) {
+            .hiw-card { padding: 16px; gap: 12px; }
+            .hiw-icon-wrap { width: 40px; height: 40px; }
+            .hiw-icon-wrap i { font-size: 16px; }
+        }
+
         .subcategory-card { 
             background: var(--card-solid); border: 1px solid var(--border-color); 
             border-radius: var(--border-radius); padding: 16px; margin-bottom: 12px; 
@@ -1125,6 +1151,46 @@
             <div id="categoryPane" style="display: none; padding-top: 24px; border-top: 1px solid var(--border-color); margin-top: 20px; padding-bottom: 20px;">
                 <div style="margin-bottom: 20px;"><h2 class="section-title" id="catTitle" style="margin:0;">Category Name</h2></div>
                 <div id="catProductsList"></div>
+            </div>
+
+            <!-- ── HOW IT WORKS SECTION ── -->
+            <div class="hiw-section">
+                <h2 class="section-title"><i class="fas fa-route" style="color:var(--accent-cyan);"></i> How It Works</h2>
+                <p class="hiw-subtitle">Get started in just four simple steps — from choosing a platform to receiving your results.</p>
+                <div class="hiw-grid">
+                    <div class="hiw-card">
+                        <div class="hiw-icon-wrap"><i class="fas fa-layer-group"></i></div>
+                        <div class="hiw-body">
+                            <span class="hiw-num">Step 01</span>
+                            <div class="hiw-title">Select Platform</div>
+                            <p class="hiw-desc">Choose the platform you want to use from the available platforms.</p>
+                        </div>
+                    </div>
+                    <div class="hiw-card">
+                        <div class="hiw-icon-wrap"><i class="fas fa-list-ul"></i></div>
+                        <div class="hiw-body">
+                            <span class="hiw-num">Step 02</span>
+                            <div class="hiw-title">Select Service</div>
+                            <p class="hiw-desc">Choose the service you need from the selected platform.</p>
+                        </div>
+                    </div>
+                    <div class="hiw-card">
+                        <div class="hiw-icon-wrap"><i class="fas fa-credit-card"></i></div>
+                        <div class="hiw-body">
+                            <span class="hiw-num">Step 03</span>
+                            <div class="hiw-title">Complete Payment</div>
+                            <p class="hiw-desc">Review your order and complete the payment using the available payment method or balance.</p>
+                        </div>
+                    </div>
+                    <div class="hiw-card">
+                        <div class="hiw-icon-wrap"><i class="fas fa-receipt"></i></div>
+                        <div class="hiw-body">
+                            <span class="hiw-num">Step 04</span>
+                            <div class="hiw-title">Get Your Results</div>
+                            <p class="hiw-desc">Track your order and view the result/status after successful processing.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
