@@ -1068,6 +1068,88 @@
         .osm-btn-home:hover { border-color: #2563eb; color: #2563eb; }
         .osm-btn-orders { background: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
         .osm-btn-orders:hover { background: #1d4ed8; }
+
+        /* ══════════════════════════════════════════════════════════════
+           SITE FOOTER — shared footer, rendered once at the end of the
+           scrollable content area so it follows every tab/page.
+           Uses only the existing theme tokens (light + dark mode).
+           ══════════════════════════════════════════════════════════════ */
+        .site-footer {
+            position: relative; overflow: hidden;
+            margin: 36px -20px 0;                 /* bleed to the edges of .content-area's 20px padding */
+            padding: 28px 20px;
+            border-top: 1px solid var(--border-color);
+            background:
+                radial-gradient(circle at 100% 0%, rgba(37,99,235,0.08) 0%, transparent 55%),
+                radial-gradient(circle at 0% 100%, rgba(37,99,235,0.05) 0%, transparent 50%),
+                var(--bg-color);
+            color: var(--text-secondary);
+        }
+        .site-footer::before {                    /* faint accent line on the top border */
+            content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            opacity: 0.45; pointer-events: none;
+        }
+
+        .sf-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .sf-logo {
+            width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow); display: none;
+        }
+        .sf-logo.visible { display: block; }
+        .sf-name { font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; min-width: 0; overflow-wrap: anywhere; }
+        .sf-tagline { font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 12px 0 0; max-width: 36ch; }
+
+        .sf-social { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .sf-social a {
+            width: 40px; height: 40px; border-radius: 10px; font-size: 17px;
+            display: flex; align-items: center; justify-content: center; text-decoration: none;
+            background: var(--card-solid); border: 1px solid var(--border-color);
+            color: var(--accent-cyan); box-shadow: var(--shadow);
+            transition: var(--transition), transform 0.2s;
+        }
+        .sf-social a[hidden] { display: none; }
+        .sf-social a:hover { border-color: var(--accent-cyan); background: rgba(37,99,235,0.08); transform: translateY(-2px); }
+        .sf-social a:active { transform: scale(0.96); }
+
+        .sf-cols {
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 20px;
+            margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--border-color);
+        }
+        .sf-col-title { font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-primary); margin-bottom: 8px; }
+        .sf-links { list-style: none; display: flex; flex-direction: column; }
+        .sf-link {
+            display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 0;
+            background: none; border: none; font-family: inherit; text-align: left; text-decoration: none;
+            font-size: 13px; font-weight: 500; line-height: 1.3; color: var(--text-secondary);
+            cursor: pointer; transition: color 0.2s;
+        }
+        .sf-link i { width: 14px; flex-shrink: 0; text-align: center; font-size: 12px; opacity: 0.85; }
+        .sf-link:hover { color: var(--accent-cyan); }
+        .sf-link:hover i { opacity: 1; }
+
+        .sf-legal { grid-column: 1 / -1; padding-top: 20px; border-top: 1px solid var(--border-color); }
+        .sf-legal .sf-links { flex-direction: row; flex-wrap: wrap; gap: 0 22px; }
+        .sf-legal .sf-link { width: auto; }
+
+        .sf-trust { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border-color); }
+        .sf-badge {
+            display: inline-flex; align-items: center; gap: 7px; max-width: 100%;
+            padding: 7px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 600; line-height: 1.2;
+            background: var(--card-solid); border: 1px solid var(--border-color);
+            color: var(--text-primary); box-shadow: var(--shadow);
+        }
+        .sf-badge i { color: var(--accent-cyan); font-size: 12px; flex-shrink: 0; }
+        .sf-copy { margin: 16px 0 0; font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+
+        .site-footer .sf-link:focus-visible,
+        .site-footer .sf-social a:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; border-radius: 8px; }
+
+        @media (max-width: 300px) { .sf-cols { grid-template-columns: 1fr; } }
+        @media (prefers-reduced-motion: reduce) {
+            .sf-social a, .sf-link { transition: none; }
+            .sf-social a:hover { transform: none; }
+        }
     </style>
 </head>
 <body class="light-mode">
@@ -1409,7 +1491,7 @@
                 </div>
 
                 <!-- ── IDEA 3: Refer & Earn Card ── -->
-                <div style="background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(217,119,6,0.04));border:1px solid rgba(245,158,11,0.3);border-radius:var(--border-radius);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
+                <div id="referEarnCard" style="background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(217,119,6,0.04));border:1px solid rgba(245,158,11,0.3);border-radius:var(--border-radius);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
                         <div style="width:40px;height:40px;background:rgba(245,158,11,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                             <i class="fas fa-users" style="color:#f59e0b;font-size:18px;"></i>
@@ -1499,6 +1581,59 @@
 
             </div>
         </div>
+
+
+        <!-- ══ SHARED SITE FOOTER — always the last thing inside the scrolling content, so it follows every tab ══ -->
+        <footer class="site-footer" id="siteFooter">
+            <div class="sf-brand">
+                <img id="sfLogo" class="sf-logo" alt="">
+                <div id="sfName" class="sf-name">Wholesale Provider</div>
+            </div>
+            <p class="sf-tagline">Social media growth services, accounts and scripts, ordered and tracked from one dashboard.</p>
+
+            <div class="sf-social" id="sfSocial" style="display:none;">
+                <a id="sfTelegram" href="#" target="_blank" rel="noopener noreferrer" aria-label="Contact us on Telegram" title="Telegram" hidden><i class="fab fa-telegram-plane"></i></a>
+                <a id="sfChannel" href="#" target="_blank" rel="noopener noreferrer" aria-label="Join our Telegram channel" title="Updates channel" hidden><i class="fas fa-bullhorn"></i></a>
+            </div>
+
+            <nav class="sf-cols" aria-label="Footer">
+                <div class="sf-col">
+                    <div class="sf-col-title">Popular Services</div>
+                    <ul class="sf-links">
+                        <li><button type="button" class="sf-link" data-service="Instagram"><i class="fab fa-instagram"></i>Instagram</button></li>
+                        <li><button type="button" class="sf-link" data-service="YouTube"><i class="fab fa-youtube"></i>YouTube</button></li>
+                        <li><button type="button" class="sf-link" data-service="Facebook"><i class="fab fa-facebook"></i>Facebook</button></li>
+                        <li><button type="button" class="sf-link" data-service="TikTok"><i class="fab fa-tiktok"></i>TikTok</button></li>
+                        <li><button type="button" class="sf-link" data-service="Telegram"><i class="fab fa-telegram"></i>Telegram</button></li>
+                        <li><button type="button" class="sf-link" data-service="WhatsApp"><i class="fab fa-whatsapp"></i>WhatsApp</button></li>
+                    </ul>
+                </div>
+                <div class="sf-col">
+                    <div class="sf-col-title">Company</div>
+                    <ul class="sf-links">
+                        <li><button type="button" class="sf-link" data-action="hiw"><i class="fas fa-route"></i>How It Works</button></li>
+                        <li><button type="button" class="sf-link" data-tab="subsTab"><i class="fas fa-star"></i>Exclusive Services</button></li>
+                        <li><button type="button" class="sf-link" data-action="refer"><i class="fas fa-gift"></i>Refer &amp; Earn</button></li>
+                        <li><button type="button" class="sf-link" data-tab="chatTab"><i class="fas fa-headset"></i>Support Chat</button></li>
+                        <li id="sfContactItem" hidden><a id="sfContactLink" class="sf-link" href="#" target="_blank" rel="noopener noreferrer"><i class="fab fa-telegram-plane"></i>Contact</a></li>
+                    </ul>
+                </div>
+                <div class="sf-col sf-legal">
+                    <div class="sf-col-title">Legal</div>
+                    <ul class="sf-links">
+                        <li><button type="button" class="sf-link" data-legal="terms"><i class="fas fa-file-contract"></i>Terms &amp; Conditions</button></li>
+                        <li><button type="button" class="sf-link" data-legal="privacy"><i class="fas fa-shield-halved"></i>Privacy Policy</button></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <div class="sf-trust">
+                <span class="sf-badge"><i class="fas fa-shield-halved"></i>100% Safe &amp; Secure</span>
+                <span class="sf-badge"><i class="fas fa-lock"></i>HTTPS Encrypted</span>
+                <span class="sf-badge"><i class="fas fa-headset"></i>24/7 Support</span>
+            </div>
+            <p class="sf-copy">&copy; <span id="sfYear">2026</span> <span id="sfCopyName">Wholesale Provider</span>. All rights reserved.</p>
+        </footer>
 
     </main>
 
@@ -8541,6 +8676,91 @@
       setTimeout(runAutoComplete,3000);
       setInterval(runAutoComplete,60000);
     })();
+</script>
+
+<!-- ══ SHARED SITE FOOTER LOGIC (display + navigation only; no Firebase / payment / order code touched) ══ -->
+<script>
+(function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var footer = $('siteFooter');
+    if (!footer) return;
+
+    /* 1. Brand: mirror the header logo + name (both are filled in later from Firebase meta/brand) */
+    var nameEl = $('brandName'), logoEl = $('brandLogo'), sfLogo = $('sfLogo');
+    sfLogo.onerror = function () { this.classList.remove('visible'); };
+    function syncBrand() {
+        var n = ((nameEl && nameEl.textContent) || '').trim();
+        if (n) { $('sfName').textContent = n; $('sfCopyName').textContent = n; }
+        var src = logoEl ? logoEl.getAttribute('src') : '';
+        if (src) {
+            if (sfLogo.getAttribute('src') !== src) sfLogo.setAttribute('src', src);
+            sfLogo.classList.add('visible');
+        } else {
+            sfLogo.classList.remove('visible');
+        }
+    }
+    $('sfYear').textContent = new Date().getFullYear();
+
+    /* 2. Social / contact: reuse the links the site already configures (#contactLink, #updatesLink) */
+    function validHref(h) { return !!h && h !== '#' && /^(https?:|tg:)/i.test(h); }
+    function mirror(srcId, dstId, wrapperEl) {
+        var s = $(srcId), d = $(dstId);
+        if (!s || !d) return false;
+        var h = s.getAttribute('href');
+        var ok = validHref(h);
+        if (ok) d.setAttribute('href', h);
+        d.hidden = !ok;
+        if (wrapperEl) wrapperEl.hidden = !ok;
+        return ok;
+    }
+    function syncLinks() {
+        var a = mirror('contactLink', 'sfTelegram');
+        var b = mirror('updatesLink', 'sfChannel');
+        mirror('contactLink', 'sfContactLink', $('sfContactItem'));
+        $('sfSocial').style.display = (a || b) ? 'flex' : 'none';
+    }
+
+    syncBrand(); syncLinks();
+    if (window.MutationObserver) {
+        if (nameEl) new MutationObserver(syncBrand).observe(nameEl, { childList: true, characterData: true, subtree: true });
+        if (logoEl) new MutationObserver(syncBrand).observe(logoEl, { attributes: true, attributeFilter: ['src'] });
+        ['contactLink', 'updatesLink'].forEach(function (id) {
+            var el = $(id);
+            if (el) new MutationObserver(syncLinks).observe(el, { attributes: true, attributeFilter: ['href'] });
+        });
+    }
+
+    /* 3. Navigation: reuse the app's own switchTab / openCategory / openLegalModal */
+    function area() { return document.querySelector('.content-area'); }
+    function goTab(id) { if (typeof window.switchTab === 'function') window.switchTab(id); }
+    function scrollToEl(el) {
+        var a = area();
+        if (!a || !el) return;
+        var top = el.getBoundingClientRect().top - a.getBoundingClientRect().top + a.scrollTop - 12;
+        a.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+
+    footer.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-service],[data-tab],[data-action],[data-legal]');
+        if (!t || !footer.contains(t)) return;
+
+        if (t.dataset.service) {
+            goTab('homeTab');
+            if (typeof window.openCategory === 'function') window.openCategory(t.dataset.service);
+        } else if (t.dataset.tab) {
+            goTab(t.dataset.tab);
+        } else if (t.dataset.legal) {
+            if (typeof window.openLegalModal === 'function') window.openLegalModal(t.dataset.legal);
+        } else if (t.dataset.action === 'hiw') {
+            goTab('homeTab');
+            scrollToEl(document.querySelector('.hiw-section'));
+        } else if (t.dataset.action === 'refer') {
+            goTab('profileTab');
+            var card = $('referEarnCard');
+            if (card && card.offsetParent !== null) scrollToEl(card);   // only when the logged-in view is showing
+        }
+    });
+})();
 </script>
 
 </body>
