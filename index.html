@@ -1101,18 +1101,6 @@
         .sf-name { font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; min-width: 0; overflow-wrap: anywhere; }
         .sf-tagline { font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 12px auto 0; max-width: 36ch; }
 
-        .sf-social { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
-        .sf-social a {
-            width: 40px; height: 40px; border-radius: 10px; font-size: 17px;
-            display: flex; align-items: center; justify-content: center; text-decoration: none;
-            background: var(--card-solid); border: 1px solid var(--border-color);
-            color: var(--accent-cyan); box-shadow: var(--shadow);
-            transition: var(--transition), transform 0.2s;
-        }
-        .sf-social a[hidden] { display: none; }
-        .sf-social a:hover { border-color: var(--accent-cyan); background: rgba(37,99,235,0.08); transform: translateY(-2px); }
-        .sf-social a:active { transform: scale(0.96); }
-
         .sf-cols {
             display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 20px;
             margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--border-color);
@@ -1149,16 +1137,20 @@
         .sf-badge i { color: var(--accent-cyan); font-size: 12px; flex-shrink: 0; }
         .sf-copy { margin: 16px auto 0; font-size: 11px; color: var(--text-secondary); line-height: 1.5; text-align: center; }
 
-        .site-footer .sf-link:focus-visible,
-        .site-footer .sf-social a:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; border-radius: 8px; }
+        .site-footer .sf-link:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; border-radius: 8px; }
 
-        #homeTab.active ~ .site-footer,
-        #chatTab.active ~ .site-footer { display: none; }   /* footer hidden on Home and Support tabs */
+        #chatTab.active ~ .site-footer { display: none; }   /* footer fully hidden on Support tab */
+
+        /* Home tab: show only the trust badges + copyright line, not the full footer */
+        #homeTab.active ~ .site-footer { padding-top: 20px; }
+        #homeTab.active ~ .site-footer .sf-brand,
+        #homeTab.active ~ .site-footer .sf-tagline,
+        #homeTab.active ~ .site-footer .sf-cols { display: none; }
+        #homeTab.active ~ .site-footer .sf-trust { margin-top: 0; padding-top: 0; border-top: none; }
 
         @media (max-width: 300px) { .sf-cols { grid-template-columns: 1fr; } }
         @media (prefers-reduced-motion: reduce) {
-            .sf-social a, .sf-link { transition: none; }
-            .sf-social a:hover { transform: none; }
+            .sf-link { transition: none; }
         }
     </style>
 </head>
@@ -1601,11 +1593,6 @@
                 <div id="sfName" class="sf-name">Wholesale Provider</div>
             </div>
             <p class="sf-tagline">Social media growth services, accounts and scripts, ordered and tracked from one dashboard.</p>
-
-            <div class="sf-social" id="sfSocial" style="display:none;">
-                <a id="sfTelegram" href="#" target="_blank" rel="noopener noreferrer" aria-label="Contact us on Telegram" title="Telegram" hidden><i class="fab fa-telegram-plane"></i></a>
-                <a id="sfChannel" href="#" target="_blank" rel="noopener noreferrer" aria-label="Join our Telegram channel" title="Updates channel" hidden><i class="fas fa-bullhorn"></i></a>
-            </div>
 
             <nav class="sf-cols" aria-label="Footer">
                 <div class="sf-col">
@@ -8727,20 +8714,15 @@
         return ok;
     }
     function syncLinks() {
-        var a = mirror('contactLink', 'sfTelegram');
-        var b = mirror('updatesLink', 'sfChannel');
         mirror('contactLink', 'sfContactLink', $('sfContactItem'));
-        $('sfSocial').style.display = (a || b) ? 'flex' : 'none';
     }
 
     syncBrand(); syncLinks();
     if (window.MutationObserver) {
         if (nameEl) new MutationObserver(syncBrand).observe(nameEl, { childList: true, characterData: true, subtree: true });
         if (logoEl) new MutationObserver(syncBrand).observe(logoEl, { attributes: true, attributeFilter: ['src'] });
-        ['contactLink', 'updatesLink'].forEach(function (id) {
-            var el = $(id);
-            if (el) new MutationObserver(syncLinks).observe(el, { attributes: true, attributeFilter: ['href'] });
-        });
+        var contactEl = $('contactLink');
+        if (contactEl) new MutationObserver(syncLinks).observe(contactEl, { attributes: true, attributeFilter: ['href'] });
     }
 
     /* 3. Navigation: reuse the app's own switchTab / openCategory / openLegalModal */
