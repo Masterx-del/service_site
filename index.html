@@ -1145,6 +1145,8 @@
         .site-footer .sf-link:focus-visible,
         .site-footer .sf-social a:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; border-radius: 8px; }
 
+        #homeTab.active ~ .site-footer { display: none; }   /* footer hidden on the Home tab only */
+
         @media (max-width: 300px) { .sf-cols { grid-template-columns: 1fr; } }
         @media (prefers-reduced-motion: reduce) {
             .sf-social a, .sf-link { transition: none; }
@@ -1235,45 +1237,6 @@
                 <div id="catProductsList"></div>
             </div>
 
-            <!-- ── HOW IT WORKS SECTION ── -->
-            <div class="hiw-section">
-                <h2 class="section-title"><i class="fas fa-route" style="color:var(--accent-cyan);"></i> How It Works</h2>
-                <p class="hiw-subtitle">Get started in just four simple steps — from choosing a platform to receiving your results.</p>
-                <div class="hiw-grid">
-                    <div class="hiw-card">
-                        <div class="hiw-icon-wrap"><i class="fas fa-layer-group"></i></div>
-                        <div class="hiw-body">
-                            <span class="hiw-num">Step 01</span>
-                            <div class="hiw-title">Select Platform</div>
-                            <p class="hiw-desc">Choose the platform you want to use from the available platforms.</p>
-                        </div>
-                    </div>
-                    <div class="hiw-card">
-                        <div class="hiw-icon-wrap"><i class="fas fa-list-ul"></i></div>
-                        <div class="hiw-body">
-                            <span class="hiw-num">Step 02</span>
-                            <div class="hiw-title">Select Service</div>
-                            <p class="hiw-desc">Choose the service you need from the selected platform.</p>
-                        </div>
-                    </div>
-                    <div class="hiw-card">
-                        <div class="hiw-icon-wrap"><i class="fas fa-credit-card"></i></div>
-                        <div class="hiw-body">
-                            <span class="hiw-num">Step 03</span>
-                            <div class="hiw-title">Complete Payment</div>
-                            <p class="hiw-desc">Review your order and complete the payment using the available payment method or balance.</p>
-                        </div>
-                    </div>
-                    <div class="hiw-card">
-                        <div class="hiw-icon-wrap"><i class="fas fa-receipt"></i></div>
-                        <div class="hiw-body">
-                            <span class="hiw-num">Step 04</span>
-                            <div class="hiw-title">Get Your Results</div>
-                            <p class="hiw-desc">Track your order and view the result/status after successful processing.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div id="subsTab" class="tab-content">
@@ -1579,6 +1542,46 @@
                     </button>
                 </div>
 
+            </div>
+
+            <!-- ── HOW IT WORKS SECTION ── -->
+            <div class="hiw-section">
+                <h2 class="section-title"><i class="fas fa-route" style="color:var(--accent-cyan);"></i> How It Works</h2>
+                <p class="hiw-subtitle">Get started in just four simple steps — from choosing a platform to receiving your results.</p>
+                <div class="hiw-grid">
+                    <div class="hiw-card">
+                        <div class="hiw-icon-wrap"><i class="fas fa-layer-group"></i></div>
+                        <div class="hiw-body">
+                            <span class="hiw-num">Step 01</span>
+                            <div class="hiw-title">Select Platform</div>
+                            <p class="hiw-desc">Choose the platform you want to use from the available platforms.</p>
+                        </div>
+                    </div>
+                    <div class="hiw-card">
+                        <div class="hiw-icon-wrap"><i class="fas fa-list-ul"></i></div>
+                        <div class="hiw-body">
+                            <span class="hiw-num">Step 02</span>
+                            <div class="hiw-title">Select Service</div>
+                            <p class="hiw-desc">Choose the service you need from the selected platform.</p>
+                        </div>
+                    </div>
+                    <div class="hiw-card">
+                        <div class="hiw-icon-wrap"><i class="fas fa-credit-card"></i></div>
+                        <div class="hiw-body">
+                            <span class="hiw-num">Step 03</span>
+                            <div class="hiw-title">Complete Payment</div>
+                            <p class="hiw-desc">Review your order and complete the payment using the available payment method or balance.</p>
+                        </div>
+                    </div>
+                    <div class="hiw-card">
+                        <div class="hiw-icon-wrap"><i class="fas fa-receipt"></i></div>
+                        <div class="hiw-body">
+                            <span class="hiw-num">Step 04</span>
+                            <div class="hiw-title">Get Your Results</div>
+                            <p class="hiw-desc">Track your order and view the result/status after successful processing.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -8752,7 +8755,7 @@
         } else if (t.dataset.legal) {
             if (typeof window.openLegalModal === 'function') window.openLegalModal(t.dataset.legal);
         } else if (t.dataset.action === 'hiw') {
-            goTab('homeTab');
+            goTab('profileTab');
             scrollToEl(document.querySelector('.hiw-section'));
         } else if (t.dataset.action === 'refer') {
             goTab('profileTab');
