@@ -473,6 +473,25 @@
             border-radius: 12px; padding: 16px; margin-bottom: 20px; display: flex; gap: 16px; align-items: center; 
         }
         .checkout-img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; display: none; border: 1px solid var(--border-color); }
+        /* Checkout summary card (icon + title on top, price + quantity stepper at the bottom) — input-field background, blue border */
+        .checkout-summary.chk-card { flex-direction: column; align-items: stretch; gap: 20px; padding: 20px; background: var(--input-bg); border: 1.5px solid var(--accent-cyan); border-radius: 22px; box-shadow: none; }
+        .chk-card-top { display: flex; align-items: center; gap: 16px; }
+        .chk-card-icon { position: relative; width: 60px; height: 60px; border-radius: 16px; background: rgba(37, 99, 235, 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+        .chk-card-icon i { font-size: 30px; color: var(--accent-cyan); }
+        .chk-card-icon .checkout-img { position: absolute; inset: 0; width: 100%; height: 100%; border: none; border-radius: 0; }
+        .chk-card-info { flex: 1; min-width: 0; }
+        .chk-card-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 2px; }
+        .chk-card-title { font-size: 20px; font-weight: 800; line-height: 1.2; color: var(--text-primary); word-break: break-word; }
+        .chk-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .chk-card-price { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+        .chk-card-price-amt { font-size: 26px; font-weight: 800; color: var(--text-primary); }
+        .chk-card-price-note { font-size: 13px; color: var(--text-secondary); }
+        /* Quantity stepper */
+        .qty-stepper { display: flex; align-items: center; gap: 4px; padding: 5px; background: rgba(37, 99, 235, 0.08); border-radius: 16px; flex-shrink: 0; margin-left: auto; }
+        .qty-stepper button { width: 40px; height: 40px; border: none; border-radius: 12px; background: rgba(37, 99, 235, 0.14); color: var(--accent-cyan); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; transition: transform 0.1s, background 0.15s; }
+        .qty-stepper button:active:not(:disabled) { transform: scale(0.94); background: rgba(37, 99, 235, 0.26); }
+        .qty-stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .qty-stepper span { min-width: 44px; text-align: center; font-weight: 800; font-size: 20px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 
         .coupon-box { display: flex; gap: 10px; margin-bottom: 8px; }
         .coupon-box input { 
@@ -2446,14 +2465,27 @@
 
             <!-- STEP 1: Details and Promo Code -->
             <div id="chkStep1">
-                <div class="checkout-summary">
-                    <img id="chkImg" class="checkout-img" src="" alt="Item">
-                    <div style="flex: 1;">
-                        <div id="chkTitle" style="font-weight:600; font-size:14px; margin-bottom:4px; color:var(--text-primary);"></div>
-                        <div id="chkType" style="font-size:12px; color:var(--text-secondary);"></div>
+                <div class="checkout-summary chk-card">
+                    <div class="chk-card-top">
+                        <div class="chk-card-icon">
+                            <i id="chkIcon" class="fas fa-star"></i>
+                            <img id="chkImg" class="checkout-img" src="" alt="Item">
+                        </div>
+                        <div class="chk-card-info">
+                            <div id="chkType" class="chk-card-sub"></div>
+                            <div id="chkTitle" class="chk-card-title"></div>
+                        </div>
                     </div>
-                    <div style="text-align:right;">
-                        <div id="chkPrice" style="font-weight:700; color:var(--text-primary); font-size:16px;"></div>
+                    <div class="chk-card-bottom">
+                        <div class="chk-card-price">
+                            <span id="chkPrice" class="chk-card-price-amt"></span>
+                            <span id="chkPriceNote" class="chk-card-price-note"></span>
+                        </div>
+                        <div id="chkQtyRow" class="qty-stepper" style="display:none;">
+                            <button type="button" id="chkQtyMinus" onclick="chkQtyChange(-1)" aria-label="Decrease quantity"><i class="fas fa-minus"></i></button>
+                            <span id="chkQtyValue">1</span>
+                            <button type="button" id="chkQtyPlus" onclick="chkQtyChange(1)" aria-label="Increase quantity"><i class="fas fa-plus"></i></button>
+                        </div>
                     </div>
                 </div>
 
@@ -3321,6 +3353,104 @@
 
     let currentUser = null; let _authReady = false; let productsData = {}; let subsData = {}; let activeSubscriptions = {}; 
     let couponsData = {}; let checkoutItem = null; let checkoutFinalAmt = 0; let appliedCouponKey = null; let notificationsBound = false;
+
+    // ── Checkout quantity stepper ───────────────────────────────────────────
+    // Each "+" adds the service's base quantity (1000 -> 2000 -> 3000 ...) and
+    // multiplies the price by the same factor. checkoutItem is a working COPY of
+    // the catalog item, so title / quantity / discountedPrice are updated on the
+    // copy and every downstream step (QR amount, wallet debit, order record,
+    // provider API quantity, notifications) automatically uses the new values.
+    const CHK_QTY_MAX_MULT = 100;   // max quantity = base quantity x 100
+    let chkQtyMult = 1;
+    let chkQtyBase = null;          // { title, quantityRaw, qty, priceRaw, price } of the un-scaled service
+
+    function chkFmtNum(n) { return Number(n).toLocaleString('en-IN'); }
+    function chkQtyEligible(item, isFree) {
+        return !!item && item.purchaseType === 'product' && !isFree && !item.customComments
+            && parseInt(item.quantity, 10) > 0 && parseFloat(item.discountedPrice) > 0;
+    }
+    function chkQtySetBase(item) {
+        chkQtyBase = {
+            title: item.title,
+            quantityRaw: item.quantity, qty: parseInt(item.quantity, 10),
+            priceRaw: item.discountedPrice, price: parseFloat(item.discountedPrice)
+        };
+        chkQtyMult = 1;
+    }
+    // "1000 Reels Views" -> "2000 Reels Views" (also handles 1,000 / 1K style titles);
+    // if the title has no quantity in it, falls back to "<title> ×N".
+    function chkQtyTitle(baseTitle, baseQty, newQty, mult) {
+        const title = String(baseTitle || '');
+        const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const forms = [];
+        if (baseQty >= 1000) {   // comma-formatted titles: 1,000 -> 2,000
+            forms.push({ re: esc(baseQty.toLocaleString('en-US')), out: () => newQty.toLocaleString('en-US') });
+            forms.push({ re: esc(baseQty.toLocaleString('en-IN')), out: () => newQty.toLocaleString('en-IN') });
+        }
+        forms.push({ re: esc(String(baseQty)), out: () => String(newQty) });
+        if (baseQty >= 1000) forms.push({ re: esc(String(baseQty / 1000)) + '([kK])', out: (m) => String(newQty / 1000) + m[2] });
+        for (const f of forms) {
+            const rx = new RegExp('(^|[^\\d,.])' + f.re + '(?![\\d,])');
+            const m = title.match(rx);
+            if (m) return title.replace(rx, (all, pre, suffix) => pre + f.out([all, pre, suffix]));
+        }
+        return title + ' ×' + mult;
+    }
+    // Applies the current multiplier to `item` and returns the new price.
+    function chkQtyMutateItem(item) {
+        const b = chkQtyBase; if (!b || !item) return 0;
+        const m = chkQtyMult, qty = b.qty * m, price = +(b.price * m).toFixed(2);
+        if (m === 1) { item.quantity = b.quantityRaw; item.discountedPrice = b.priceRaw; item.title = b.title; return price; }
+        item.quantity = (typeof b.quantityRaw === 'string') ? String(qty) : qty;
+        item.discountedPrice = (typeof b.priceRaw === 'string') ? String(price) : price;
+        item.title = chkQtyTitle(b.title, b.qty, qty, m);
+        return price;
+    }
+    function chkTypeText(item, isFree) {
+        if (isFree) return '🎁 Free Service · Daily Claim';
+        if (item.purchaseType === 'exclusive_pack') return '⭐ Exclusive Pack';
+        if (item.purchaseType === 'product') return [item.category, item.subCategory].filter(Boolean).join(' · ') || 'Digital Service';
+        return `${item.duration} Days Subscription`;
+    }
+    // Card icon (platform logo when there is no image) + the small note next to the price
+    function chkSetCardMeta(item, isFree) {
+        const icon = document.getElementById('chkIcon');
+        if (icon) {
+            let cls = 'fas fa-star';
+            if (item.purchaseType === 'product') cls = ((window._categoryIconMap || {})[item.category] || window._defaultCategoryIcon || { icon: cls }).icon;
+            else if (item.purchaseType === 'exclusive_pack') cls = 'fas fa-crown';
+            else if (item.purchaseType === 'subscription') cls = 'fas fa-gem';
+            icon.className = cls;
+        }
+        const note = document.getElementById('chkPriceNote');
+        if (note) note.textContent = isFree ? '' : (item.purchaseType === 'subscription' ? `for ${item.duration} days` : 'one-time');
+    }
+    function chkQtyRender() {
+        const row = document.getElementById('chkQtyRow'); if (!row) return;
+        if (!chkQtyBase) { row.style.display = 'none'; return; }
+        row.style.display = 'flex';
+        document.getElementById('chkQtyValue').textContent = chkQtyMult;   // shows 1, 2, 3 ... (base quantity is not shown)
+        document.getElementById('chkQtyMinus').disabled = chkQtyMult <= 1;
+        document.getElementById('chkQtyPlus').disabled  = chkQtyMult >= CHK_QTY_MAX_MULT;
+    }
+    window.chkQtyChange = (delta) => {
+        if (!chkQtyBase || !checkoutItem) return;
+        const next = Math.max(1, Math.min(CHK_QTY_MAX_MULT, chkQtyMult + delta));
+        if (next === chkQtyMult) return;
+        chkQtyMult = next;
+        checkoutFinalAmt = chkQtyMutateItem(checkoutItem);
+        appliedCouponKey = null;   // price changed -> any applied coupon is cleared
+        const ci = document.getElementById('chkCouponInput'); if (ci) ci.value = '';
+        const cm = document.getElementById('chkCouponMsg');   if (cm) cm.textContent = '';
+        const setTxt = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+        setTxt('chkTitle', checkoutItem.title);
+        setTxt('chkPrice', `₹${(+checkoutFinalAmt).toFixed(2)}`);
+        setTxt('chkFinalPrice', `₹${(+checkoutFinalAmt).toFixed(2)}`);
+        setTxt('chkPayAmt', `₹${(+checkoutFinalAmt).toFixed(2)}`);
+        chkQtyRender();
+        if (currentOrderId) updateQRCode(checkoutFinalAmt, currentOrderId);
+        pgwSnapshotChk();
+    };
     let currentCatView = { level: 0, cat: '', subCat: '' };
     let walletBalance = 0; let wfAmount = 0; let wfOrderId = '';
     let linkMgmtRules = {};
@@ -3389,6 +3519,7 @@
             itemId: checkoutItem.id,
             itemType: checkoutItem.purchaseType,
             appliedCouponKey,
+            qtyMult: chkQtyBase ? chkQtyMult : 1,
             targetLink:  val('chkLinkInput'),
             targetLink2: val('chkLinkInput2'),
             targetLink3: val('chkLinkInput3'),
@@ -3453,6 +3584,12 @@
                 if(!found) { pgwClearSession(); return; }
                 item = { ...found, id: data.itemId, purchaseType: data.itemType };
             }
+            if (item.purchaseType === 'product' && chkQtyEligible(item, false)) {
+                chkQtySetBase(item);
+                const _qm = Math.min(CHK_QTY_MAX_MULT, Math.max(1, parseInt(data.qtyMult, 10) || 1));
+                if (_qm > 1) { chkQtyMult = _qm; chkQtyMutateItem(item); }
+            } else { chkQtyBase = null; chkQtyMult = 1; }
+            chkQtyRender();
             checkoutItem = item;
             checkoutFinalAmt = parseFloat(data.amount) || 0;
             appliedCouponKey = data.appliedCouponKey || null;
@@ -3463,9 +3600,10 @@
             if(imgEl) { if(item.imageUrl) { imgEl.src = item.imageUrl; imgEl.style.display = 'block'; } else { imgEl.style.display = 'none'; } }
             const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
             setTxt('chkTitle', item.title || item.planName || item.packName || '');
-            setTxt('chkPrice', `₹${checkoutFinalAmt}`);
-            setTxt('chkFinalPrice', `₹${checkoutFinalAmt}`);
-            setTxt('chkPayAmt', `₹${checkoutFinalAmt}`);
+            setTxt('chkType', chkTypeText(item, false)); chkSetCardMeta(item, false);
+            setTxt('chkPrice', `₹${(+checkoutFinalAmt).toFixed(2)}`);
+            setTxt('chkFinalPrice', `₹${(+checkoutFinalAmt).toFixed(2)}`);
+            setTxt('chkPayAmt', `₹${(+checkoutFinalAmt).toFixed(2)}`);
             const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
             setVal('chkLinkInput', data.targetLink);
             setVal('chkLinkInput2', data.targetLink2);
@@ -6232,15 +6370,16 @@
         };
         checkoutFinalAmt = parseFloat(pack.price);
         appliedCouponKey = null;
+        chkQtyBase = null; chkQtyMult = 1; chkQtyRender();
 
         // Populate checkout modal
         const imgEl = document.getElementById('chkImg');
         if (imgEl) imgEl.style.display = 'none';
         document.getElementById('chkTitle').textContent = pack.packName || pack.planName;
-        document.getElementById('chkType').textContent = '⭐ Exclusive Pack';
-        document.getElementById('chkPrice').textContent = `₹${checkoutFinalAmt}`;
-        document.getElementById('chkFinalPrice').textContent = `₹${checkoutFinalAmt}`;
-        document.getElementById('chkPayAmt').textContent = `₹${checkoutFinalAmt}`;
+        document.getElementById('chkType').textContent = '⭐ Exclusive Pack'; chkSetCardMeta(checkoutItem, false);
+        document.getElementById('chkPrice').textContent = `₹${(+checkoutFinalAmt).toFixed(2)}`;
+        document.getElementById('chkFinalPrice').textContent = `₹${(+checkoutFinalAmt).toFixed(2)}`;
+        document.getElementById('chkPayAmt').textContent = `₹${(+checkoutFinalAmt).toFixed(2)}`;
         document.getElementById('chkCouponInput').value = '';
         document.getElementById('chkCouponMsg').textContent = '';
 
@@ -7089,7 +7228,9 @@
 
     window.initCheckout = (id, type) => { 
         if(!currentUser) { showToast('Please login to purchase!'); switchTab('profileTab'); return; }
-        checkoutItem = type === 'product' ? productsData[id] : subsData[id]; if(!checkoutItem) return showToast('Item unavailable');
+        const _srcItem = type === 'product' ? productsData[id] : subsData[id]; if(!_srcItem) return showToast('Item unavailable');
+        _srcItem.id = id; _srcItem.purchaseType = type;
+        checkoutItem = { ..._srcItem };   // working copy: quantity stepper edits this, never the catalog item
         if(type === 'product' && checkoutItem.isActive === false) return showToast('⚠️ This service is currently unavailable');
         checkoutItem.id = id; checkoutItem.purchaseType = type; checkoutFinalAmt = (type === 'product' && checkoutItem.customComments) ? 0 : (type === 'product' ? parseFloat(checkoutItem.discountedPrice) : parseFloat(checkoutItem.price)); appliedCouponKey = null;
 
@@ -7133,10 +7274,13 @@
     function _openCheckoutModal(id, type, isFreeService) {
         const imgEl = document.getElementById('chkImg'); if(checkoutItem.imageUrl) { imgEl.src = checkoutItem.imageUrl; imgEl.style.display = 'block'; } else { imgEl.style.display = 'none'; }
         document.getElementById('chkTitle').textContent = checkoutItem.title || checkoutItem.planName; 
-        document.getElementById('chkType').textContent = isFreeService ? '🎁 Free Service · Daily Claim' : (type === 'product' ? 'Digital Service' : `${checkoutItem.duration} Days Subscription`); 
-        document.getElementById('chkPrice').textContent = isFreeService ? 'FREE' : `₹${checkoutFinalAmt}`; 
-        document.getElementById('chkFinalPrice').textContent = isFreeService ? 'FREE' : `₹${checkoutFinalAmt}`; 
-        document.getElementById('chkPayAmt').textContent = isFreeService ? 'FREE' : `₹${checkoutFinalAmt}`;
+        document.getElementById('chkType').textContent = chkTypeText(checkoutItem, isFreeService); chkSetCardMeta(checkoutItem, isFreeService);
+        document.getElementById('chkPrice').textContent = isFreeService ? 'FREE' : `₹${(+checkoutFinalAmt).toFixed(2)}`; 
+        document.getElementById('chkFinalPrice').textContent = isFreeService ? 'FREE' : `₹${(+checkoutFinalAmt).toFixed(2)}`; 
+        document.getElementById('chkPayAmt').textContent = isFreeService ? 'FREE' : `₹${(+checkoutFinalAmt).toFixed(2)}`;
+        // Quantity stepper — only for paid, fixed-quantity services
+        if (chkQtyEligible(checkoutItem, isFreeService)) chkQtySetBase(checkoutItem); else { chkQtyBase = null; chkQtyMult = 1; }
+        chkQtyRender();
         document.getElementById('chkCouponInput').value = ''; document.getElementById('chkCouponMsg').textContent = ''; document.getElementById('chkLinkInput').value = ''; document.getElementById('chkLinkInput2').value = ''; document.getElementById('chkLinkInput3').value = ''; document.getElementById('chkLinkInput4').value = ''; document.getElementById('chkLinkInput5').value = ''; document.getElementById('chkPollInput').value = '';
 
         // Free service — hide payment/coupon/wallet, change button
