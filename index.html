@@ -1689,8 +1689,6 @@
                     <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom: 15px; display:flex; justify-content:center; align-items:center; gap:8px;">
                         <i class="fas fa-qrcode" style="font-size:16px;"></i><span>Scan to pay via Any UPI App</span>
                     </div>
-                    <div class="upi-text" id="cartUpiId" title="Click to copy" style="font-size: 14px;">Paytmqr6i3w0w@ptys</div>
-                    <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 12px;">Tap UPI ID to copy</div>
                     <div style="background: rgba(225, 29, 72, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed rgba(225, 29, 72, 0.3);">
                         Order Ref ID: <b id="cartOrderIdDisplay" style="color:var(--accent-pink); font-family:monospace; font-size:15px; letter-spacing:1px;"></b>
                         <div style="font-size:10px; margin-top:4px; color:var(--text-secondary);">* Do not change amount while paying</div>
@@ -2419,8 +2417,6 @@
                     <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom: 15px; display:flex; justify-content:center; align-items:center; gap:8px;">
                         <i class="fas fa-qrcode" style="font-size:16px;"></i><span>Scan to pay via Any UPI App</span>
                     </div>
-                    <div class="upi-text" id="wfUpiId" title="Click to copy" style="font-size: 14px;">Paytmqr6i3w0w@ptys</div>
-                    <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 12px;">Tap UPI ID to copy</div>
                     <div style="background: rgba(225, 29, 72, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed rgba(225, 29, 72, 0.3);">
                         Ref ID: <b id="wfOrderIdDisplay" style="color:var(--accent-pink); font-family:monospace; font-size:15px; letter-spacing:1px;"></b>
                         <div style="font-size:10px; margin-top:4px; color:var(--text-secondary);">* Do not change amount while paying</div>
@@ -2506,8 +2502,6 @@
                         <span>Scan to pay via Any UPI App</span>
                     </div>
 
-                    <div class="upi-text" id="chkUpiId" title="Click to copy" style="font-size: 14px;">Paytmqr6i3w0w@ptys</div>
-                    <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 12px;">Tap UPI ID to copy</div>
 
                     <div style="background: rgba(225, 29, 72, 0.05); padding: 10px; border-radius: 8px; border: 1px dashed rgba(225, 29, 72, 0.3);">
                         Order Ref ID: <b id="chkOrderIdDisplay" style="color:var(--accent-pink); font-family:monospace; font-size:15px; letter-spacing:1px;"></b>
@@ -3510,7 +3504,6 @@
             wfOrderId = data.orderId;
             const upiId = "Paytmqr6i3w0w@ptys";
             const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
-            setTxt('wfUpiId', upiId);
             setTxt('wfPayAmt', `₹${wfAmount.toFixed(2)}`);
             setTxt('wfOrderIdDisplay', wfOrderId);
             const upiStr = `upi://pay?pa=${upiId}&pn=${encodeURIComponent("SACHIN SAYSING RAUT")}&am=${wfAmount}&cu=INR&tr=${wfOrderId}`;
@@ -3533,7 +3526,6 @@
 
             const upiId = "Paytmqr6i3w0w@ptys";
             const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
-            setTxt('cartUpiId', upiId);
             setTxt('cartPayAmt', `₹${cartFinalAmt.toFixed(2)}`);
             setTxt('cartOrderIdDisplay', cartOrderId);
             const upiStr = `upi://pay?pa=${upiId}&pn=${encodeURIComponent("SACHIN SAYSING RAUT")}&am=${cartFinalAmt}&cu=INR&tr=${cartOrderId}`;
@@ -5930,13 +5922,6 @@
         document.getElementById('afTotalVal').textContent   = fmt(amount);
     }
 
-    document.getElementById('wfUpiId').addEventListener('click', () => {
-        const t = document.getElementById('wfUpiId').textContent;
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(t).then(() => showToast('UPI ID Copied!')).catch(() => showToast('Copied!'));
-        }
-    });
-
     window.goToWfStep2 = () => {
         wfAmount = parseFloat(document.getElementById('wfAmountInput').value);
         const inp = document.getElementById('wfAmountInput');
@@ -5953,7 +5938,6 @@
         inp.classList.add('input-success');
         wfOrderId = generateUTR(12);
         const upiId = "Paytmqr6i3w0w@ptys";
-        document.getElementById('wfUpiId').textContent     = upiId;
         document.getElementById('wfPayAmt').textContent    = `₹${wfAmount.toFixed(2)}`;
         document.getElementById('wfOrderIdDisplay').textContent = wfOrderId;
         const upiStr = `upi://pay?pa=${upiId}&pn=${encodeURIComponent("SACHIN SAYSING RAUT")}&am=${wfAmount}&cu=INR&tr=${wfOrderId}`;
@@ -7094,7 +7078,6 @@
     window.updateQRCode = (amount, orderId) => {
         const upiId = "Paytmqr6i3w0w@ptys"; 
         const upiName = "SACHIN SAYSING RAUT"; 
-        document.getElementById('chkUpiId').textContent = upiId;
 
         const upiString = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${amount}&cu=INR&tr=${orderId}`;
         const qrImg = document.getElementById('dynamic-qr');
@@ -7847,10 +7830,6 @@
         const textArea = document.createElement("textarea"); textArea.value = text; textArea.style.position = "fixed"; textArea.style.left = "-999999px"; textArea.style.top = "-999999px"; document.body.appendChild(textArea); textArea.focus(); textArea.select();
         try { const success = document.execCommand('copy'); if(success) showToast('UPI ID Copied!'); else showToast('Failed to copy'); } catch (err) { showToast('Failed to copy'); } textArea.remove();
     }
-    document.getElementById('chkUpiId').addEventListener('click', () => {
-        const upiText = document.getElementById('chkUpiId').textContent;
-        if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(upiText).then(() => showToast('UPI ID Copied!')).catch(() => fallbackCopyText(upiText)); } else { fallbackCopyText(upiText); }
-    });
 
     // ── CART SYSTEM ────────────────────────────────────────────────────────
     let cart = []; // [{id, product, link, couponDiscount}]
@@ -7987,7 +7966,6 @@
 
         cartOrderId = generateUTR(12);
         const upiId = "Paytmqr6i3w0w@ptys";
-        document.getElementById('cartUpiId').textContent = upiId;
         document.getElementById('cartPayAmt').textContent = `₹${cartFinalAmt.toFixed(2)}`;
         document.getElementById('cartOrderIdDisplay').textContent = cartOrderId;
         const upiStr = `upi://pay?pa=${upiId}&pn=${encodeURIComponent("SACHIN SAYSING RAUT")}&am=${cartFinalAmt}&cu=INR&tr=${cartOrderId}`;
@@ -7999,10 +7977,6 @@
         // Pre-warm proxies so verification is instant
         prewarmDualEngines('PREWARM');
     };
-    document.getElementById('cartUpiId').addEventListener('click', () => {
-        const t = document.getElementById('cartUpiId').textContent;
-        if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(() => showToast('UPI ID Copied!'));
-    });
 
     window.confirmCartPurchase = async () => {
         if (_guardOrder()) return;
