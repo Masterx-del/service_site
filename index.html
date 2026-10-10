@@ -5061,7 +5061,7 @@
     function bindRealTimeNotifications(uid) { 
         if(notificationsBound) return; notificationsBound = true;
         const userOrdersQuery = query(ref(activeDb(), 'orders'), orderByChild('userId'), equalTo(uid));
-        onChildChanged(userOrdersQuery, (snap) => { const o = snap.val(); if(o && o.status) { notifyLive(`🔔 Order #${snap.key.slice(-6).toUpperCase()} is now ${o.status.toUpperCase()}`); } });
+        onChildChanged(userOrdersQuery, (snap) => { const o = snap.val(); if(o && o.status) { notifyLive(`🔔 Order ${fmtOrderId(snap.key,o)} is now ${o.status.toUpperCase()}`); } });
     }
 
     function bindAdminMessageNotification(uid) {
@@ -6455,6 +6455,9 @@
             ...gatewayMeta,
         };
         const packOrderRef = push(ref(activeDb(), 'orders'));
+        const _packNo = (parseFloat(finalAmt) > 0) ? await getNextOrderNo() : null;
+        if (_packNo) packOrderData.orderNo = _packNo;
+        window._lastPackOrderNo = _packNo;
         await set(packOrderRef, packOrderData);
         orderIds.push(packOrderRef.key);
 
@@ -6958,7 +6961,7 @@
                         _cardDiv.style.animationDelay = (arr.indexOf(o) * 60) + 'ms';
                         _cardDiv.innerHTML = `
                                 <div class="order-header">
-                                    <span>Order ID: #${o.id.slice(-6).toUpperCase()}</span>
+                                    <span>Order ID: ${fmtOrderId(o.id,o)}</span>
                                     ${statusBadge}
                                 </div>
                                 <div class="order-info">
@@ -7025,7 +7028,7 @@
                 _oCard.style.animationDelay = (arr.indexOf(o) * 60) + 'ms';
                 _oCard.innerHTML = `
                         <div class="order-header">
-                            <span>Order ID: #${o.id.slice(-6).toUpperCase()}</span>
+                            <span>Order ID: ${fmtOrderId(o.id,o)}</span>
                             ${statusBadge}
                         </div>
                         <div class="order-info">
@@ -7150,6 +7153,20 @@
 
         input.value = '';
     });
+
+    // ── Sequential 5-digit order numbers (paid orders only) ──
+    async function getNextOrderNo() {
+        try {
+            const res = await runTransaction(ref(activeDb(), 'meta/orderCounter'), c => (typeof c === 'number' ? c : 0) + 1);
+            if (res.committed && typeof res.snapshot.val() === 'number') return res.snapshot.val();
+        } catch (e) { console.warn('orderCounter unavailable, using legacy ID', e); }
+        return null;
+    }
+    function fmtOrderId(id, o) {
+        return (o && o.orderNo) ? '#' + String(o.orderNo).padStart(5, '0') : '#' + String(id).slice(-6).toUpperCase();
+    }
+    window.getNextOrderNo = getNextOrderNo;
+    window.fmtOrderId = fmtOrderId;
 
     function generateUTR(length = 12) {
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -7432,7 +7449,7 @@
                     amount: checkoutFinalAmt.toFixed(2),
                     product: checkoutItem.title,
                     utr, link: reelLink,
-                    orderId: packOrderKey.slice(-6).toUpperCase(),
+                    orderId: (window._lastPackOrderNo ? String(window._lastPackOrderNo).padStart(5,'0') : packOrderKey.slice(-6).toUpperCase()),
                     method: 'UPI', status: 'progress',
                     isExclusivePack: true,
                     serviceCount: (checkoutItem.selectedServices || []).length,
@@ -7533,6 +7550,7 @@
             };
 
             const newOrderRef = push(ref(activeDb(), 'orders'));
+            const _no1 = await getNextOrderNo(); if (_no1) orderData.orderNo = _no1;
             const writes = [set(newOrderRef, orderData)];
             if (appliedCouponKey) {
                 writes.push(update(ref(activeDb(), `coupons/${appliedCouponKey}`), {
@@ -7549,7 +7567,7 @@
                 amount: checkoutFinalAmt.toFixed(2),
                 product: checkoutItem.title || checkoutItem.planName || 'Service',
                 utr, link: targetLink || null,
-                orderId: newOrderRef.key.slice(-6).toUpperCase(),
+                orderId: fmtOrderId(newOrderRef.key, orderData).slice(1),
                 method: 'UPI', status: orderData.status,
                 notifyMsg: '✅ Payment Verified & Order Placed Successfully!'
             });
@@ -7598,7 +7616,7 @@
                     amount: checkoutFinalAmt.toFixed(2),
                     product: checkoutItem.title,
                     utr, link: reelLink,
-                    orderId: packOrderKey.slice(-6).toUpperCase(),
+                    orderId: (window._lastPackOrderNo ? String(window._lastPackOrderNo).padStart(5,'0') : packOrderKey.slice(-6).toUpperCase()),
                     method: 'Wallet', status: 'progress',
                     isExclusivePack: true,
                     serviceCount: (checkoutItem.selectedServices || []).length,
@@ -7687,6 +7705,7 @@
             };
 
             const newOrderRef = push(ref(activeDb(), 'orders'));
+            const _no2 = await getNextOrderNo(); if (_no2) orderData.orderNo = _no2;
 
             // Fire all Firebase writes IN PARALLEL — much faster than sequential awaits
             await Promise.all([
@@ -7709,7 +7728,7 @@
                     product: checkoutItem.title || checkoutItem.planName || 'Service',
                     utr: utr,
                     link: targetLink || null,
-                    orderId: newOrderRef.key.slice(-6).toUpperCase(),
+                    orderId: fmtOrderId(newOrderRef.key, orderData).slice(1),
                     method: 'Wallet',
                     status: orderData.status,
                     notifyMsg: '✅ Wallet Payment Successful! Order Placed.'
@@ -8160,7 +8179,7 @@
                     ...gatewayMeta,
                 };
                 const newOrderRef = push(ref(activeDb(), 'orders'));
-                return set(newOrderRef, orderData).then(() => {
+                return getNextOrderNo().then(no => { if (no) orderData.orderNo = no; return set(newOrderRef, orderData); }).then(() => {
                     if (hasApi) callExternalApi(newOrderRef.key, item.product.apiUrl, item.product.apiKey,
                         item.product.serviceId, item.product.quantity, item.link);
                     return newOrderRef;
@@ -8245,6 +8264,7 @@
                 };
 
                 const newOrderRef = push(ref(activeDb(), 'orders'));
+                const _no4 = await getNextOrderNo(); if (_no4) orderData.orderNo = _no4;
                 await set(newOrderRef, orderData);
 
                 // Background API call for cart wallet items (atomic lock — prevents double SMM order)
