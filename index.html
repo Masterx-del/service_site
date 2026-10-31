@@ -6093,6 +6093,41 @@
         document.getElementById('afStep1').style.display = 'block';
     };
 
+    // ── ATOMIC ONE-TIME WALLET CREDIT (fixes double credit for same UTR) ──
+    // Pehla caller UTR claim karta hai, baaki sab (confirmWalletPayment / resumePendingVerification)
+    // false return karte hain aur dobara credit nahi karte.
+    async function creditWalletOnce(uid, utr, paidVal, note, gatewayMeta) {
+        const claimRef = ref(activeDb(), `users/${uid}/paymentClaims/${utr}`);
+        const claim = await runTransaction(claimRef, (cur) => {
+            if (cur !== null) return;            // already claimed -> abort
+            return { at: Date.now(), note };
+        });
+        if (!claim.committed) return false;      // doosre path ne already credit kar diya
+        try {
+            await runTransaction(ref(activeDb(), `users/${uid}/profile/walletBalance`),
+                (bal) => (parseFloat(bal) || 0) + paidVal);
+        } catch(err) {
+            await remove(claimRef).catch(()=>{});  // credit fail hua to claim wapas, retry possible
+            throw err;
+        }
+        const u = currentUser || {};
+        await Promise.all([
+            push(ref(activeDb(), `users/${uid}/walletHistory`), {
+                type: 'credit', amount: paidVal, note, utrId: utr,
+                createdAt: new Date().toISOString(), ...(gatewayMeta || {})
+            }),
+            push(ref(activeDb(), 'orders'), {
+                userId: uid, userEmail: u.email || null,
+                userName: (u.displayName || u.email || 'Guest'),
+                utrId: utr, finalAmount: paidVal.toFixed(2),
+                type: 'wallet_topup', status: 'completed',
+                createdAt: serverTimestamp(), ...(gatewayMeta || {})
+            }),
+            remove(ref(activeDb(), `users/${uid}/pendingVerification`)),
+        ]);
+        return true;
+    }
+
     let _wfVerifyInProgress = false;
     window.confirmWalletPayment = async () => {
         if (_wfVerifyInProgress) return showToast('⏳ Verification in progress...');
@@ -6137,23 +6172,15 @@
                 return showToast(`❌ Amount mismatch! Required ₹${wfAmount}, paid ₹${paidVal}`);
             }
 
-            // ── Step 3: Wallet credit — all writes in parallel ──
-            const newBal = walletBalance + paidVal;
-            await Promise.all([
-                update(ref(activeDb(), `users/${currentUser.uid}/profile`), { walletBalance: newBal }),
-                push(ref(activeDb(), `users/${currentUser.uid}/walletHistory`), {
-                    type: 'credit', amount: paidVal, note: 'Wallet Top-Up',
-                    utrId: utr, createdAt: new Date().toISOString(), ...gatewayMeta
-                }),
-                push(ref(activeDb(), 'orders'), {
-                    userId: currentUser.uid, userEmail: currentUser.email,
-                    userName: (currentUser.displayName || currentUser.email || 'Guest'),
-                    utrId: utr, finalAmount: paidVal.toFixed(2),
-                    type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp(),
-                    ...gatewayMeta
-                }),
-                remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)),
-            ]);
+            // ── Step 3: Wallet credit — atomic, sirf ek baar per UTR ──
+            const credited = await creditWalletOnce(currentUser.uid, utr, paidVal, 'Wallet Top-Up', gatewayMeta);
+            if(!credited) {
+                pgwClearSessionIfFlow('wf');
+                remove(ref(activeDb(), `users/${currentUser.uid}/pendingVerification`)).catch(()=>{});
+                hidePayVerify(); _wfVerifyInProgress = false;
+                closeWalletFund();
+                return showToast('✅ Payment already credited to your wallet.', 'success');
+            }
 
             // Telegram notification (non-blocking)
             (async()=>{ try {
@@ -6188,6 +6215,7 @@
     // If user closed browser mid-payment, this picks up and completes it safely
     async function resumePendingVerification(uid) {
         try {
+            if(_wfVerifyInProgress) return; // manual/auto verify already running
             const pendSnap = await get(ref(activeDb(), `users/${uid}/pendingVerification`));
             if(!pendSnap.exists()) return;
             const pend = pendSnap.val();
@@ -6222,13 +6250,9 @@
                 return;
             }
 
-            // Credit wallet
-            const profSnap = await get(ref(activeDb(), `users/${uid}/profile`));
-            const curBal = parseFloat(profSnap.exists() ? (profSnap.val().walletBalance || 0) : 0);
-            await update(ref(activeDb(), `users/${uid}/profile`), { walletBalance: curBal + paidVal });
-            await push(ref(activeDb(), `users/${uid}/walletHistory`), { type: 'credit', amount: paidVal, note: 'Wallet Top-Up (Auto-Resumed)', utrId: utr, createdAt: new Date().toISOString(), ...gatewayMeta });
-            await push(ref(activeDb(), 'orders'), { userId: uid, userEmail: currentUser.email, userName: (currentUser.displayName || currentUser.email || 'Guest'), utrId: utr, finalAmount: paidVal.toFixed(2), type: 'wallet_topup', status: 'completed', createdAt: serverTimestamp(), ...gatewayMeta });
-            await remove(ref(activeDb(), `users/${uid}/pendingVerification`));
+            // Credit wallet — atomic, sirf ek baar per UTR
+            const credited = await creditWalletOnce(uid, utr, paidVal, 'Wallet Top-Up (Auto-Resumed)', gatewayMeta);
+            if(!credited) return; // confirmWalletPayment ne already credit kar diya
 
             showToast(`✅ ₹${paidVal.toFixed(2)} credited! (Resumed from last session)`, 'success');
         } catch(e) {}
